@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Кофейня на высоте</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -12 86 68'%3E%3Cpath d='M4 40 L26 10 L38 26 L48 14 L62 32' fill='none' stroke='%23c9974e' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M52 40 L66 20 L82 40' fill='none' stroke='%23c9974e' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#120e0b}
+a{color:#d9bc8c;text-decoration:none}a:hover{color:#ecd9b4}
+input::placeholder{color:var(--dim);opacity:.8}
+::-webkit-scrollbar{width:0;height:0}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.09)}}
+/* из макета Glass */
+@keyframes rise{from{opacity:0;transform:translateY(46px) scale(.97)}to{opacity:1;transform:none}}
+/* pop для отцентрованного круга: собственный transform нельзя терять */
+@keyframes popc{0%{transform:translate(-50%,-50%) scale(.7);opacity:0}70%{transform:translate(-50%,-50%) scale(1.05)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+@keyframes sheet{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
+@keyframes zoomIn{from{transform:scale(1.1)}to{transform:scale(1)}}
+
+/* Стеклянные поверхности: панели задают фон через var(--card), поэтому размытие
+   подложки навешивается одним правилом, а не правкой каждого инлайнового стиля. */
+#app [style*="var(--card)"],#app [style*="var(--navbg)"]{-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+
+/* hover/active-состояния (перенос style-hover / style-active из макета) */
+@media (hover:hover){
+.h-gold:hover{border-color:rgba(217,188,140,.5)!important}
+.h-goldb2:hover{border-color:rgba(217,188,140,.7)!important}
+.h-nav:hover{background:var(--hov)!important;color:var(--goldT)!important}
+.h-redbg:hover{background:rgba(224,138,122,.1)!important}
+.h-cream:hover{color:#ecd9b4!important}
+.h-goldc:hover{color:#d9bc8c!important}
+.h-goldbg:hover{background:rgba(217,188,140,.12)!important}
+.h-red:hover{color:#e08a7a!important}
+.h-red2:hover{color:#e08a7a!important}
+.h-del:hover{color:#e08a7a!important;border-color:#e08a7a!important}
+.h-addcard:hover{border-color:rgba(217,188,140,.5)!important;background:rgba(217,188,140,.07)!important}
+}
+/* Одноколоночные списки не должны растягиваться по самому широкому элементу:
+   сетки со своей grid-template-columns (инлайн) это правило не перебивает. */
+#app [style*="display:grid"]{grid-template-columns:minmax(0,1fr)}
+/* Сверхдлинное слово (например, название товара от бариста) переносится,
+   а не выходит за рамку. На обычный текст не влияет. */
+#app{overflow-wrap:anywhere}
+
+.a90:active{transform:scale(.9)!important}
+.a92:active{transform:scale(.92)!important}
+.a94:active{transform:scale(.94)!important}
+.a95:active{transform:scale(.95)!important}
+.a96:active{transform:scale(.96)!important}
+.a97:active{transform:scale(.97)!important}
+.a98:active{transform:scale(.98)!important}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+(() => {
+
+// ===================== данные =====================
+const U = id => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=600&q=70`;
+const M = [
+  {id:'esp',cat:'coffee',n:'Эспрессо',v:'30 мл',p:120,img:U('photo-1510707577719-ae7c14805e3a'),d:'Плотный шот на свежей обжарке'},
+  {id:'amer',cat:'coffee',n:'Американо',v:'200 мл',p:150,img:U('photo-1551030173-122aabc4489c'),d:'Классика на каждый день',sz:1},
+  {id:'cap',cat:'coffee',n:'Капучино',v:'200 мл',p:200,img:U('photo-1572442388796-11668a67e53d'),d:'Классический капучино на основе эспрессо с молочной пеной',sz:1},
+  {id:'lat',cat:'coffee',n:'Латте',v:'300 мл',p:200,img:U('photo-1541167760496-1628856ab772'),d:'Нежный, с шелковистой пеной',sz:1},
+  {id:'flat',cat:'coffee',n:'Флэт уайт',v:'200 мл',p:200,img:U('photo-1497935586351-b67a49e012bf'),d:'Двойной шот и бархатное молоко',sz:1},
+  {id:'raf',cat:'coffee',n:'Раф классический',v:'300 мл',p:220,img:U('photo-1512568400610-62da28bc8a13'),d:'Сливки, ваниль, двойной шот',sz:1},
+  {id:'ice',cat:'drinks',n:'Айс латте',v:'300 мл',p:220,img:U('photo-1517959105821-eaf2591984ca'),d:'Холодный латте со льдом',sz:1},
+  {id:'lemon',cat:'drinks',n:'Лимонад домашний',v:'400 мл',p:180,img:U('photo-1513558161293-cdaf765ed2fd'),d:'Цитрус, мята, лёд'},
+  {id:'tea',cat:'drinks',n:'Чай манго',v:'400 мл',p:250,img:U('photo-1576092768241-dec231879fc3'),d:'Согревающий, с кусочками манго'},
+  {id:'cheese',cat:'dessert',n:'Чизкейк',v:'280 г',p:250,img:U('photo-1524351199678-941a58a3df50'),d:'Нью-Йорк, ягодный соус'},
+  {id:'honey',cat:'dessert',n:'Медовик',v:'150 г',p:240,img:U('photo-1571115177098-24ec42ed204d'),d:'По домашнему рецепту'},
+  {id:'sand',cat:'food',n:'Сэндвич с курицей',v:'220 г',p:240,img:U('photo-1528735602780-2552fd46c7af'),d:'Курица су-вид, зерновой хлеб'},
+  {id:'shaw',cat:'food',n:'Шаурма классическая',v:'350 г',p:250,img:U('photo-1662116765994-1e4200c43589'),d:'Курица, овощи, фирменный соус'},
+  {id:'cro',cat:'bakery',n:'Круассан',v:'80 г',p:120,img:U('photo-1555507036-ab1f4038808a'),d:'Сливочное масло 82%'},
+  {id:'ecl',cat:'bakery',n:'Эклер',v:'90 г',p:160,img:'https://images.pexels.com/photos/30461317/pexels-photo-30461317.jpeg?auto=compress&cs=tinysrgb&w=600',d:'Заварной крем, шоколад'}
+];
+const CATS = [['coffee','Кофе'],['drinks','Напитки'],['dessert','Десерты'],['food','Еда'],['bakery','Выпечка']];
+const SIZES = ['200 мл','300 мл','400 мл'];
+const HIST = [['Заказ №1256','24.06.2024',120],['Заказ №1255','20.06.2024',-250],['Бонус за регистрацию','18.06.2024',500],['Заказ №1254','15.06.2024',120]];
+const GALLERY = [
+  {img:'assets/gal-tower.jpg',n:'Боевая башня',r:'Шатойский район',pos:'50% 50%',kb:'15s',delay:'.45s'},
+  {img:'assets/gal-sharoy.jpg',n:'Шаройский комплекс',r:'Шаройский район',pos:'50% 50%',kb:'17s',delay:'.5s'},
+  {img:'assets/gal-gorge.jpg',n:'Аргунское ущелье',r:'Итум-Калинский район',pos:'50% 50%',kb:'16s',delay:'.55s'}
+];
+const USERNAME = 'Мовсар';
+const GG = '#d9bc8c';
+const mk = (num, st, time, min, lines, client, phone, pay, type, by) =>
+  ({ num, st, time, min, lines, client, phone, pay, type, by, total: lines.reduce((a, l) => a + l[2], 0) });
+const DEMO_ORDERS = [
+  mk(1263,'new','10:41',0,[['Капучино','300 мл',240]],'Ахмед','+7 928 431-05-19',0,0),
+  mk(1262,'new','10:40',0,[['Раф классический','300 мл',220],['Эклер','90 г',160]],'Лиза','+7 963 720-88-41',1,0),
+  mk(1261,'new','10:38',0,[['Американо','200 мл',150],['Круассан','1 шт',120]],'Ислам','+7 938 114-62-07',2,1),
+  mk(1260,'new','10:36',0,[['Чай манго','400 мл',250]],'Мадина','+7 964 003-77-52',0,1),
+  mk(1259,'new','10:34',0,[['Латте','300 мл',200]],'Ахмед','+7 928 431-05-19',1,0),
+  mk(1258,'work','10:30',12,[['Капучино','300 мл',240],['Чизкейк','280 г',250]],'Тамара','+7 906 285-19-30',0,0,'Ахмад'),
+  mk(1257,'work','10:28',8,[['Латте','300 мл',200],['Круассан','1 шт',120],['Айс латте','300 мл',220]],'Ислам','+7 938 114-62-07',1,0,'Ахмад'),
+  mk(1256,'work','10:25',5,[['Флэт уайт','200 мл',200]],'Зара','+7 967 540-21-88',2,1,'Муса'),
+  mk(1255,'ready','10:12',0,[['Медовик','150 г',240]],'Лиза','+7 963 720-88-41',0,0,'Ахмад'),
+  mk(1254,'done','09:58',0,[['Эспрессо','30 мл',120]],'Мадина','+7 964 003-77-52',1,1,'Муса')
+];
+// Лента событий панели: при первом запуске восполняется из демо-заказов
+const SEED_SNOTIFS = [
+  ...DEMO_ORDERS.filter(o => o.st === 'new').map(o => ({ text: 'Новый заказ №' + o.num + ' · ' + o.client, time: o.time, kind: 'order' })),
+  { text: 'Заказ №1255 готов — ожидает выдачи', time: '10:14', kind: 'ready' },
+  { text: 'Остаток «Медовик» ниже 5 порций', time: '09:50', kind: 'stock' },
+  { text: 'Смена открыта: Ахмад, Муса', time: '09:00', kind: 'shift' }
+];
+
+// ===================== состояние =====================
+// Заказы, сохранённые прежними версиями, дополняем недостающими полями,
+// иначе разделы панели считают по пустым значениям.
+function normalizeOrder(o) {
+  const lines = Array.isArray(o.lines) ? o.lines : [];
+  return {
+    ...o, lines,
+    total: o.total != null ? o.total : lines.reduce((a, l) => a + (l[2] || 0), 0),
+    client: o.client || 'Гость', phone: o.phone || '',
+    pay: o.pay || 0, type: o.type || 0
+  };
+}
+
+let sv = {};
+try { sv = JSON.parse(localStorage.getItem('knv2') || '{}'); } catch (e) {}
+const S = {
+  screen: 'splash', tab: 'home', cat: 'coffee', product: null, pQty: 1, pSize: 0, pAdds: {},
+  authMode: 'welcome', fName: '', fPhone: '', fPass: '', agree: false,
+  theme: sv.theme || 'dark',
+  sysDark: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches),
+  user: sv.user || null, myNums: sv.myNums || [], psub: null,
+  notifs: sv.notifs || [], unread: sv.unread || 0, notifOpen: false,
+  bonus: sv.bonus != null ? sv.bonus : 1250,
+  bonusEv: sv.bonusEv || [['Заказ №1256','24.06.2026',120],['Заказ №1255','20.06.2026',-250],['Бонус за регистрацию','18.06.2026',500]],
+  custom: sv.custom || [], hidden: sv.hidden || {},
+  cards: sv.cards || [], mainCard: sv.mainCard || 0, addingCard: false,
+  ncNum: '', ncExp: '', ncCvc: '',
+  bookings: sv.bookings || [], bkOpen: false, bkDate: 0, bkTime: '', bkGuests: 2,
+  cart: {}, favs: sv.favs || { cheese: 1 }, toast: '', lastOrder: null, orderType: 0, sel: 1257, sTab: 'work',
+  sview: 'orders', npName: '', npPrice: '', npCat: 'coffee', pay: 0,
+  snotifs: sv.snotifs || SEED_SNOTIFS, sunread: sv.sunread != null ? sv.sunread : 4,
+  orders: (sv.orders || DEMO_ORDERS).map(normalizeOrder),
+  w: window.innerWidth
+};
+
+function save() {
+  try {
+    localStorage.setItem('knv2', JSON.stringify({
+      theme: S.theme, user: S.user, myNums: S.myNums, notifs: S.notifs, unread: S.unread,
+      snotifs: S.snotifs, sunread: S.sunread,
+      bonus: S.bonus, bonusEv: S.bonusEv, custom: S.custom, hidden: S.hidden, favs: S.favs,
+      orders: S.orders, cards: S.cards, mainCard: S.mainCard, bookings: S.bookings
+    }));
+  } catch (e) {}
+}
+function setS(patch) { Object.assign(S, patch); render(); }
+function set(patch) { Object.assign(S, patch); save(); render(); }
+function dark() { return S.theme === 'system' ? S.sysDark : S.theme === 'dark'; }
+function now() { const d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+function today() { const d = new Date(); return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.' + d.getFullYear(); }
+
+let toastTimer;
+function showToast(t) {
+  setS({ toast: t });
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => setS({ toast: '' }), 2800);
+}
+function notify(text) {
+  set({ notifs: [{ text, time: now() }, ...S.notifs].slice(0, 25), unread: S.unread + 1 });
+}
+function allProducts() { return [...M, ...S.custom].filter(m => m); }
+// Событие в ленту панели. Меняет состояние напрямую — вызывать до set()/setS().
+function slog(text, kind) {
+  S.snotifs = [{ text, time: now(), kind: kind || 'order' }, ...S.snotifs].slice(0, 40);
+  S.sunread = (S.sunread || 0) + 1;
+}
+function orderTotal(o) { return o.total != null ? o.total : o.lines.reduce((a, l) => a + l[2], 0); }
+const CAT_LABEL = Object.fromEntries(CATS);
+function catOf(lineName) {
+  const clean = String(lineName).replace(/\s*×\d+$/, '').trim();
+  const found = [...M, ...S.custom].find(m => m && m.n === clean);
+  return found ? (CAT_LABEL[found.cat] || 'Прочее') : 'Прочее';
+}
+function item(id) { return [...M, ...S.custom].find(m => m.id === id); }
+function unitPrice(id, size, adds) {
+  const it = item(id);
+  let p = it.p + (it.sz ? (size === 1 ? 40 : size === 2 ? 80 : 0) : 0);
+  p += Object.keys(adds || {}).filter(k => adds[k]).length * 50;
+  return p;
+}
+function addCart(id, size, adds, qty) {
+  const key = id + '|' + size + '|' + Object.keys(adds || {}).filter(k => adds[k]).sort().join(',');
+  const c = { ...S.cart };
+  const ex = c[key];
+  c[key] = { id, size, adds: { ...adds }, qty: (ex ? ex.qty : 0) + qty };
+  setS({ cart: c, lastOrder: null });
+}
+function userName() { return S.user && S.user.name ? S.user.name : USERNAME; }
+
+// ===================== рендер-инфраструктура =====================
+const app = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let actions = [];
+const act = fn => { actions.push(fn); return actions.length - 1; };
+
+// DOM-морфинг: сохраняет позиции скролла, фокус и не перезапускает анимации
+const nodeKey = n => n.nodeType === 1 ? n.getAttribute('data-key') : null;
+
+function syncAttrs(o, n) {
+  for (const a of [...o.attributes]) if (!n.hasAttribute(a.name)) o.removeAttribute(a.name);
+  for (const a of [...n.attributes]) if (o.getAttribute(a.name) !== a.value) o.setAttribute(a.name, a.value);
+}
+
+function morphEl(o, n) {
+  syncAttrs(o, n);
+  if (o.tagName === 'INPUT' || o.tagName === 'TEXTAREA') {
+    if (o.value !== n.value) o.value = n.value;
+  }
+  morphChildren(o, n);
+}
+
+function morphChildren(o, n) {
+  const newKids = [...n.childNodes];
+  // ключевые узлы, исчезнувшие из нового дерева, убираем заранее — иначе они
+  // сдвигают якоря и соседи переприкрепляются (перезапуская анимации)
+  const newKeys = new Set();
+  for (const nk of newKids) { const kk = nodeKey(nk); if (kk) newKeys.add(kk); }
+  for (const k of [...o.childNodes]) { const kk = nodeKey(k); if (kk && !newKeys.has(kk)) o.removeChild(k); }
+  const oldKids = [...o.childNodes];
+  const oldByKey = new Map();
+  for (const k of oldKids) { const kk = nodeKey(k); if (kk) oldByKey.set(kk, k); }
+  const consumed = new Set();
+  let oi = 0;
+  let prev = null;
+  for (const nk of newKids) {
+    let match = null;
+    const nkKey = nodeKey(nk);
+    if (nkKey != null) {
+      const cand = oldByKey.get(nkKey);
+      if (cand && cand.tagName === nk.tagName) match = cand;
+    } else {
+      while (oi < oldKids.length) {
+        const cand = oldKids[oi];
+        if (consumed.has(cand) || nodeKey(cand) != null) { oi++; continue; }
+        if (cand.nodeType === nk.nodeType && (nk.nodeType !== 1 || cand.tagName === nk.tagName)) { match = cand; break; }
+        // осиротевшие пробельные текстовые узлы пропускаем, чтобы удалённый
+        // сосед не сдвигал сопоставление всех последующих элементов
+        if (cand.nodeType === 3 && !cand.nodeValue.trim()) { oi++; continue; }
+        break;
+      }
+    }
+    let placed;
+    if (match) {
+      consumed.add(match);
+      if (nk.nodeType === 3) { if (match.nodeValue !== nk.nodeValue) match.nodeValue = nk.nodeValue; }
+      else morphEl(match, nk);
+      placed = match;
+    } else {
+      placed = nk;
+      consumed.add(placed);
+    }
+    const anchor = prev ? prev.nextSibling : o.firstChild;
+    if (placed !== anchor) {
+      // moveBefore сохраняет состояние поддерева (анимации, фокус) при переносе
+      if (o.moveBefore && placed.parentNode === o) o.moveBefore(placed, anchor);
+      else o.insertBefore(placed, anchor);
+    }
+    prev = placed;
+  }
+  let cur = prev ? prev.nextSibling : o.firstChild;
+  while (cur) { const nx = cur.nextSibling; o.removeChild(cur); cur = nx; }
+}
+
+// иконки
+const SVG = {
+  logoSmall: `<svg width="34" height="20" viewBox="0 0 86 44" fill="none" stroke="#c9974e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 40 L26 10 L38 26 L48 14 L62 32"></path><path d="M52 40 L66 20 L82 40"></path></svg>`,
+  heart: (fill, w, h) => `<svg width="${w}" height="${h}" viewBox="0 0 24 22" fill="${fill}" stroke="#c9974e" stroke-width="2"><path d="M12 20S3 14 3 7.8A4.8 4.8 0 0 1 12 5a4.8 4.8 0 0 1 9 2.8C21 14 12 20 12 20z"></path></svg>`,
+  back: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>`,
+  backSm: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>`,
+  chev: `<svg width="7" height="12" viewBox="0 0 8 14" fill="none" stroke="var(--dim2)" stroke-width="2" stroke-linecap="round"><path d="M1.5 1.5L6.5 7l-5 5.5"></path></svg>`,
+  bell: `<svg width="17" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"></path><path d="M10 19a2.2 2.2 0 0 0 4 0"></path></svg>`,
+  clock: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg>`,
+  calendar: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="6" width="16" height="15" rx="2.5"></rect><path d="M4 10h16M8 3v4M16 3v4"></path></svg>`,
+  clockGold: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`,
+  phoneGold: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.8" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>`,
+  phoneBtn: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.9" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>`,
+  pin: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#231b0e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"></path><circle cx="12" cy="10" r="2.6"></circle></svg>`,
+  cat: {
+    coffee: `<path d="M4 9h12v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5V9z"></path><path d="M16 10h2.5a2.5 2.5 0 0 1 0 5H16"></path><path d="M8 5c0-1 .8-1.4.8-2.4M12 5c0-1 .8-1.4.8-2.4"></path>`,
+    drinks: `<path d="M7 3h10l-1.5 17a2 2 0 0 1-2 1.8h-3A2 2 0 0 1 8.5 20L7 3z"></path><path d="M7.6 9h8.8"></path>`,
+    dessert: `<path d="M4 13h16v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-4z"></path><path d="M5 13c0-3 3-5 7-5s7 2 7 5"></path><path d="M12 8V5.5"></path><circle cx="12" cy="4.4" r="1.1"></circle>`,
+    food: `<circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="4.5"></circle>`,
+    bakery: `<path d="M12 4c5 0 9 3.4 9 7.5S17 19 12 19 3 15.6 3 11.5 7 4 12 4z"></path><path d="M8 7.5c-1 1-1.6 2.4-1.6 4M16 7.5c1 1 1.6 2.4 1.6 4"></path>`
+  },
+  nav: {
+    home: `<path d="M4 11l8-7 8 7"></path><path d="M6 9.5V20h12V9.5"></path>`,
+    menu: `<rect x="4" y="4" width="7" height="10" rx="2"></rect><rect x="13" y="4" width="7" height="6" rx="2"></rect><rect x="13" y="12" width="7" height="8" rx="2"></rect><rect x="4" y="16" width="7" height="4" rx="2"></rect>`,
+    order: `<path d="M6 8h12l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path>`,
+    bonus: `<rect x="3.5" y="8" width="17" height="4" rx="1.5"></rect><path d="M5.5 12v7a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5v-7M12 8v12.5"></path><path d="M12 8s-4.5.2-4.5-2.6C7.5 3.6 11 3.6 12 8zM12 8s4.5.2 4.5-2.6C16.5 3.6 13 3.6 12 8z"></path>`,
+    prof: `<circle cx="12" cy="8" r="3.6"></circle><path d="M5.5 20a6.5 6.5 0 0 1 13 0"></path>`
+  },
+  prof: {
+    iU: `<circle cx="12" cy="8" r="3.6"></circle><path d="M5.5 20a6.5 6.5 0 0 1 13 0"></path>`,
+    iH: `<circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path>`,
+    iF: `<path d="M12 20S3.5 14.3 3.5 8.6A4.6 4.6 0 0 1 12 6a4.6 4.6 0 0 1 8.5 2.6C20.5 14.3 12 20 12 20z"></path>`,
+    iP: `<path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"></path><circle cx="12" cy="10" r="2.6"></circle>`,
+    iC: `<rect x="3" y="5.5" width="18" height="13" rx="2.5"></rect><path d="M3 10h18"></path>`,
+    iB: `<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"></path><path d="M10 19a2.2 2.2 0 0 0 4 0"></path>`,
+    iS: `<circle cx="12" cy="12" r="3"></circle><path d="M4 12h2M18 12h2M12 4v2M12 18v2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M17.7 6.3l-1.4 1.4M7.7 16.3l-1.4 1.4"></path>`
+  }
+};
+const avatar = (mono, size, fs, alpha) => `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--av1),var(--av2));border:1px solid rgba(201,151,78,${alpha || '.5'});display:flex;align-items:center;justify-content:center;font:600 ${fs}px 'Cormorant Garamond',serif;color:#c9974e">${esc(mono)}</div>`;
+const onShift = fs => `<div style="display:flex;align-items:center;gap:5px;font:700 ${fs}px Manrope;color:#6fbf8a"><div style="width:7px;height:7px;border-radius:50%;background:#6fbf8a"></div>На смене</div>`;
+
+// ===================== экран персонала =====================
+function renderStaff() {
+  const wide = S.w >= 980;
+  const TAGS = { new: ['Новый', 'background:rgba(111,191,138,.14);color:#6fbf8a'], work: ['В работе', 'background:rgba(201,151,78,.16);color:var(--goldT)'], ready: ['Готов', 'background:rgba(111,191,138,.14);color:#6fbf8a'], done: ['Выполнен', 'background:var(--line2);color:var(--sub)'] };
+  const cnt = st => S.orders.filter(o => o.st === st).length;
+  const list = S.orders.filter(o => o.st === S.sTab);
+  const sel = S.orders.find(o => o.num === S.sel) || list[0] || S.orders[0];
+  const NEXT = { new: ['Взять в работу', 'work'], work: ['Отметить готовым', 'ready'], ready: ['Выдать заказ', 'done'] };
+  const LBL = { work: 'Начали готовить', ready: 'Готов — можно забирать', done: 'Выдан клиенту' };
+
+  const stNav = [['dash','Главная'],['orders','Реестр заказов'],['books','Брони'],['menu','Меню и остатки'],['shifts','Смены'],['clients','Клиенты'],['fin','Финансы'],['notifx','Уведомления'],['profx','Профиль']].map(([k, label]) => {
+    const active = S.sview === k;
+    const tap = act(() => setS({ sview: k }));
+    const badge = k === 'notifx' && S.sunread > 0
+      ? `<span style="margin-left:7px;background:${GG};color:#231b0e;border-radius:99px;padding:1px 7px;font:800 10.5px Manrope">${S.sunread}</span>` : '';
+    return `<div data-c="${tap}" class="h-nav" style="padding:11px 14px;border-radius:11px;cursor:pointer;font:700 13px Manrope;transition:all .15s;${active ? 'background:rgba(201,151,78,.14);color:var(--goldT);border:1px solid rgba(201,151,78,.45)' : 'color:var(--sub)'}">${label}${badge}</div>`;
+  }).join('');
+
+  let content = '';
+  if (S.sview === 'dash') {
+    const tot = o => o.total || o.lines.reduce((a, l) => a + l[2], 0);
+    const rev = S.orders.filter(o => o.st !== 'new').reduce((a, o) => a + tot(o), 0);
+    const stats = [
+      { v: S.orders.length, l: 'Заказов сегодня' },
+      { v: rev.toLocaleString('ru-RU') + ' ₽', l: 'Выручка' },
+      { v: S.orders.length ? Math.round(rev / Math.max(1, S.orders.filter(o => o.st !== 'new').length)) + ' ₽' : '0 ₽', l: 'Средний чек' },
+      { v: S.orders.filter(o => o.st === 'work').length, l: 'Готовятся сейчас' }
+    ];
+    const cntM = {};
+    S.orders.forEach(o => o.lines.forEach(l => { const n = l[0].replace(/ ×\d+$/, ''); cntM[n] = (cntM[n] || 0) + 1; }));
+    const arr = Object.entries(cntM).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const max = arr.length ? arr[0][1] : 1;
+    content = `<div data-key="sv-dash">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Сегодня</div>
+      <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:20px">
+        ${stats.map(s => `<div style="background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px;animation:fadeUp .35s ease both">
+          <div style="font:800 22px Manrope;color:var(--goldT)">${s.v}</div>
+          <div style="font:600 12px Manrope;color:var(--sub);margin-top:3px">${s.l}</div>
+        </div>`).join('')}
+      </div>
+      <div style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px">
+          <div style="font:600 17px 'Cormorant Garamond',serif;margin-bottom:12px">Популярные товары</div>
+          <div style="display:grid;gap:9px">
+            ${arr.map(([n, c], i) => `<div style="display:flex;align-items:center;gap:10px">
+              <div style="font:800 12px Manrope;color:var(--sub);width:16px">${i + 1}</div>
+              <div style="flex:1;font:700 13px Manrope">${esc(n)}</div>
+              <div style="font:600 12px Manrope;color:var(--sub)">${c}</div>
+              <div style="width:90px;height:5px;border-radius:99px;background:var(--line2);overflow:hidden"><div style="width:${Math.round(c / max * 100)}%;height:100%;background:linear-gradient(90deg,#d3a35c,#b07f3a)"></div></div>
+            </div>`).join('')}
+          </div>
+          <div style="font:600 11px Manrope;color:var(--dim);margin-top:12px">Считается по реальным строкам заказов в реестре</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;align-self:start">
+          <div style="font:600 17px 'Cormorant Garamond',serif;margin-bottom:12px">Сотрудники на смене</div>
+          <div style="display:grid;gap:10px">
+            ${[['Ахмад','Бариста','09:00–18:00'],['Муса','Бариста','12:00–21:00']].map(([n, r, t]) => `
+              <div style="display:flex;align-items:center;gap:11px">
+                ${avatar(n.charAt(0), 36, 14, '.45')}
+                <div style="flex:1"><div style="font:700 13px Manrope">${n}</div><div style="font:600 11px Manrope;color:var(--sub)">${r} · ${t}</div></div>
+                ${onShift(10.5)}
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  } else if (S.sview === 'books') {
+    const rows = S.bookings.map(b => `
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px 16px;animation:fadeUp .3s ease both">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font:600 16px 'Cormorant Garamond',serif;color:var(--goldT)">${esc(b.when)}</div>
+          <div style="flex:1"></div>
+          <div style="padding:4px 10px;border-radius:99px;font:700 10.5px Manrope;${b.ok ? 'background:rgba(111,191,138,.14);color:#6fbf8a' : 'background:rgba(201,151,78,.16);color:#c9974e'}">${b.ok ? 'Подтверждена' : 'Новая'}</div>
+        </div>
+        <div style="font:700 13px Manrope;margin-top:6px">${esc(b.name + ' · ' + b.phone)}</div>
+        <div style="font:600 12px Manrope;color:var(--sub);margin-top:2px">Гостей: ${b.guests}</div>
+        ${!b.ok ? `<div data-c="${act(() => {
+          set({
+            bookings: (slog('Бронь ' + b.when + ' подтверждена · ' + b.name, 'book'), S.bookings.map(x => x.id === b.id ? { ...x, ok: true } : x)),
+            notifs: [{ text: '✔ Бронь ' + b.when + ' подтверждена. Ждём вас!', time: now() }, ...S.notifs],
+            unread: S.unread + 1
+          });
+          showToast('Бронь подтверждена — клиент уведомлён');
+        })}" class="a96" style="display:inline-flex;margin-top:11px;padding:10px 16px;border-radius:11px;background:${GG};color:#231b0e;font:800 12.5px Manrope;cursor:pointer">Подтвердить · уведомить клиента</div>` : ''}
+      </div>`).join('');
+    content = `<div data-key="sv-books">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Брони столиков</div>
+      ${S.bookings.length === 0 ? '<div style="padding:50px 0;text-align:center;color:var(--sub);font:600 13.5px Manrope">Броней пока нет</div>' : ''}
+      <div style="display:grid;gap:10px;max-width:560px">${rows}</div>
+    </div>`;
+  } else if (S.sview === 'menu') {
+    const canAdd = S.npName.trim() && S.npPrice;
+    const npCats = CATS.map(([k, label]) => `<div data-c="${act(() => setS({ npCat: k }))}" style="padding:8px 12px;border-radius:9px;cursor:pointer;font:700 11.5px Manrope;${S.npCat === k ? `background:${GG};color:#231b0e` : 'background:var(--hov);color:var(--sub2)'}">${label}</div>`).join('');
+    const rows = allProducts().map(m => {
+      const off = !!S.hidden[m.id];
+      const cat = (CATS.find(c => c[0] === m.cat) || ['', '—'])[1];
+      return `<div style="display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 12px;animation:fadeUp .3s ease both">
+        <div style="width:40px;height:40px;border-radius:11px;flex:none;${m.img ? `background:url(&quot;${esc(m.img)}&quot;) center/cover no-repeat` : 'background:var(--hov);display:flex;align-items:center;justify-content:center'};${off ? 'opacity:.4' : ''}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px Manrope;${off ? 'opacity:.45;text-decoration:line-through' : ''}">${esc(m.n)}</div>
+          <div style="font:600 11px Manrope;color:var(--sub)">${cat} · ${m.p} ₽</div>
+        </div>
+        <div data-c="${act(() => { slog((off ? 'Позиция возвращена в меню: ' : 'Позиция скрыта: ') + m.n, 'stock'); set({ hidden: { ...S.hidden, [m.id]: !off } }); })}" style="padding:7px 11px;border-radius:9px;font:700 11px Manrope;cursor:pointer;user-select:none;${off ? 'background:var(--hov);color:var(--sub)' : 'background:rgba(111,191,138,.13);color:#6fbf8a'}">${off ? 'Скрыт' : 'В меню'}</div>
+        ${m.id.charAt(0) === 'c' && m.id.length > 5 ? `<div data-c="${act(() => set({ custom: S.custom.filter(x => x.id !== m.id) }))}" class="h-del" style="width:30px;height:30px;border-radius:9px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim)">✕</div>` : ''}
+      </div>`;
+    }).join('');
+    content = `<div data-key="sv-menu">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Меню и остатки</div>
+      <div style="display:grid;gap:14px;${wide ? 'grid-template-columns:300px 1fr' : ''}">
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;align-self:start">
+          <div style="font:600 17px 'Cormorant Garamond',serif;margin-bottom:12px">Новый товар</div>
+          <div style="display:grid;gap:9px">
+            <input id="np-name" data-i="${act(e => setS({ npName: e.target.value }))}" value="${esc(S.npName)}" placeholder="Название" style="width:100%;box-sizing:border-box;height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--ph);color:var(--ink);font:600 13.5px Manrope;outline:none">
+            <input id="np-price" inputmode="numeric" data-i="${act(e => setS({ npPrice: e.target.value.replace(/[^\d]/g, '') }))}" value="${esc(S.npPrice)}" placeholder="Цена, ₽" style="width:100%;box-sizing:border-box;height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--ph);color:var(--ink);font:600 13.5px Manrope;outline:none">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${npCats}</div>
+            <div data-c="${act(() => {
+              if (!(S.npName.trim() && S.npPrice)) return;
+              const id = 'c' + Date.now();
+              slog('В меню добавлен «' + S.npName.trim() + '» · ' + S.npPrice + ' ₽', 'stock');
+              set({ custom: [...S.custom, { id, cat: S.npCat, n: S.npName.trim(), v: '', p: +S.npPrice, img: '', d: 'Новинка от бариста' }], npName: '', npPrice: '' });
+              showToast('Товар добавлен в меню');
+            })}" class="a98" style="height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font:800 13.5px Manrope;cursor:pointer;transition:all .2s;${canAdd ? `background:${GG};color:#231b0e` : 'background:var(--hov);color:var(--dim)'}">Добавить в меню</div>
+          </div>
+          <div style="font:600 11px/1.5 Manrope;color:var(--dim);margin-top:10px">Товар сразу появится в клиентском меню. Фото можно заменить позже.</div>
+        </div>
+        <div style="display:grid;gap:8px;align-self:start;align-content:start">${rows}</div>
+      </div>
+    </div>`;
+  } else if (S.sview === 'shifts') {
+    content = `<div data-key="sv-shifts">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Смены</div>
+      <div style="display:grid;gap:10px;max-width:520px">
+        ${[['Ахмад','Бариста','09:00–18:00'],['Муса','Бариста','12:00–21:00']].map(([n, r, t]) => `
+          <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px">
+            ${avatar(n.charAt(0), 42, 16, '.45')}
+            <div style="flex:1"><div style="font:700 14px Manrope">${n}</div><div style="font:600 12px Manrope;color:var(--sub)">${r} · ${t}</div></div>
+            ${onShift(11)}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  } else if (S.sview === 'clients') {
+    // Клиентская база собирается из реальных заказов и броней: ключ — телефон,
+    // а если его нет (гость без регистрации) — имя.
+    const map = new Map();
+    const touch = (name, phone) => {
+      const real = phone && phone !== '—' ? phone : '';
+      const key = real || 'n:' + name;
+      let c = map.get(key);
+      if (!c) { c = { name: name || 'Гость', phone: real, orders: 0, spent: 0, books: 0, last: '' }; map.set(key, c); }
+      if (!c.phone && real) c.phone = real;
+      return c;
+    };
+    S.orders.forEach(o => { const c = touch(o.client, o.phone); c.orders++; c.spent += orderTotal(o); if (o.time > c.last) c.last = o.time; });
+    S.bookings.forEach(b => { const c = touch(b.name, b.phone); c.books++; });
+    const list = [...map.values()].sort((a, b) => b.spent - a.spent);
+    const totalOrders = list.reduce((a, c) => a + c.orders, 0);
+    const repeat = list.filter(c => c.orders > 1).length;
+    const spentAll = list.reduce((a, c) => a + c.spent, 0);
+    const perClient = list.length ? Math.round(spentAll / list.length) : 0;
+    const stats = [[list.length, 'Клиентов'], [repeat, 'Постоянных'], [perClient + ' ₽', 'Покупок на клиента'], [S.bookings.length, 'Броней']];
+    content = `<div data-key="sv-clients">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Клиенты</div>
+      <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:20px">
+        ${stats.map(([v, l]) => `<div style="background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px;animation:fadeUp .35s ease both">
+          <div style="font:800 22px Manrope;color:var(--goldT)">${v}</div>
+          <div style="font:600 12px Manrope;color:var(--sub);margin-top:3px">${l}</div>
+        </div>`).join('')}
+      </div>
+      ${list.length === 0 ? '<div style="padding:50px 0;text-align:center;color:var(--sub);font:600 14px Manrope">Пока нет ни заказов, ни броней</div>' : ''}
+      <div style="display:grid;gap:9px;max-width:760px">
+        ${list.map(c => `
+          <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;animation:fadeUp .3s ease both">
+            ${avatar(c.name.charAt(0).toUpperCase(), 40, 16, '.45')}
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="font:700 13.5px Manrope">${esc(c.name)}</div>
+                ${c.orders > 1 ? '<div style="padding:2px 8px;border-radius:99px;background:rgba(201,151,78,.16);color:var(--goldT);font:700 10px Manrope">Постоянный</div>' : ''}
+              </div>
+              <div style="font:600 11.5px Manrope;color:var(--sub);margin-top:2px">${esc(c.phone || 'телефон не указан')}</div>
+            </div>
+            <div style="text-align:right;flex:none">
+              <div style="font:800 14px Manrope">${c.spent.toLocaleString('ru-RU')} ₽</div>
+              <div style="font:600 11px Manrope;color:var(--sub);margin-top:2px">${c.orders} зак.${c.books ? ' · ' + c.books + ' бр.' : ''}${c.last ? ' · ' + c.last : ''}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  } else if (S.sview === 'fin') {
+    const paid = S.orders.filter(o => o.st !== 'new');
+    const revenue = paid.reduce((a, o) => a + orderTotal(o), 0);
+    const pipeline = S.orders.filter(o => o.st === 'new').reduce((a, o) => a + orderTotal(o), 0);
+    const avg = paid.length ? Math.round(revenue / paid.length) : 0;
+    const PAYS = ['Банковская карта', 'Онлайн-оплата', 'На кассе'];
+    const byPay = [0, 0, 0];
+    paid.forEach(o => { byPay[o.pay || 0] += orderTotal(o); });
+    const byCat = {}, byItem = {}, byHour = {};
+    paid.forEach(o => {
+      // Позиции пересчитываем в фактически оплаченные суммы: иначе разбивки
+      // по категориям и позициям не сходились бы с выручкой на величину скидки.
+      const gross = o.lines.reduce((a, l) => a + l[2], 0);
+      const k = gross ? orderTotal(o) / gross : 0;
+      o.lines.forEach(l => {
+        const v = l[2] * k;
+        const cat = catOf(l[0]);
+        byCat[cat] = (byCat[cat] || 0) + v;
+        const n = String(l[0]).replace(/\s*×\d+$/, '');
+        byItem[n] = (byItem[n] || 0) + v;
+      });
+      const h = String(o.time).slice(0, 2) + ':00';
+      byHour[h] = (byHour[h] || 0) + orderTotal(o);
+    });
+    const rounded = obj => Object.entries(obj).map(([n, v]) => [n, Math.round(v)]);
+    const bars = (pairs, unit) => {
+      const max = Math.max(1, ...pairs.map(x => x[1]));
+      return pairs.map(([n, v]) => `
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1;min-width:0;font:600 12.5px Manrope;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(n)}</div>
+          <div style="font:700 12px Manrope;white-space:nowrap">${v.toLocaleString('ru-RU')} ${unit}</div>
+          <div style="width:110px;height:6px;border-radius:99px;background:var(--line2);overflow:hidden;flex:none">
+            <div style="width:${Math.round(v / max * 100)}%;height:100%;background:linear-gradient(90deg,#d3a35c,#b07f3a)"></div>
+          </div>
+        </div>`).join('');
+    };
+    const card = (title, body, note) => `
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;animation:fadeUp .35s ease both">
+        <div style="font:600 17px 'Cormorant Garamond',serif;margin-bottom:12px">${title}</div>
+        <div style="display:grid;gap:9px">${body}</div>
+        ${note ? `<div style="font:600 11px Manrope;color:var(--dim);margin-top:12px">${note}</div>` : ''}
+      </div>`;
+    const stats = [[revenue.toLocaleString('ru-RU') + ' ₽', 'Выручка за смену'], [avg + ' ₽', 'Средний чек'], [paid.length, 'Оплаченных заказов'], [pipeline.toLocaleString('ru-RU') + ' ₽', 'В очереди']];
+    const topItems = rounded(byItem).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const hours = Object.entries(byHour).sort();
+    content = `<div data-key="sv-fin">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Финансы</div>
+      <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:20px">
+        ${stats.map(([v, l]) => `<div style="background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px;animation:fadeUp .35s ease both">
+          <div style="font:800 22px Manrope;color:var(--goldT)">${v}</div>
+          <div style="font:600 12px Manrope;color:var(--sub);margin-top:3px">${l}</div>
+        </div>`).join('')}
+      </div>
+      <div style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+        ${card('Способы оплаты', bars(PAYS.map((n, i) => [n, byPay[i]]), '₽'), 'Заказы со статусом «Новый» ещё не учтены')}
+        ${card('По категориям', bars(rounded(byCat).sort((a, b) => b[1] - a[1]), '₽'), 'Суммы указаны с учётом скидки — сходятся с выручкой')}
+        ${card('Топ позиций', bars(topItems, '₽'))}
+        ${card('Выручка по часам', bars(hours, '₽'), 'Час определяется по времени приёма заказа')}
+      </div>
+    </div>`;
+  } else if (S.sview === 'notifx') {
+    const KIND = {
+      order: ['rgba(201,151,78,.16)', 'var(--goldT)', 'З'],
+      ready: ['rgba(111,191,138,.14)', '#6fbf8a', '✓'],
+      book:  ['rgba(201,151,78,.16)', 'var(--goldT)', 'Б'],
+      stock: ['var(--hov)', 'var(--sub2)', 'М'],
+      shift: ['var(--hov)', 'var(--sub2)', 'С']
+    };
+    const feed = S.snotifs || [];
+    content = `<div data-key="sv-notifx">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="font:600 24px 'Cormorant Garamond',serif">Уведомления</div>
+        ${S.sunread > 0 ? `<div style="padding:4px 11px;border-radius:99px;background:${GG};color:#231b0e;font:800 11px Manrope">${S.sunread} новых</div>` : ''}
+        <div style="flex:1"></div>
+        ${S.sunread > 0 ? `<div data-c="${act(() => { set({ sunread: 0 }); showToast('Все уведомления отмечены прочитанными'); })}" class="h-gold" style="padding:9px 14px;border-radius:11px;border:1px solid var(--line);background:var(--card);font:700 12px Manrope;cursor:pointer">Отметить прочитанными</div>` : ''}
+      </div>
+      ${feed.length === 0 ? '<div style="padding:50px 0;text-align:center;color:var(--sub);font:600 14px Manrope">Событий пока нет</div>' : ''}
+      <div style="display:grid;gap:8px;max-width:720px">
+        ${feed.map((n, i) => {
+          const k = KIND[n.kind] || KIND.order;
+          const fresh = i < (S.sunread || 0);
+          return `
+          <div style="display:flex;align-items:flex-start;gap:11px;background:var(--card);border:1px solid ${fresh ? 'rgba(201,151,78,.4)' : 'var(--line)'};border-radius:13px;padding:12px 14px;animation:fadeUp .3s ease both">
+            <div style="width:30px;height:30px;border-radius:9px;flex:none;background:${k[0]};color:${k[1]};display:flex;align-items:center;justify-content:center;font:800 12px Manrope">${k[2]}</div>
+            <div style="flex:1;min-width:0"><div style="font:600 13px/1.45 Manrope">${esc(n.text)}</div>
+            <div style="font:600 11px Manrope;color:var(--sub);margin-top:3px">${esc(n.time)}</div></div>
+            ${fresh ? '<div style="width:7px;height:7px;border-radius:50%;background:#c9974e;margin-top:6px;flex:none"></div>' : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  } else if (S.sview === 'profx') {
+    const mine = S.orders.filter(o => o.by === 'Ахмад');
+    const done = mine.filter(o => o.st === 'done' || o.st === 'ready').length;
+    const revenue = mine.reduce((a, o) => a + orderTotal(o), 0);
+    const stats = [[mine.length, 'Заказов за смену'], [done, 'Доведено до выдачи'], [revenue.toLocaleString('ru-RU') + ' ₽', 'Сумма по ним']];
+    const themeRow = (k, label) => `
+      <div data-c="${act(() => set({ theme: k }))}" class="h-gold" style="display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 15px;cursor:pointer;font:700 13px Manrope;transition:border-color .15s">
+        <div style="width:17px;height:17px;border-radius:50%;box-sizing:border-box;transition:all .15s;${S.theme === k ? 'border:5px solid #c9974e' : 'border:2px solid var(--bdr)'}"></div>${label}
+      </div>`;
+    content = `<div data-key="sv-profx">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Профиль</div>
+      <div style="display:grid;gap:16px;max-width:620px">
+        <div style="display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;animation:fadeUp .35s ease both">
+          ${avatar('А', 58, 22)}
+          <div style="flex:1;min-width:0">
+            <div style="font:700 17px Manrope">Ахмад</div>
+            <div style="font:600 12.5px Manrope;color:var(--sub);margin-top:2px">Бариста · смена 09:00–18:00</div>
+          </div>
+          ${onShift(11)}
+        </div>
+        <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+          ${stats.map(([v, l]) => `<div style="background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px">
+            <div style="font:800 20px Manrope;color:var(--goldT)">${v}</div>
+            <div style="font:600 11.5px Manrope;color:var(--sub);margin-top:3px">${l}</div>
+          </div>`).join('')}
+        </div>
+        <div>
+          <div style="font:700 13px Manrope;margin-bottom:10px">Тема панели</div>
+          <div style="display:grid;gap:8px">${themeRow('dark', 'Тёмная')}${themeRow('light', 'Светлая')}${themeRow('system', 'Системная')}</div>
+        </div>
+        <div data-c="${act(() => { slog('Смена закрыта: Ахмад', 'shift'); set({ screen: 'auth', sview: 'orders' }); showToast('Смена закрыта. До встречи!'); })}" class="h-redbg" style="text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:#d97666;font:700 13.5px Manrope;cursor:pointer">Завершить смену</div>
+      </div>
+    </div>`;
+  } else {
+    const stTabs = [['new','Новые'],['work','В работе'],['ready','Готовы'],['done','Выполненные']].map(([k, label]) => {
+      const n = cnt(k); const active = S.sTab === k;
+      const pick = act(() => { const first = S.orders.find(o => o.st === k); setS({ sTab: k, sel: first ? first.num : S.sel }); });
+      return `<div data-c="${pick}" style="padding:9px 15px;border-radius:99px;cursor:pointer;font:700 12.5px Manrope;transition:all .15s;${active ? `background:${GG};color:#231b0e` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}${n ? ' ' + n : ''}</div>`;
+    }).join('');
+    const cards = list.map(o => `
+      <div data-c="${act(() => setS({ sel: o.num }))}" class="h-goldb2" style="background:var(--card);border:1px solid ${sel && sel.num === o.num ? 'rgba(201,151,78,.65)' : 'var(--line)'};border-radius:15px;padding:15px 16px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+          <div style="font:800 15px Manrope">№${o.num}</div>
+          <div style="flex:1"></div>
+          <div style="padding:4px 10px;border-radius:99px;font:700 11px Manrope;${TAGS[o.st][1]}">${TAGS[o.st][0]}</div>
+        </div>
+        <div style="font:600 13px/1.5 Manrope;color:var(--sub2);margin-bottom:7px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
+        <div style="display:flex;align-items:center;gap:14px;font:600 11.5px Manrope;color:var(--sub)">
+          <div>Время: ${o.time}</div>
+          ${o.st === 'work' && o.min > 0 ? `<div style="display:flex;align-items:center;gap:4px">${SVG.clock}${o.min} мин</div>` : ''}
+        </div>
+      </div>`).join('');
+    const selLines = sel ? sel.lines.map(([n, v, p]) => `
+      <div style="display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--line2);padding-bottom:9px">
+        <div style="min-width:0"><div style="font:700 13.5px Manrope">${esc(n)}</div><div style="font:600 11px Manrope;color:var(--sub);margin-top:2px">${esc(v)}</div></div>
+        <div style="flex:1"></div>
+        <div style="font:700 13px Manrope;white-space:nowrap">${p} ₽</div>
+      </div>`).join('') : '';
+    const selAdvance = act(() => {
+      if (!sel || !NEXT[sel.st]) return;
+      const nx = NEXT[sel.st][1];
+      const mine = S.myNums.includes(sel.num);
+      slog('Заказ №' + sel.num + ' — ' + LBL[nx].toLowerCase(), nx === 'ready' ? 'ready' : 'order');
+      const patch = { orders: S.orders.map(o => o.num === sel.num ? { ...o, st: nx, min: 0, by: 'Ахмад', hist: [...(o.hist || []), [LBL[nx], now()]] } : o) };
+      if (mine) {
+        const msg = nx === 'work' ? 'Заказ №' + sel.num + ' начали готовить ☕' : nx === 'ready' ? '☕ Заказ №' + sel.num + ' готов! Подходите к стойке' : 'Заказ №' + sel.num + ' выдан. Приятного!';
+        patch.notifs = [{ text: msg, time: now() }, ...S.notifs];
+        patch.unread = S.unread + 1;
+        if (nx === 'done') {
+          const tot = sel.total || sel.lines.reduce((a, l) => a + l[2], 0);
+          const pts = Math.max(1, Math.round(tot * 0.05));
+          patch.bonus = S.bonus + pts;
+          patch.bonusEv = [['Заказ №' + sel.num, today(), pts], ...S.bonusEv];
+          patch.notifs = [{ text: '+' + pts + ' баллов за заказ №' + sel.num, time: now() }, ...patch.notifs];
+          patch.unread = S.unread + 2;
+        }
+      }
+      set(patch);
+      showToast('Заказ №' + sel.num + (nx === 'work' ? ' в работе' : nx === 'ready' ? ' готов — клиент уведомлён' : ' выдан'));
+    });
+    content = `<div data-key="sv-orders">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Реестр заказов</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${stTabs}</div>
+      <div style="display:grid;gap:16px;${wide ? 'grid-template-columns:1fr 320px' : ''}">
+        <div style="display:grid;gap:12px;align-content:start">
+          ${list.length === 0 ? '<div style="padding:50px 0;text-align:center;color:var(--sub);font:600 14px Manrope">В этой колонке пусто</div>' : ''}
+          ${cards}
+        </div>
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;align-self:start;animation:fadeIn .3s ease both">
+          <div style="font:600 12px Manrope;color:var(--sub);margin-bottom:4px">Детали заказа</div>
+          <div style="font:600 21px 'Cormorant Garamond',serif;margin-bottom:6px">№${sel ? sel.num : '—'}</div>
+          <div style="font:700 12.5px Manrope;margin-bottom:2px">Клиент: ${esc(sel && sel.client ? sel.client : 'Гость')}</div>
+          <div style="font:600 11.5px Manrope;color:#6fbf8a;margin-bottom:14px">${sel ? ((sel.type === 1 ? 'С собой' : 'В зале') + ' · ' + (['Банковская карта', 'Онлайн-оплата', 'На кассе'][sel.pay || 0]) + ' · Оплачено') : ''}</div>
+          <div style="font:700 12px Manrope;color:var(--sub);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Состав заказа</div>
+          <div style="display:grid;gap:10px">${selLines}</div>
+          <div style="display:flex;margin-top:14px;font:800 15px Manrope"><div>Итого</div><div style="flex:1"></div><div>${sel ? orderTotal(sel) : 0} ₽</div></div>
+          ${sel && NEXT[sel.st] ? `<div data-c="${selAdvance}" class="a98" style="margin-top:16px;height:44px;border-radius:12px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 13.5px Manrope;cursor:pointer">${NEXT[sel.st][0]}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `
+  <div data-key="view-staff" style="display:flex;${wide ? '' : 'flex-direction:column;'}max-width:1280px;margin:0 auto;height:100dvh;overflow:hidden">
+    <div data-key="st-side" style="${wide ? 'width:230px;flex:none;border-right:1px solid var(--line);overflow-y:auto;' : 'border-bottom:1px solid var(--line);flex:none;'}padding:22px 18px;box-sizing:border-box;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px">
+        ${SVG.logoSmall}
+        <div><div style="font:600 13px 'Cormorant Garamond',serif;letter-spacing:.04em">КОФЕЙНЯ</div><div style="font:600 11px 'Cormorant Garamond',serif;color:#c9974e;font-style:italic">на высоте</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 12px;margin-bottom:18px">
+        ${avatar('А', 38, 15)}
+        <div style="flex:1;min-width:0"><div style="font:700 13px Manrope">Ахмад</div><div style="font:600 11px Manrope;color:var(--sub)">Бариста</div></div>
+        ${onShift(10.5)}
+      </div>
+      <div style="display:grid;gap:4px;flex:1">${stNav}</div>
+      <div data-c="${act(() => setS({ screen: 'auth' }))}" class="h-redbg" style="padding:12px 14px;border-radius:11px;color:#d97666;font:700 13px Manrope;cursor:pointer">Выйти</div>
+    </div>
+    <div data-key="st-main" style="flex:1;min-width:0;min-height:0;overflow-y:auto;padding:26px 26px 40px;box-sizing:border-box">${content}</div>
+  </div>`;
+}
+
+// ===================== экран входа =====================
+// Стартовый экран макета Glass. Карточка лежит в потоке с прокруткой, отступы
+// адаптивные — на низких экранах (iPhone SE, ландшафт) кнопка остаётся доступна.
+function renderSplash() {
+  return `
+  <div data-key="scr-splash" style="position:absolute;inset:0;z-index:5;animation:fadeIn .5s ease both">
+    <img src="assets/interior.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:zoomIn 9s ease-out both">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,15,12,.2),rgba(20,15,12,.72))"></div>
+    <div style="position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;padding:24px 24px 56px;box-sizing:border-box">
+      <div style="margin:auto 0;padding:clamp(22px,5vh,40px) 26px clamp(20px,4vh,32px);border-radius:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);box-shadow:0 34px 70px -30px rgba(0,0,0,.85);text-align:center;animation:rise .8s cubic-bezier(.2,.8,.3,1) both">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#d9bc8c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto"><path d="M4 9h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V9z"></path><path d="M16 10h2a2.5 2.5 0 0 1 0 5h-2"></path><path d="M8 3c0 1.5 1.5 1.5 1.5 3M11.5 3c0 1.5 1.5 1.5 1.5 3"></path></svg>
+        <div style="font:600 40px/1.02 'Cormorant Garamond',serif;margin-top:16px;color:#f3ede4">Кофейня<br>на высоте</div>
+        <div style="font:600 17px 'Cormorant Garamond',serif;color:#d9bc8c;margin-top:12px;letter-spacing:.03em">Кофе с видом на горы</div>
+        <div style="font:500 13.5px/1.65 Manrope;color:#dcd3c6;margin-top:16px">Ароматный кофе.<br>Тёплая атмосфера.<br>Горы за окном.</div>
+        <div data-c="${act(() => setS({ screen: 'auth' }))}" class="a97" style="margin:30px auto 0;height:54px;border-radius:99px;background:#d9bc8c;color:#2a2016;display:flex;align-items:center;justify-content:center;gap:14px;font:700 15px Manrope;cursor:pointer;box-shadow:0 16px 34px -14px rgba(217,188,140,.85);transition:transform .15s">Начать<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
+      </div>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:28px;display:flex;justify-content:center;gap:8px">
+      <div style="width:8px;height:8px;border-radius:50%;background:#d9bc8c"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3)"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3)"></div>
+    </div>
+  </div>`;
+}
+
+function renderAuth() {
+  const phoneOk = (S.fPhone.match(/\d/g) || []).length >= 6;
+  const authInput = (id, type, inputmode, value, handler, ph) =>
+    `<input id="${id}" ${type ? `type="${type}"` : ''} ${inputmode ? `inputmode="${inputmode}"` : ''} data-i="${handler}" value="${esc(value)}" placeholder="${ph}" style="width:100%;box-sizing:border-box;height:50px;padding:0 16px;border-radius:13px;border:1px solid rgba(255,255,255,.14);background:rgba(20,17,13,.6);backdrop-filter:blur(6px);color:#f2ecdf;font:600 14px Manrope;outline:none">`;
+
+  let mode = '';
+  if (S.authMode === 'welcome') {
+    mode = `<div data-key="am-welcome" style="display:grid;gap:12px">
+      <div data-c="${act(() => setS({ authMode: 'login', fPhone: S.user ? S.user.phone : '', fPass: '' }))}" class="a98" style="height:52px;border-radius:14px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 15px Manrope;cursor:pointer;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)">Войти</div>
+      <div data-c="${act(() => setS({ authMode: 'reg', fName: '', fPhone: '', fPass: '', agree: false }))}" class="h-goldbg a98" style="height:52px;border-radius:14px;border:1px solid rgba(201,151,78,.55);color:#e3c48b;display:flex;align-items:center;justify-content:center;font:700 15px Manrope;cursor:pointer">Зарегистрироваться</div>
+      <div data-c="${act(() => setS({ screen: 'app', tab: 'home' }))}" class="h-cream" style="padding:10px;text-align:center;color:#b8ad9c;font:600 13px Manrope;cursor:pointer">Пропустить</div>
+      <div data-c="${act(() => setS({ screen: 'staff' }))}" class="h-goldc" style="padding:2px;text-align:center;color:#8d8471;font:600 11px Manrope;letter-spacing:.08em;cursor:pointer;text-transform:uppercase">Вход для персонала</div>
+    </div>`;
+  } else if (S.authMode === 'login') {
+    const can = phoneOk && S.fPass;
+    mode = `<div data-key="am-login" style="display:grid;gap:12px">
+      <div style="font:600 19px 'Cormorant Garamond',serif;text-align:center;color:#f2ecdf;margin-bottom:2px">Вход</div>
+      ${authInput('f-phone-login', 'tel', 'tel', S.fPhone, act(e => setS({ fPhone: e.target.value })), 'Номер телефона')}
+      ${authInput('f-pass-login', 'password', '', S.fPass, act(e => setS({ fPass: e.target.value })), 'Пароль или код')}
+      <div data-c="${act(() => {
+        if (!((S.fPhone.match(/\d/g) || []).length >= 6 && S.fPass)) return;
+        const u = S.user && S.user.phone === S.fPhone ? S.user : { name: S.user && S.user.name ? S.user.name : 'Гость', phone: S.fPhone };
+        set({ user: u, screen: 'app', tab: 'home', authMode: 'welcome' });
+        showToast('С возвращением, ' + u.name + '!');
+      })}" class="a98" style="height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font:800 15px Manrope;cursor:pointer;transition:all .2s;${can ? `background:${GG};color:#231b0e;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)` : 'background:rgba(255,255,255,.08);color:#8d8471;cursor:not-allowed'}">Войти</div>
+      <div style="display:flex;justify-content:space-between">
+        <div data-c="${act(() => setS({ authMode: 'welcome' }))}" class="h-cream" style="padding:8px 2px;color:#b8ad9c;font:600 12.5px Manrope;cursor:pointer">← Назад</div>
+        <div data-c="${act(() => showToast('Код восстановления отправлен по SMS (демо)'))}" class="h-cream" style="padding:8px 2px;color:#b8ad9c;font:600 12.5px Manrope;cursor:pointer">Забыли пароль?</div>
+      </div>
+    </div>`;
+  } else {
+    const can = S.fName.trim() && phoneOk && S.fPass && S.agree;
+    mode = `<div data-key="am-reg" style="display:grid;gap:12px">
+      <div style="font:600 19px 'Cormorant Garamond',serif;text-align:center;color:#f2ecdf;margin-bottom:2px">Регистрация</div>
+      ${authInput('f-name-reg', '', '', S.fName, act(e => setS({ fName: e.target.value })), 'Имя')}
+      ${authInput('f-phone-reg', 'tel', 'tel', S.fPhone, act(e => setS({ fPhone: e.target.value })), 'Номер телефона')}
+      ${authInput('f-pass-reg', 'password', '', S.fPass, act(e => setS({ fPass: e.target.value })), 'Пароль')}
+      <div data-c="${act(() => setS({ agree: !S.agree }))}" style="display:flex;align-items:center;gap:10px;padding:4px 2px;cursor:pointer">
+        <div style="width:19px;height:19px;border-radius:6px;flex:none;box-sizing:border-box;transition:all .15s;${S.agree ? `background:${GG};box-shadow:inset 0 0 0 4px rgba(20,17,13,.75)` : 'border:2px solid rgba(255,255,255,.3)'}"></div>
+        <div style="font:600 12px Manrope;color:#b8ad9c">Согласен с условиями сервиса</div>
+      </div>
+      <div data-c="${act(() => {
+        if (!(S.fName.trim() && (S.fPhone.match(/\d/g) || []).length >= 6 && S.fPass && S.agree)) return;
+        set({ user: { name: S.fName.trim(), phone: S.fPhone }, screen: 'app', tab: 'home', authMode: 'welcome', bonus: S.bonus + 500, bonusEv: [['Бонус за регистрацию', today(), 500], ...S.bonusEv] });
+        showToast('Аккаунт создан! +500 баллов');
+      })}" class="a98" style="height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font:800 14px Manrope;cursor:pointer;transition:all .2s;${can ? `background:${GG};color:#231b0e;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)` : 'background:rgba(255,255,255,.08);color:#8d8471;cursor:not-allowed'}">Создать аккаунт · +500 баллов</div>
+      <div data-c="${act(() => setS({ authMode: 'welcome' }))}" class="h-cream" style="padding:8px 2px;text-align:center;color:#b8ad9c;font:600 12.5px Manrope;cursor:pointer">← Назад</div>
+    </div>`;
+  }
+
+  return `
+  <div data-key="scr-auth" style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto">
+    <img src="assets/interior.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kenburns 18s ease-in-out infinite alternate">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,18,15,.42),rgba(20,18,15,.55) 40%,rgba(16,14,11,.96) 94%)"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;padding:64px 24px 30px;box-sizing:border-box">
+      <svg width="86" height="44" viewBox="0 0 86 44" fill="none" stroke="#c9974e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="animation:fadeUp .6s ease both">
+        <path d="M4 40 L26 10 L38 26 L48 14 L62 32"></path>
+        <path d="M52 40 L66 20 L82 40"></path>
+        <path d="M22 16 L26 10 L30 16" stroke="var(--ink)"></path>
+      </svg>
+      <div style="font:600 33px/1.15 'Cormorant Garamond',serif;letter-spacing:.06em;margin-top:16px;color:#f2ecdf;animation:fadeUp .6s .1s ease both">КОФЕЙНЯ</div>
+      <div style="font:600 33px/1.15 'Cormorant Garamond',serif;letter-spacing:.06em;color:#c9974e;animation:fadeUp .6s .18s ease both">НА ВЫСОТЕ</div>
+      <div style="font:700 10.5px Manrope;letter-spacing:.34em;color:#b8ad9c;margin-top:12px;animation:fadeUp .6s .26s ease both">КОФЕ · ДЕСЕРТЫ · АТМОСФЕРА</div>
+      <div style="flex:1"></div>
+      <div style="width:100%;display:grid;gap:12px;animation:fadeUp .6s .34s ease both">${mode}</div>
+    </div>
+  </div>`;
+}
+
+// ===================== клиентское приложение =====================
+function circleImg(img, size, radius, extra) {
+  return `width:${size}px;height:${size}px;border-radius:${radius};flex:none;${img ? `background:url(&quot;${esc(img)}&quot;) center/cover no-repeat` : 'background:var(--hov)'}${extra || ''}`;
+}
+
+function renderApp() {
+  const entries = Object.entries(S.cart);
+  const cartCount = entries.reduce((a, [, x]) => a + x.qty, 0);
+  const sum = entries.reduce((a, [, x]) => a + unitPrice(x.id, x.size, x.adds) * x.qty, 0);
+  const disc = Math.round(sum * 0.1);
+  const total = sum - disc;
+  const name = userName();
+
+  const statusBar = `
+  <div data-key="sbar" style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 6px;font:700 13px Manrope">
+    <div>9:41</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="var(--ink)"><rect x="0" y="7" width="3" height="4" rx="1"></rect><rect x="4.5" y="5" width="3" height="6" rx="1"></rect><rect x="9" y="2.5" width="3" height="8.5" rx="1"></rect><rect x="13" y="0" width="3" height="11" rx="1"></rect></svg>
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 4.2a9 9 0 0 1 12 0"></path><path d="M3.8 6.8a5.6 5.6 0 0 1 7.4 0"></path><circle cx="7.5" cy="9.3" r="1.15" fill="var(--ink)" stroke="none"></circle></svg>
+      <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x="0.5" y="0.5" width="18" height="10" rx="3" stroke="var(--ink)" opacity=".5"></rect><rect x="2" y="2" width="13" height="7" rx="1.8" fill="var(--ink)"></rect><rect x="19.8" y="3.4" width="1.8" height="4.2" rx=".9" fill="var(--ink)" opacity=".5"></rect></svg>
+    </div>
+  </div>`;
+
+  let screen = '';
+  if (S.product) {
+    const it = item(S.product);
+    const unit = unitPrice(it.id, S.pSize, S.pAdds);
+    const sizes = it.sz ? `
+      <div style="font:700 13px Manrope;margin:18px 0 9px;animation:fadeUp .4s .2s ease both">Объём</div>
+      <div style="display:flex;gap:8px;animation:fadeUp .4s .22s ease both">
+        ${SIZES.map((label, i) => `<div data-c="${act(() => setS({ pSize: i }))}" class="a95" style="flex:1;padding:11px 0;text-align:center;border-radius:11px;cursor:pointer;font:700 13px Manrope;transition:all .15s;${S.pSize === i ? `background:${GG};color:#231b0e` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('')}
+      </div>` : '';
+    const adds = (it.cat === 'coffee' || it.cat === 'drinks') ? `
+      <div style="font:700 13px Manrope;margin:18px 0 9px;animation:fadeUp .4s .26s ease both">Добавки</div>
+      <div style="display:grid;gap:8px;animation:fadeUp .4s .28s ease both">
+        ${[['syr','Сироп'],['milk','Молоко без лактозы']].map(([k, nm]) => `
+          <div data-c="${act(() => setS({ pAdds: { ...S.pAdds, [k]: !S.pAdds[k] } }))}" class="h-gold" style="display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 14px;cursor:pointer;transition:border-color .15s">
+            <div style="width:18px;height:18px;border-radius:6px;flex:none;box-sizing:border-box;transition:all .15s;${S.pAdds[k] ? `background:${GG};box-shadow:inset 0 0 0 4px var(--card)` : 'border:2px solid var(--bdr)'}"></div>
+            <div style="flex:1;font:600 13.5px Manrope">${nm}</div>
+            <div style="font:700 12.5px Manrope;color:var(--sub)">+50 ₽</div>
+            ${SVG.chev}
+          </div>`).join('')}
+      </div>` : '';
+    screen = `
+    <div data-key="scr-prod" style="flex:1;min-height:0;overflow-y:auto;animation:fadeIn .25s ease both;padding-bottom:26px">
+      <div style="position:relative;height:300px;overflow:hidden">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 47%,rgba(217,188,140,.26),rgba(23,18,15,0) 52%)"></div>
+        <div style="position:absolute;left:50%;top:50%;width:268px;height:268px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid var(--line)"></div>
+        <div style="position:absolute;left:50%;top:50%;width:214px;height:214px;border-radius:50%;background:url(&quot;${esc(it.img)}&quot;) center/cover no-repeat;box-shadow:0 34px 70px -24px rgba(0,0,0,.8),0 0 0 12px rgba(217,188,140,.08);animation:popc .55s cubic-bezier(.2,.8,.3,1) both"></div>
+        <div data-c="${act(() => setS({ product: null }))}" class="a92" style="position:absolute;z-index:2;top:14px;left:16px;width:42px;height:42px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer">${SVG.back}</div>
+        <div data-c="${act(() => { const f = { ...S.favs }; f[it.id] ? delete f[it.id] : f[it.id] = 1; setS({ favs: f }); })}" class="a92" style="position:absolute;z-index:2;top:14px;right:16px;width:42px;height:42px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer">${SVG.heart(S.favs[it.id] ? '#d9bc8c' : 'none', 18, 17)}</div>
+      </div>
+      <div style="margin:0 12px 12px;padding:20px 18px 18px;border-radius:28px;background:var(--card);border:1px solid var(--line);box-shadow:0 -20px 50px -30px rgba(0,0,0,.8);animation:sheet .5s cubic-bezier(.2,.8,.3,1) both">
+        <div style="font:600 25px 'Cormorant Garamond',serif;animation:fadeUp .4s .05s ease both">${esc(it.n)}</div>
+        <div style="font:800 19px Manrope;color:var(--goldT);margin:6px 0 8px;animation:fadeUp .4s .1s ease both">${unit} ₽</div>
+        <div style="font:500 13.5px/1.6 Manrope;color:var(--sub);animation:fadeUp .4s .15s ease both">${esc(it.d)}</div>
+        ${sizes}
+        ${adds}
+        <div style="display:flex;gap:12px;margin-top:22px;animation:fadeUp .4s .32s ease both">
+          <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:4px 8px">
+            <div data-c="${act(() => setS({ pQty: Math.max(1, S.pQty - 1) }))}" style="width:34px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:800 19px Manrope;color:#c9974e;user-select:none">−</div>
+            <div style="font:800 15px Manrope;min-width:18px;text-align:center">${S.pQty}</div>
+            <div data-c="${act(() => setS({ pQty: S.pQty + 1 }))}" style="width:34px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:800 19px Manrope;color:#c9974e;user-select:none">+</div>
+          </div>
+          <div data-c="${act(() => { addCart(it.id, S.pSize, S.pAdds, S.pQty); setS({ product: null, tab: 'order' }); showToast(it.n + ' — в заказе'); })}" class="a98" style="flex:1;height:48px;border-radius:13px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 14.5px Manrope;cursor:pointer;box-shadow:0 14px 28px -14px rgba(201,151,78,.8)">В корзину · ${unit * S.pQty} ₽</div>
+        </div>
+      </div>
+    </div>`;
+  } else if (S.tab === 'home') {
+    const notifPanel = S.notifOpen ? `
+      <div data-key="notif" style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:12px;animation:fadeUp .3s ease both;box-shadow:0 20px 44px -22px rgba(0,0,0,.5)">
+        <div style="font:600 16px 'Cormorant Garamond',serif;margin-bottom:10px">Уведомления</div>
+        ${S.notifs.length === 0 ? '<div style="font:600 12.5px Manrope;color:var(--sub)">Пока пусто — здесь появятся статусы заказов и бонусы</div>' : ''}
+        <div style="display:grid;gap:8px;max-height:240px;overflow-y:auto">
+          ${S.notifs.map(n => `
+            <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border-radius:11px;background:var(--hov)">
+              <div style="width:7px;height:7px;border-radius:50%;background:#c9974e;margin-top:5px;flex:none"></div>
+              <div style="flex:1"><div style="font:600 12.5px/1.45 Manrope">${esc(n.text)}</div><div style="font:600 10.5px Manrope;color:var(--sub);margin-top:2px">${esc(n.time)}</div></div>
+            </div>`).join('')}
+        </div>
+      </div>` : '';
+    const h = new Date().getHours();
+    const greet = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер';
+    const tiles = CATS.map(([k, label]) => `
+      <div data-c="${act(() => setS({ tab: 'menu', cat: k }))}" class="h-gold a94" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 2px;border-radius:14px;background:var(--card);border:1px solid var(--line);cursor:pointer;transition:all .15s">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${SVG.cat[k]}</svg>
+        <div style="font:600 10.5px Manrope;color:var(--sub2)">${label}</div>
+      </div>`).join('');
+    const popular = ['cap', 'cheese', 'ice'].map(id => {
+      const it = item(id);
+      const open = act(() => setS({ product: id, pQty: 1, pSize: 0, pAdds: {} }));
+      const favTap = act(() => { const f = { ...S.favs }; f[id] ? delete f[id] : f[id] = 1; setS({ favs: f }); });
+      return `
+      <div data-c="${open}" class="h-gold" style="flex:none;width:124px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;animation:fadeUp .45s ease both">
+        <div style="height:86px;background:url(&quot;${esc(it.img)}&quot;) center/cover no-repeat;animation:kenburns 13s ease-in-out infinite alternate"></div>
+        <div style="padding:9px 11px 11px">
+          <div style="font:700 12.5px Manrope;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.n)}</div>
+          <div style="display:flex;align-items:center;margin-top:4px">
+            <div style="font:800 13px Manrope;color:var(--goldT)">${it.p} ₽</div>
+            <div style="flex:1"></div>
+            <div data-c="${favTap}" style="cursor:pointer;padding:2px">${SVG.heart(S.favs[id] ? '#c9974e' : 'none', 16, 15)}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    const gallery = GALLERY.map(g => `
+      <div style="flex:none;width:172px;border-radius:16px;overflow:hidden;position:relative;height:210px;animation:fadeUp ${g.delay} ease both">
+        <img src="${g.img}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${g.pos};animation:kenburns ${g.kb} ease-in-out infinite alternate">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,17,13,0) 55%,rgba(20,17,13,.82))"></div>
+        <div style="position:absolute;left:12px;right:12px;bottom:10px"><div style="font:700 12px Manrope;color:#fff">${g.n}</div><div style="font:600 10px Manrope;color:rgba(255,255,255,.65)">${g.r}</div></div>
+      </div>`).join('');
+    screen = `
+    <div data-key="scr-home" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 112px;animation:fadeIn .3s ease both">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex:1">
+          <div style="font:600 21px/1.2 'Cormorant Garamond',serif">Кофейня</div>
+          <div style="font:600 21px/1.2 'Cormorant Garamond',serif;color:#c9974e">на высоте</div>
+        </div>
+        <div data-c="${act(() => set({ notifOpen: !S.notifOpen, unread: 0 }))}" class="h-gold" style="position:relative;width:40px;height:40px;border-radius:50%;border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer">
+          ${SVG.bell}
+          ${S.unread > 0 ? `<div style="position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 3px;border-radius:99px;background:#c0564a;color:#fff;font:800 9.5px/16px Manrope;text-align:center;border:2px solid var(--ph);box-sizing:content-box;animation:pop .3s ease both">${S.unread}</div>` : ''}
+        </div>
+      </div>
+      ${notifPanel}
+      <div style="font:600 15px Manrope;color:var(--sub2);margin:14px 0 14px">${greet}, ${esc(name)}! ☕</div>
+      <div data-c="${act(() => setS({ tab: 'menu', cat: 'bakery' }))}" style="position:relative;border-radius:20px;overflow:hidden;height:190px;cursor:pointer;animation:fadeUp .45s ease both;box-shadow:0 22px 44px -24px rgba(0,0,0,.55)">
+        <img src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=800&q=70" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kenburns 14s ease-in-out infinite alternate">
+        <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(24,20,15,.94) 26%,rgba(24,20,15,.2))"></div>
+        <div style="position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 20px;box-sizing:border-box">
+          <div style="font:700 10px Manrope;letter-spacing:.22em;text-transform:uppercase;color:#e3c48b">Акция</div>
+          <div style="font:800 20px/1.25 Manrope;max-width:240px;color:#f2ecdf">Скидка 15% на выпечку утром</div>
+          <div style="font:600 13px Manrope;color:#b8ad9c">08:00 – 12:00</div>
+          <div style="margin-top:9px;display:inline-flex;align-self:flex-start;padding:10px 18px;border-radius:11px;background:${GG};color:#231b0e;font:800 13px Manrope;box-shadow:0 10px 22px -10px rgba(201,151,78,.7)">Подробнее</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">${tiles}</div>
+      <div style="display:flex;align-items:baseline;margin:20px 0 12px">
+        <div style="font:600 19px 'Cormorant Garamond',serif">Популярное</div>
+        <div style="flex:1"></div>
+        <div data-c="${act(() => setS({ tab: 'menu' }))}" style="font:600 12px Manrope;color:#c9974e;cursor:pointer">Смотреть все</div>
+      </div>
+      <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${popular}</div>
+      <div style="display:flex;align-items:baseline;margin:20px 0 12px">
+        <div style="font:600 19px 'Cormorant Garamond',serif">Атмосфера гор</div>
+        <div style="flex:1"></div>
+        <div style="font:600 11px Manrope;letter-spacing:.08em;color:var(--sub);text-transform:uppercase">Наши стены</div>
+      </div>
+      <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${gallery}</div>
+      <div data-c="${act(() => setS({ tab: 'bonus' }))}" style="position:relative;border-radius:18px;overflow:hidden;height:118px;margin-top:18px;cursor:pointer;animation:fadeUp .5s ease both">
+        <img src="assets/bonus-band.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%">
+        <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,17,13,.93) 34%,rgba(20,17,13,.35))"></div>
+        <div style="position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 18px;box-sizing:border-box">
+          <div style="font:600 15px 'Cormorant Garamond',serif;color:#e3c48b">Бонусы и подарки</div>
+          <div style="font:600 11.5px Manrope;color:#b8ad9c">Ваш баланс:</div>
+          <div style="font:800 16px Manrope;color:#f2ecdf">${S.bonus.toLocaleString('ru-RU')} <span style="font:600 12px Manrope;color:#b8ad9c">баллов</span></div>
+          <div style="margin-top:6px;display:inline-flex;align-self:flex-start;padding:6px 13px;border-radius:9px;background:${GG};color:#231b0e;font:800 11px Manrope">Подробнее</div>
+        </div>
+      </div>
+    </div>`;
+  } else if (S.tab === 'menu') {
+    const chips = CATS.map(([k, label]) => `<div data-c="${act(() => setS({ cat: k }))}" class="a95" style="flex:none;padding:9px 16px;border-radius:99px;cursor:pointer;font:700 12.5px Manrope;transition:all .15s;${S.cat === k ? `background:${GG};color:#231b0e` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('');
+    const rows = allProducts().filter(m => m.cat === S.cat && !S.hidden[m.id]).map(m => `
+      <div data-c="${act(() => setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {} }))}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer;animation:fadeUp .4s ease both;transition:border-color .15s">
+        <div style="${circleImg(m.img, 58, '50%', ';border:2px solid var(--line)')}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 14px Manrope">${esc(m.n)}</div>
+          <div style="font:600 11.5px Manrope;color:var(--sub);margin:2px 0 5px">${esc(m.v || '—')}</div>
+          <div style="font:800 14px Manrope;color:var(--goldT)">${m.p} ₽</div>
+        </div>
+        <div data-c="${act(() => { addCart(m.id, 0, {}, 1); showToast(m.n + ' — в заказе'); })}" class="a90" style="width:34px;height:34px;border-radius:11px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 19px Manrope;cursor:pointer;box-shadow:0 8px 16px -8px rgba(201,151,78,.8)">+</div>
+      </div>`).join('');
+    screen = `
+    <div data-key="scr-menu" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 112px;animation:fadeIn .3s ease both">
+      <div style="display:flex;align-items:center;margin-bottom:14px">
+        <div style="font:600 24px 'Cormorant Garamond',serif">Меню</div>
+        <div style="flex:1"></div>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--sub2)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.2-3.2"></path></svg>
+      </div>
+      <div style="display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${chips}</div>
+      <div style="display:grid;gap:10px;margin-top:14px">${rows}</div>
+    </div>`;
+  } else if (S.tab === 'order') {
+    const STEPS = [['new','Принят'],['work','Готовится'],['ready','Готов'],['done','Выдан']];
+    const idx = { new: 0, work: 1, ready: 2, done: 3 };
+    const TAGS = { new: ['Принят', 'background:rgba(201,151,78,.16);color:#c9974e'], work: ['Готовится', 'background:rgba(201,151,78,.16);color:#c9974e'], ready: ['Готов', 'background:rgba(111,191,138,.14);color:#6fbf8a'], done: ['Выдан', 'background:var(--line2);color:var(--sub)'] };
+    const mine = S.orders.filter(o => S.myNums.includes(o.num));
+    const active = mine.filter(o => o.st !== 'done' || S.myNums[0] === o.num);
+    const activeCards = active.length > 0 ? `
+      <div style="display:grid;gap:12px;margin-bottom:18px">
+        ${active.map(o => `
+          <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;animation:fadeUp .35s ease both">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+              <div style="font:800 15px Manrope">№${o.num}</div>
+              <div style="font:600 11.5px Manrope;color:var(--sub)">${o.time}</div>
+              <div style="flex:1"></div>
+              <div style="padding:4px 10px;border-radius:99px;font:700 11px Manrope;${TAGS[o.st][1]}">${TAGS[o.st][0]}</div>
+            </div>
+            <div style="font:600 12.5px/1.5 Manrope;color:var(--sub2);margin-bottom:14px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
+            <div style="display:flex;align-items:flex-start">
+              ${STEPS.map(([k, label], i) => {
+                const done = i <= idx[o.st], cur = i === idx[o.st];
+                return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative">
+                  ${i > 0 ? `<div style="position:absolute;top:7px;right:50%;width:100%;height:2px;${done ? 'background:#c9974e' : 'background:var(--line)'}"></div>` : ''}
+                  <div style="width:15px;height:15px;border-radius:50%;box-sizing:border-box;position:relative;z-index:1;transition:all .3s;${done ? 'background:#c9974e;border:4px solid #c9974e' : 'background:var(--card);border:2px solid var(--line)'}"></div>
+                  <div style="margin-top:6px;font:${cur ? '800' : '600'} 10px Manrope;${done ? 'color:var(--ink)' : 'color:var(--sub)'}">${label}</div>
+                </div>`;
+              }).join('')}
+            </div>
+            ${o.hist && o.hist.length ? `
+              <div style="margin-top:13px;border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:6px">
+                ${o.hist.map(([t, at]) => `
+                  <div style="display:flex;gap:9px;align-items:center;font:600 11.5px Manrope;color:var(--sub)">
+                    <div style="width:6px;height:6px;border-radius:50%;background:#c9974e;flex:none"></div>
+                    <div style="flex:1">${esc(t)}</div>
+                    <div style="color:var(--dim)">${esc(at)}</div>
+                  </div>`).join('')}
+              </div>` : ''}
+            ${o.st === 'ready' ? '<div style="margin-top:12px;padding:11px;border-radius:11px;background:rgba(111,191,138,.12);color:#6fbf8a;font:700 12.5px Manrope;text-align:center;animation:pop .4s ease both">☕ Ваш заказ готов — подходите к стойке!</div>' : ''}
+          </div>`).join('')}
+      </div>` : '';
+
+    // --- бронь столика ---
+    const dows = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+    const bkDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() + i);
+      return `<div data-c="${act(() => setS({ bkDate: i, bkTime: '' }))}" style="flex:none;width:52px;padding:9px 0;border-radius:13px;text-align:center;cursor:pointer;transition:all .15s;${S.bkDate === i ? `background:${GG};color:#231b0e` : 'background:var(--hov);color:var(--sub2)'}"><div style="font:600 10px Manrope;text-transform:uppercase;letter-spacing:.06em;opacity:.7">${dows[d.getDay()]}</div><div style="font:800 16px Manrope">${d.getDate()}</div></div>`;
+    }).join('');
+    const nowH = new Date().getHours();
+    const bkFree = ['12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00']
+      .filter(x => S.bkDate > 0 || +x.slice(0, 2) > nowH);
+    const bkSlots = bkFree
+      .map(x => `<div data-c="${act(() => setS({ bkTime: x }))}" style="padding:10px 0;text-align:center;border-radius:10px;cursor:pointer;font:700 12.5px Manrope;transition:all .15s;${S.bkTime === x ? `background:${GG};color:#231b0e` : 'background:var(--hov);color:var(--sub2)'}">${x}</div>`).join('') || '<div style="grid-column:1/-1;padding:14px 4px;font:600 12.5px/1.5 Manrope;color:var(--sub)">На сегодня свободного времени не осталось — выберите другой день выше</div>';
+    const bkPanel = S.bkOpen ? `
+      <div data-key="bk-panel">
+        <div style="font:700 11px Manrope;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:14px 0 8px">Дата</div>
+        <div style="display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px">${bkDays}</div>
+        <div style="font:700 11px Manrope;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:14px 0 8px">Время</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px">${bkSlots}</div>
+        <div style="display:flex;align-items:center;margin-top:14px">
+          <div style="font:700 11px Manrope;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)">Гостей</div>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;gap:12px;background:var(--hov);border-radius:12px;padding:7px 11px">
+            <div data-c="${act(() => setS({ bkGuests: Math.max(1, S.bkGuests - 1) }))}" style="cursor:pointer;font:800 17px Manrope;color:#c9974e;width:30px;height:30px;margin:-5px -4px;display:flex;align-items:center;justify-content:center;user-select:none">−</div>
+            <div style="font:800 15px Manrope;min-width:18px;text-align:center">${S.bkGuests}</div>
+            <div data-c="${act(() => setS({ bkGuests: Math.min(12, S.bkGuests + 1) }))}" style="cursor:pointer;font:800 17px Manrope;color:#c9974e;width:30px;height:30px;margin:-5px -4px;display:flex;align-items:center;justify-content:center;user-select:none">+</div>
+          </div>
+        </div>
+        <div data-c="${act(() => {
+          if (!S.bkTime) return;
+          const d = new Date(); d.setDate(d.getDate() + S.bkDate);
+          const when = ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + ' · ' + S.bkTime;
+          set({
+            bookings: [{ id: Date.now(), when, guests: S.bkGuests, name, phone: S.user && S.user.phone ? S.user.phone : '—', ok: false }, ...S.bookings],
+            bkOpen: false, bkTime: '',
+            snotifs: [{ text: 'Новая бронь ' + when + ' · ' + name, time: now(), kind: 'book' }, ...S.snotifs].slice(0, 40), sunread: (S.sunread || 0) + 1,
+            notifs: [{ text: 'Бронь ' + when + ' отправлена. Ждём подтверждения кофейни', time: now() }, ...S.notifs],
+            unread: S.unread + 1
+          });
+          showToast('Бронь отправлена!');
+        })}" class="a98" style="margin-top:14px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font:800 13.5px Manrope;cursor:pointer;transition:all .2s;${S.bkTime ? `background:${GG};color:#231b0e;box-shadow:0 10px 22px -10px rgba(201,151,78,.7)` : 'background:var(--hov);color:var(--dim)'}">Забронировать</div>
+      </div>` : '';
+    const myBookings = S.bookings.length > 0 ? `
+      <div data-key="bk-list" style="display:grid;gap:8px;margin-top:14px">
+        ${S.bookings.map(b => `
+          <div style="display:flex;align-items:center;gap:11px;background:var(--hov);border-radius:13px;padding:11px 13px">
+            ${SVG.calendar}
+            <div style="flex:1"><div style="font:700 13px Manrope">${esc(b.when)}</div><div style="font:600 11px Manrope;color:var(--sub)">Гостей: ${b.guests}</div></div>
+            <div style="padding:4px 10px;border-radius:99px;font:700 10.5px Manrope;${b.ok ? 'background:rgba(111,191,138,.14);color:#6fbf8a' : 'background:rgba(201,151,78,.16);color:#c9974e'}">${b.ok ? 'Подтверждена' : 'Ожидает'}</div>
+          </div>`).join('')}
+      </div>` : '';
+    const bookingCard = `
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:18px;animation:fadeUp .35s ease both">
+        <div style="display:flex;align-items:center">
+          <div>
+            <div style="font:600 18px 'Cormorant Garamond',serif">Бронь столика</div>
+            <div style="font:600 11.5px Manrope;color:var(--sub);margin-top:2px">Кожаные диваны и вид на горы</div>
+          </div>
+          <div style="flex:1"></div>
+          <div data-c="${act(() => setS({ bkOpen: !S.bkOpen }))}" class="a95" style="padding:9px 15px;border-radius:11px;font:800 12px Manrope;cursor:pointer;transition:all .15s;${S.bkOpen ? 'background:var(--hov);color:var(--sub2)' : `background:${GG};color:#231b0e`}">${S.bkOpen ? 'Свернуть' : 'Выбрать время'}</div>
+        </div>
+        ${bkPanel}
+        ${myBookings}
+      </div>`;
+
+    const justOrdered = entries.length === 0 && S.lastOrder ? `
+      <div style="background:var(--card);border:1px solid rgba(201,151,78,.5);border-radius:18px;padding:26px 20px;text-align:center;animation:pop .45s ease both">
+        <div style="width:56px;height:56px;border-radius:50%;background:${GG};margin:0 auto 14px;display:flex;align-items:center;justify-content:center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#231b0e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg>
+        </div>
+        <div style="font:600 20px 'Cormorant Garamond',serif;margin-bottom:6px">Заказ №${S.lastOrder} принят</div>
+        <div style="font:500 13px/1.55 Manrope;color:var(--sub)">Бариста уже видит его в реестре. Мы позовём вас, когда всё будет готово.</div>
+        <div data-c="${act(() => setS({ tab: 'menu' }))}" style="display:inline-flex;margin-top:16px;padding:12px 24px;border-radius:12px;background:${GG};color:#231b0e;font:800 13px Manrope;cursor:pointer">В меню</div>
+      </div>` : '';
+    const empty = entries.length === 0 && !S.lastOrder ? `
+      <div style="text-align:center;padding:60px 16px;color:var(--sub)">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--dim2)" stroke-width="1.6" stroke-linecap="round" style="margin-bottom:12px"><path d="M6 8h12l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg>
+        <div style="font:600 18px 'Cormorant Garamond',serif;color:var(--ink);margin-bottom:6px">Пока пусто</div>
+        <div style="font:500 13px Manrope">Добавьте что-нибудь из меню</div>
+        <div data-c="${act(() => setS({ tab: 'menu' }))}" style="display:inline-flex;margin-top:16px;padding:12px 24px;border-radius:12px;background:${GG};color:#231b0e;font:800 13px Manrope;cursor:pointer">Открыть меню</div>
+      </div>` : '';
+    let cartBlock = '';
+    if (entries.length > 0) {
+      const rows = entries.map(([key, x]) => {
+        const it = item(x.id);
+        const up = unitPrice(x.id, x.size, x.adds);
+        const addsArr = Object.keys(x.adds || {}).filter(k => x.adds[k]);
+        const v = (it.sz ? SIZES[x.size] : it.v) + (addsArr.length ? ' · ' + addsArr.map(a => a === 'syr' ? 'сироп' : 'б/лактозы').join(', ') : '');
+        return `
+        <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:11px 12px;animation:fadeUp .35s ease both">
+          <div style="width:52px;height:52px;border-radius:13px;flex:none;background:url(&quot;${esc(it.img)}&quot;) center/cover no-repeat"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font:700 13.5px Manrope;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.n)}</div>
+            <div style="font:600 11px Manrope;color:var(--sub);margin:2px 0 4px">${esc(v)}</div>
+            <div style="font:800 13.5px Manrope;color:var(--goldT)">${up} ₽</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;background:var(--ph);border:1px solid var(--line);border-radius:11px;padding:3px 5px">
+            <div data-c="${act(() => { const c = { ...S.cart }; if (x.qty <= 1) delete c[key]; else c[key] = { ...x, qty: x.qty - 1 }; setS({ cart: c }); })}" style="width:28px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:800 16px Manrope;color:#c9974e;user-select:none">−</div>
+            <div style="font:800 13px Manrope;min-width:15px;text-align:center">${x.qty}</div>
+            <div data-c="${act(() => { const c = { ...S.cart }; c[key] = { ...x, qty: x.qty + 1 }; setS({ cart: c }); })}" style="width:28px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:800 16px Manrope;color:#c9974e;user-select:none">+</div>
+          </div>
+          <div data-c="${act(() => { const c = { ...S.cart }; delete c[key]; setS({ cart: c }); })}" class="h-red2" style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim2)">
+            <svg width="15" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2M6.5 7l1 12a2 2 0 0 0 2 1.8h5a2 2 0 0 0 2-1.8l1-12"></path></svg>
+          </div>
+        </div>`;
+      }).join('');
+      const mainCard = (S.cards || [])[S.mainCard || 0];
+      const payChips = [mainCard ? (mainCard.brand + ' •••• ' + mainCard.last4) : 'Банковская карта', 'Онлайн-оплата', 'На кассе'].map((label, i) => `<div data-c="${act(() => setS({ pay: i }))}" style="padding:10px 14px;border-radius:11px;cursor:pointer;font:700 12px Manrope;transition:all .15s;${S.pay === i ? `background:${GG};color:#231b0e` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${esc(label)}</div>`).join('');
+      const otStyle = on => `flex:1;display:flex;align-items:center;gap:9px;padding:13px 14px;border-radius:13px;cursor:pointer;font:700 13.5px Manrope;transition:all .15s;${on ? 'background:var(--card);border:1px solid rgba(201,151,78,.6)' : 'background:var(--card);border:1px solid var(--line);color:var(--sub)'}`;
+      const otDot = on => `width:16px;height:16px;border-radius:50%;box-sizing:border-box;${on ? 'border:5px solid #c9974e' : 'border:2px solid var(--bdr)'}`;
+      cartBlock = `
+      <div style="display:grid;gap:10px">${rows}</div>
+      <div style="margin-top:18px;display:grid;gap:8px;font:600 13.5px Manrope;color:var(--sub)">
+        <div style="display:flex"><div>Сумма</div><div style="flex:1"></div><div style="color:var(--ink)">${sum} ₽</div></div>
+        <div style="display:flex"><div>Скидка</div><div style="flex:1"></div><div style="color:#c9974e">−${disc} ₽</div></div>
+        <div style="display:flex;font:800 16px Manrope;color:var(--ink);padding-top:8px;border-top:1px solid var(--line)"><div>Итого</div><div style="flex:1"></div><div>${total} ₽</div></div>
+      </div>
+      <div style="font:700 13px Manrope;margin:18px 0 10px">Как получить заказ?</div>
+      <div style="display:flex;gap:10px">
+        <div data-c="${act(() => setS({ orderType: 0 }))}" style="${otStyle(S.orderType === 0)}"><div style="${otDot(S.orderType === 0)}"></div>В зале</div>
+        <div data-c="${act(() => setS({ orderType: 1 }))}" style="${otStyle(S.orderType === 1)}"><div style="${otDot(S.orderType === 1)}"></div>С собой</div>
+      </div>
+      <div style="font:700 13px Manrope;margin:16px 0 10px">Способ оплаты</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${payChips}</div>
+      <div data-c="${act(() => {
+        const es = Object.entries(S.cart);
+        if (es.length === 0) return;
+        const num = Math.max(...S.orders.map(o => o.num)) + 1;
+        const lines = es.map(([, x]) => { const it = item(x.id); return [it.n + (x.qty > 1 ? ' ×' + x.qty : ''), it.sz ? SIZES[x.size] : it.v, unitPrice(x.id, x.size, x.adds) * x.qty]; });
+        const ids = es.map(([, x]) => ({ id: x.id, size: x.size, adds: x.adds, qty: x.qty }));
+        const s2 = es.reduce((a, [, x]) => a + unitPrice(x.id, x.size, x.adds) * x.qty, 0);
+        set({
+          orders: [{ num, st: 'new', time: now(), min: 0, lines, ids, client: name, phone: (S.user && S.user.phone) || '', type: S.orderType, pay: S.pay, total: s2 - Math.round(s2 * 0.1), hist: [['Заявка отправлена', now()], ['Принят кофейней', now()]] }, ...S.orders],
+          cart: {}, lastOrder: num, myNums: [num, ...S.myNums],
+          snotifs: [{ text: 'Новый заказ №' + num + ' · ' + name, time: now(), kind: 'order' }, ...S.snotifs].slice(0, 40), sunread: (S.sunread || 0) + 1,
+          notifs: [{ text: 'Заказ №' + num + ' принят. Мы сообщим, когда он будет готов', time: now() }, ...S.notifs], unread: S.unread + 1
+        });
+        showToast('Заказ №' + num + ' отправлен бариста');
+      })}" class="a98" style="margin-top:18px;height:52px;border-radius:14px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 15px Manrope;cursor:pointer;box-shadow:0 16px 32px -14px rgba(201,151,78,.8)">Оформить заказ</div>`;
+    }
+    screen = `
+    <div data-key="scr-order" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 112px;animation:fadeIn .3s ease both">
+      <div style="display:flex;align-items:center;margin-bottom:16px">
+        <div style="font:600 24px 'Cormorant Garamond',serif">Мой заказ</div>
+        <div style="flex:1"></div>
+        ${entries.length > 0 ? `<div data-c="${act(() => setS({ cart: {} }))}" class="h-red" style="font:600 12.5px Manrope;color:#c0564a;cursor:pointer">Очистить</div>` : ''}
+      </div>
+      ${activeCards}
+      ${bookingCard}
+      ${justOrdered}
+      ${empty}
+      ${cartBlock}
+    </div>`;
+  } else if (S.tab === 'bonus') {
+    screen = `
+    <div data-key="scr-bonus" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 112px;animation:fadeIn .3s ease both">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Бонусы</div>
+      <div style="position:relative;border-radius:18px;overflow:hidden;padding:20px;background:linear-gradient(120deg,var(--hov),var(--card) 60%);border:1px solid rgba(201,151,78,.4);display:flex;align-items:center;animation:fadeUp .4s ease both">
+        <div>
+          <div style="font:600 12px Manrope;color:var(--mut)">Ваш баланс:</div>
+          <div style="font:800 24px Manrope;margin-top:4px">${S.bonus.toLocaleString('ru-RU')} <span style="font:600 14px Manrope;color:var(--mut)">баллов</span></div>
+        </div>
+        <div style="flex:1"></div>
+        <svg width="42" height="40" viewBox="0 0 24 23" fill="#c9974e"><path d="M12 0l3 7.4 8 .6-6.1 5.2L18.8 21 12 16.8 5.2 21l1.9-7.8L1 8l8-.6L12 0z"></path></svg>
+      </div>
+      <div style="font:600 18px 'Cormorant Garamond',serif;margin:22px 0 12px">История начислений</div>
+      <div style="display:grid;gap:9px">
+        ${HIST.map(([t, d, v]) => `
+          <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;animation:fadeUp .35s ease both">
+            <div style="flex:1"><div style="font:700 13.5px Manrope">${t}</div><div style="font:600 11.5px Manrope;color:var(--sub);margin-top:2px">${d}</div></div>
+            <div style="font:800 13px Manrope;${v > 0 ? 'color:#6fbf8a' : 'color:#d97666'}">${(v > 0 ? '+' : '') + v} баллов</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  } else if (S.tab === 'profile') {
+    const backBtn = `class="a90" style="width:38px;height:38px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer"`;
+    let sub = '';
+    if (S.psub === 'history') {
+      const mine = S.orders.filter(o => S.myNums.includes(o.num));
+      sub = `<div data-key="p-hist">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div data-c="${act(() => setS({ psub: null }))}" ${backBtn}>${SVG.backSm}</div>
+          <div style="font:600 21px 'Cormorant Garamond',serif">История заказов</div>
+        </div>
+        ${mine.length === 0 ? '<div style="padding:50px 0;text-align:center;color:var(--sub);font:600 13.5px Manrope">Заказов пока не было</div>' : ''}
+        <div style="display:grid;gap:10px">
+          ${mine.map(o => {
+            const done = o.st === 'done';
+            const repeat = act(() => {
+              const c = {};
+              (o.ids || []).forEach(x => { const key = x.id + '|' + x.size + '|' + Object.keys(x.adds || {}).filter(k => x.adds[k]).sort().join(','); c[key] = { ...x }; });
+              setS({ cart: c, psub: null, tab: 'order', lastOrder: null });
+              showToast('Состав заказа №' + o.num + ' добавлен в корзину');
+            });
+            return `
+            <div style="background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px;animation:fadeUp .35s ease both">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+                <div style="font:800 14px Manrope">Заказ №${o.num}</div>
+                <div style="font:600 11px Manrope;color:var(--sub)">${o.time}</div>
+                <div style="flex:1"></div>
+                <div style="padding:4px 10px;border-radius:99px;font:700 10.5px Manrope;${done ? 'background:rgba(111,191,138,.14);color:#6fbf8a' : 'background:rgba(201,151,78,.16);color:#c9974e'}">${done ? 'Выполнен' : 'Активен'}</div>
+              </div>
+              <div style="font:600 12.5px/1.5 Manrope;color:var(--sub2)">${esc(o.lines.map(l => l[0]).join(', '))}</div>
+              <div style="display:flex;align-items:center;margin-top:10px">
+                <div style="font:800 15px Manrope">${o.total || o.lines.reduce((a, l) => a + l[2], 0)} ₽</div>
+                <div style="flex:1"></div>
+                ${o.ids ? `<div data-c="${repeat}" class="a95" style="padding:9px 15px;border-radius:10px;background:${GG};color:#231b0e;font:800 12px Manrope;cursor:pointer">Повторить заказ</div>` : ''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    } else if (S.psub === 'fav') {
+      const favIds = Object.keys(S.favs).map(id => item(id)).filter(Boolean);
+      sub = `<div data-key="p-fav">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div data-c="${act(() => setS({ psub: null }))}" ${backBtn}>${SVG.backSm}</div>
+          <div style="font:600 21px 'Cormorant Garamond',serif">Избранное</div>
+        </div>
+        ${Object.keys(S.favs).length === 0 ? '<div style="padding:50px 0;text-align:center;color:var(--sub);font:600 13.5px Manrope">Нажимайте ♥ у товаров — они появятся здесь</div>' : ''}
+        <div style="display:grid;gap:10px">
+          ${favIds.map(it => `
+            <div data-c="${act(() => setS({ product: it.id, pQty: 1, pSize: 0, pAdds: {}, psub: null }))}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:10px 12px;cursor:pointer;animation:fadeUp .35s ease both">
+              <div style="width:50px;height:50px;border-radius:13px;flex:none;background:url(&quot;${esc(it.img)}&quot;) center/cover no-repeat"></div>
+              <div style="flex:1;min-width:0"><div style="font:700 13.5px Manrope">${esc(it.n)}</div><div style="font:600 11px Manrope;color:var(--sub);margin-top:2px">${esc(it.v)} · ${it.p} ₽</div></div>
+              <div data-c="${act(() => { const f = { ...S.favs }; delete f[it.id]; set({ favs: f }); })}" style="padding:6px;cursor:pointer"><svg width="17" height="16" viewBox="0 0 24 22" fill="#c9974e" stroke="#c9974e" stroke-width="2"><path d="M12 20S3 14 3 7.8A4.8 4.8 0 0 1 12 5a4.8 4.8 0 0 1 9 2.8C21 14 12 20 12 20z"></path></svg></div>
+              <div data-c="${act(() => { addCart(it.id, 0, {}, 1); showToast(it.n + ' — в заказе'); })}" class="a90" style="width:32px;height:32px;border-radius:10px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 17px Manrope;cursor:pointer">+</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    } else if (S.psub === 'settings') {
+      sub = `<div data-key="p-set">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div data-c="${act(() => setS({ psub: null }))}" ${backBtn}>${SVG.backSm}</div>
+          <div style="font:600 21px 'Cormorant Garamond',serif">Настройки</div>
+        </div>
+        <div style="font:700 13px Manrope;margin-bottom:10px">Тема</div>
+        <div style="display:grid;gap:8px">
+          ${[['dark','Тёмная'],['light','Светлая'],['system','Системная']].map(([k, label]) => `
+            <div data-c="${act(() => set({ theme: k }))}" class="h-gold" style="display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 15px;cursor:pointer;font:700 13.5px Manrope;transition:border-color .15s">
+              <div style="width:17px;height:17px;border-radius:50%;box-sizing:border-box;transition:all .15s;${S.theme === k ? 'border:5px solid #c9974e' : 'border:2px solid var(--bdr)'}"></div>${label}
+            </div>`).join('')}
+        </div>
+        <div style="font:600 12px/1.6 Manrope;color:var(--sub);margin-top:12px">Тема применяется мгновенно ко всему приложению. «Системная» следует настройкам устройства.</div>
+      </div>`;
+    } else if (S.psub === 'addr') {
+      sub = `<div data-key="p-addr">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div data-c="${act(() => setS({ psub: null }))}" ${backBtn}>${SVG.backSm}</div>
+          <div style="font:600 21px 'Cormorant Garamond',serif">Адреса</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;animation:fadeUp .35s ease both">
+          <div style="position:relative;height:150px">
+            <img src="assets/facade.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,17,13,.05),rgba(20,17,13,.72))"></div>
+            <div style="position:absolute;left:16px;bottom:12px;display:flex;align-items:center;gap:7px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#6fbf8a;box-shadow:0 0 0 4px rgba(111,191,138,.25)"></div>
+              <div style="font:700 12px Manrope;color:#fff">Открыто до 23:00</div>
+            </div>
+          </div>
+          <div style="padding:16px">
+            <div style="font:600 17px 'Cormorant Garamond',serif;margin-bottom:4px">Кофейня на высоте</div>
+            <div style="font:600 13px/1.55 Manrope;color:var(--sub2)">Трасса Грозный — Шатой, смотровая площадка</div>
+            <div style="display:grid;gap:8px;margin-top:12px">
+              <div style="display:flex;align-items:center;gap:10px;font:600 12.5px Manrope;color:var(--sub)">
+                ${SVG.clockGold}
+                Ежедневно 08:00 – 23:00 · кухня до 22:30
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font:600 12.5px Manrope;color:var(--sub)">
+                ${SVG.phoneGold}
+                +7 928 000-00-00
+              </div>
+            </div>
+            <div style="display:flex;gap:9px;margin-top:15px">
+              <div data-c="${act(() => { try { window.open('https://yandex.ru/maps/?text=' + encodeURIComponent('Шатой смотровая площадка'), '_blank'); } catch (e) {} showToast('Открываю маршрут в картах…'); })}" class="a97" style="flex:1;height:46px;border-radius:12px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;gap:8px;font:800 13px Manrope;cursor:pointer">
+                ${SVG.pin}
+                Построить маршрут
+              </div>
+              <div data-c="${act(() => showToast('Звонок: +7 928 000-00-00 (демо)'))}" class="a92" style="width:46px;height:46px;border-radius:12px;border:1px solid rgba(201,151,78,.5);display:flex;align-items:center;justify-content:center;cursor:pointer">
+                ${SVG.phoneBtn}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="font:600 12px/1.6 Manrope;color:var(--sub);margin-top:12px">Мы одни — и мы на высоте. Доставки пока нет: заказы «В зале» или «С собой».</div>
+      </div>`;
+    } else if (S.psub === 'pay') {
+      const cards = (S.cards || []).map((c, i) => {
+        const isMain = i === (S.mainCard || 0);
+        const holder = S.user && S.user.name ? S.user.name.toUpperCase() : 'ГОСТЬ';
+        return `
+        <div data-c="${act(() => { set({ mainCard: i }); showToast('Карта •••• ' + c.last4 + ' — основная'); })}" style="position:relative;overflow:hidden;border-radius:18px;padding:18px;cursor:pointer;color:#f2ecdf;animation:fadeUp .35s ease both;transition:transform .15s;background:linear-gradient(135deg,${isMain ? '#3a2f1e,#241d12' : '#2b2721,#1c1916'});border:1px solid ${isMain ? 'rgba(201,151,78,.55)' : 'var(--line)'}">
+          <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06)"></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font:800 13px Manrope;letter-spacing:.04em">${esc(c.brand)}</div>
+            <div style="flex:1"></div>
+            ${isMain ? '<div style="padding:4px 10px;border-radius:99px;background:rgba(201,151,78,.2);color:#e3c48b;font:700 10px Manrope;letter-spacing:.06em">ОСНОВНАЯ</div>' : ''}
+            <div data-c="${act(() => { const cs = (S.cards || []).filter((_, j) => j !== i); set({ cards: cs, mainCard: 0 }); showToast('Карта удалена'); })}" class="h-red" style="width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.45)">✕</div>
+          </div>
+          <div style="font:700 17px Manrope;letter-spacing:.16em;margin:18px 0 10px">•••• •••• •••• ${esc(c.last4)}</div>
+          <div style="font:600 11px Manrope;color:rgba(255,255,255,.55)">${esc(holder)}</div>
+        </div>`;
+      }).join('');
+      const canSave = (S.ncNum || '').replace(/\s/g, '').length === 16 && (S.ncExp || '').length === 5 && (S.ncCvc || '').length === 3;
+      const addForm = S.addingCard ? `
+        <div data-key="nc-form" style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;animation:fadeUp .3s ease both">
+          <div style="font:700 14px Manrope;margin-bottom:11px">Новая карта</div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:9px">
+            <input id="nc-num" inputmode="numeric" data-i="${act(e => { const d = e.target.value.replace(/[^\d]/g, '').slice(0, 16); setS({ ncNum: d.replace(/(.{4})/g, '$1 ').trim() }); })}" value="${esc(S.ncNum)}" placeholder="Номер карты" style="width:100%;box-sizing:border-box;height:48px;padding:0 15px;border-radius:12px;border:1px solid var(--line);background:var(--ph);color:var(--ink);font:600 14px Manrope;letter-spacing:.08em;outline:none">
+            <div style="display:flex;gap:9px">
+              <input id="nc-exp" inputmode="numeric" data-i="${act(e => { const d = e.target.value.replace(/[^\d]/g, '').slice(0, 4); setS({ ncExp: d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d }); })}" value="${esc(S.ncExp)}" placeholder="ММ/ГГ" style="flex:1;min-width:0;box-sizing:border-box;height:48px;padding:0 15px;border-radius:12px;border:1px solid var(--line);background:var(--ph);color:var(--ink);font:600 14px Manrope;outline:none">
+              <input id="nc-cvc" inputmode="numeric" type="password" data-i="${act(e => setS({ ncCvc: e.target.value.replace(/[^\d]/g, '').slice(0, 3) }))}" value="${esc(S.ncCvc)}" placeholder="CVC" style="flex:1;min-width:0;box-sizing:border-box;height:48px;padding:0 15px;border-radius:12px;border:1px solid var(--line);background:var(--ph);color:var(--ink);font:600 14px Manrope;outline:none">
+            </div>
+            <div data-c="${act(() => {
+              const num = (S.ncNum || '').replace(/\s/g, '');
+              if (!(num.length === 16 && (S.ncExp || '').length === 5 && (S.ncCvc || '').length === 3)) return;
+              const brand = num.charAt(0) === '2' ? 'МИР' : num.charAt(0) === '4' ? 'VISA' : 'MASTERCARD';
+              const cs = [...(S.cards || []), { brand, last4: num.slice(-4) }];
+              set({ cards: cs, mainCard: cs.length - 1, addingCard: false, ncNum: '', ncExp: '', ncCvc: '' });
+              showToast('Карта •••• ' + num.slice(-4) + ' добавлена');
+            })}" class="a98" style="height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font:800 13.5px Manrope;cursor:pointer;transition:all .2s;${canSave ? `background:${GG};color:#231b0e` : 'background:var(--hov);color:var(--dim)'}">Сохранить карту</div>
+          </div>
+          <div style="font:600 10.5px/1.5 Manrope;color:var(--dim);margin-top:9px">Демо: данные хранятся только на этом устройстве</div>
+        </div>` : '';
+      sub = `<div data-key="p-pay">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div data-c="${act(() => setS({ psub: null }))}" ${backBtn}>${SVG.backSm}</div>
+          <div style="font:600 21px 'Cormorant Garamond',serif">Способы оплаты</div>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:10px">
+          ${cards}
+          ${(S.cards || []).length === 0 && !S.addingCard ? '<div style="padding:34px 0;text-align:center;color:var(--sub);font:600 13px Manrope">Карт пока нет — добавьте первую</div>' : ''}
+          ${addForm}
+          ${!S.addingCard ? `<div data-c="${act(() => setS({ addingCard: true, ncNum: '', ncExp: '', ncCvc: '' }))}" class="h-addcard" style="display:flex;align-items:center;justify-content:center;gap:9px;height:52px;border-radius:14px;border:1.5px dashed var(--bdr);color:var(--goldT);font:700 13.5px Manrope;cursor:pointer;transition:all .15s">＋ Добавить карту</div>` : ''}
+          <div style="font:600 12px/1.6 Manrope;color:var(--sub)">Нажмите на карту, чтобы сделать её основной — она подставится при оплате заказа.</div>
+        </div>
+      </div>`;
+    } else if (S.psub === 'personal') {
+      sub = `<div data-key="p-pers">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div data-c="${act(() => setS({ psub: null }))}" ${backBtn}>${SVG.backSm}</div>
+          <div style="font:600 21px 'Cormorant Garamond',serif">Личные данные</div>
+        </div>
+        <div style="display:grid;gap:10px">
+          <input id="pers-name" data-i="${act(e => setS({ fName: e.target.value }))}" value="${esc(S.fName)}" placeholder="Имя" style="width:100%;box-sizing:border-box;height:50px;padding:0 16px;border-radius:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 14px Manrope;outline:none">
+          <input id="pers-phone" type="tel" inputmode="tel" data-i="${act(e => setS({ fPhone: e.target.value }))}" value="${esc(S.fPhone)}" placeholder="Номер телефона" style="width:100%;box-sizing:border-box;height:50px;padding:0 16px;border-radius:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 14px Manrope;outline:none">
+          <div data-c="${act(() => { if (!S.fName.trim()) return; set({ user: { name: S.fName.trim(), phone: S.fPhone }, psub: null }); showToast('Данные сохранены'); })}" class="a98" style="height:50px;border-radius:13px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 14px Manrope;cursor:pointer">Сохранить</div>
+        </div>
+      </div>`;
+    } else {
+      const rows = [['iU','Личные данные'],['iH','История заказов'],['iF','Избранное'],['iP','Адреса'],['iC','Способы оплаты'],['iB','Уведомления'],['iS','Настройки']].map(([ic, label]) => {
+        const tap = act(() => {
+          if (ic === 'iU') { setS({ psub: 'personal', fName: S.user ? S.user.name : '', fPhone: S.user ? S.user.phone : '' }); return; }
+          if (ic === 'iH') { setS({ psub: 'history' }); return; }
+          if (ic === 'iF') { setS({ psub: 'fav' }); return; }
+          if (ic === 'iS') { setS({ psub: 'settings' }); return; }
+          if (ic === 'iB') { setS({ tab: 'home', notifOpen: true }); return; }
+          if (ic === 'iP') { setS({ psub: 'addr' }); return; }
+          if (ic === 'iC') { setS({ psub: 'pay' }); return; }
+        });
+        return `
+        <div data-c="${tap}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 15px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.prof[ic]}</svg>
+          <div style="flex:1;font:600 13.5px Manrope">${label}</div>
+          ${SVG.chev}
+        </div>`;
+      }).join('');
+      sub = `<div data-key="p-main">
+        <div style="display:flex;align-items:center;margin-bottom:18px">
+          <div style="font:600 24px 'Cormorant Garamond',serif">Профиль</div>
+          <div style="flex:1"></div>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--sub2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"></circle><path d="M19 12a7 7 0 0 0-.14-1.4l2-1.55-2-3.46-2.36.95A7 7 0 0 0 14.06 5L13.7 2.5h-3.4L9.94 5a7 7 0 0 0-2.44 1.4l-2.36-.8-2 3.47 2 1.53a7.1 7.1 0 0 0 0 2.8l-2 1.55 2 3.46 2.36-.95a7 7 0 0 0 2.44 1.4l.36 2.54h3.4l.36-2.54a7 7 0 0 0 2.44-1.4l2.36.95 2-3.46-2-1.55c.1-.46.14-.92.14-1.4z"></path></svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;animation:fadeUp .4s ease both">
+          ${avatar(name.charAt(0).toUpperCase(), 58, 22)}
+          <div><div style="font:700 17px Manrope">${esc(name)}</div><div style="font:600 12.5px Manrope;color:var(--sub);margin-top:2px">${esc(S.user && S.user.phone ? S.user.phone : 'Телефон не указан')}</div></div>
+        </div>
+        <div style="display:grid;gap:8px">${rows}</div>
+        <div data-c="${act(() => set({ screen: 'auth', authMode: 'welcome', user: null, psub: null }))}" class="h-redbg" style="margin-top:18px;text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:#d97666;font:700 13.5px Manrope;cursor:pointer">Выйти</div>
+      </div>`;
+    }
+    screen = `<div data-key="scr-profile" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 112px;animation:fadeIn .3s ease both">${sub}</div>`;
+  }
+
+  const navItems = [['home','Главная','home'],['menu','Меню','menu'],['order','Заказ','order'],['bonus','Бонусы','bonus'],['profile','Профиль','prof']].map(([key, label, ic]) => {
+    const active = S.tab === key;
+    return `
+    <div data-c="${act(() => setS({ tab: key, product: null }))}" class="a94" style="position:relative;width:58px;height:56px;border-radius:17px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:all .2s;${active ? 'background:rgba(217,188,140,.16);border:1px solid rgba(217,188,140,.45);color:var(--goldT)' : 'color:var(--dim2)'}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav[ic]}</svg>
+      <div style="font:600 10px Manrope;margin-top:4px">${label}</div>
+      ${key === 'order' && cartCount > 0 ? `<div style="position:absolute;top:2px;right:4px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;background:${GG};color:#2a2016;border-radius:99px;font:800 10px/17px Manrope;text-align:center;animation:pop .3s ease both">${cartCount}</div>` : ''}
+    </div>`;
+  }).join('');
+  const navbar = !S.product ? `
+  <div data-key="nav" style="position:absolute;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:30;height:72px;box-sizing:border-box;border-radius:24px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 4px;box-shadow:0 20px 40px -20px rgba(0,0,0,.8)">${navItems}</div>` : '';
+
+  return statusBar + screen + navbar;
+}
+
+// ===================== корневой рендер =====================
+function render() {
+  actions = [];
+  const isDark = dark();
+  const vars = isDark
+    ? '--bg:#120e0b;--ph:#1a1512;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.1);--line2:rgba(255,255,255,.08);--ink:#f3ede4;--sub:#a99e8e;--sub2:#c9bfae;--goldT:#d9bc8c;--mut:#c9bfae;--dim:#8f8474;--dim2:#7d7264;--bdr:rgba(255,255,255,.22);--hov:rgba(255,255,255,.1);--av1:rgba(255,255,255,.12);--av2:rgba(255,255,255,.03);--navbg:rgba(30,24,20,.72)'
+    : '--bg:#e8dfd0;--ph:#f7f2ea;--card:rgba(255,255,255,.62);--line:rgba(42,32,22,.12);--line2:rgba(42,32,22,.09);--ink:#2a2016;--sub:#7d7264;--sub2:#544b3e;--goldT:#9a7326;--mut:#6f6659;--dim:#8f8474;--dim2:#a89e8e;--bdr:rgba(42,32,22,.25);--hov:rgba(42,32,22,.06);--av1:rgba(255,255,255,.85);--av2:rgba(233,223,205,.9);--navbg:rgba(250,246,238,.72)';
+
+  let inner = '';
+  if (S.screen === 'staff') {
+    inner = renderStaff();
+  } else {
+    // Стеклянным панелям нужна подложка, иначе размывать нечего: фотография
+    // интерьера уходит в сильное размытие и приглушается тонирующим слоем.
+    const tint = isDark
+      ? 'linear-gradient(180deg,rgba(26,21,18,.52),rgba(18,14,11,.86))'
+      : 'linear-gradient(180deg,rgba(247,242,234,.7),rgba(232,223,208,.9))';
+    inner = `
+    <div data-key="view-phone" style="max-width:430px;width:100%;box-sizing:border-box;margin:0 auto;height:100dvh;background:var(--ph);position:relative;display:flex;flex-direction:column;box-shadow:0 0 90px rgba(0,0,0,.65);overflow:hidden">
+      <img data-key="ph-bg" src="assets/interior.jpg" alt="" style="position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(28px) saturate(.7);opacity:${isDark ? '.4' : '.5'}">
+      <div data-key="ph-tint" style="position:absolute;inset:0;background:${tint}"></div>
+      <div data-key="ph-body" style="position:relative;z-index:1;flex:1;min-height:0;display:flex;flex-direction:column">
+        ${S.screen === 'splash' ? renderSplash() : S.screen === 'auth' ? renderAuth() : renderApp()}
+      </div>
+    </div>`;
+  }
+  const toast = S.toast ? `<div data-key="toast" style="position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:99;box-sizing:border-box;width:min(390px,calc(100% - 40px));background:var(--navbg);border:1px solid rgba(217,188,140,.4);color:var(--ink);padding:12px 18px;border-radius:14px;font:700 12.5px Manrope;box-shadow:0 18px 40px -14px rgba(0,0,0,.6);animation:fadeUp .3s ease both;text-align:center">${esc(S.toast)}</div>` : '';
+
+  // сохранить фокус и каретку через перерисовку
+  const ae = document.activeElement;
+  let focusId = null, selStart = 0, selEnd = 0;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && ae.id) {
+    focusId = ae.id;
+    try { selStart = ae.selectionStart; selEnd = ae.selectionEnd; } catch (e) {}
+  }
+
+  const tpl = document.createElement('template');
+  tpl.innerHTML = `<div data-key="root" style="${vars};height:100dvh;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;transition:background .35s,color .35s">${inner}${toast}</div>`;
+  morphChildren(app, tpl.content);
+
+  document.body.style.background = isDark ? '#120e0b' : '#e8dfd0';
+  document.documentElement.style.background = isDark ? '#120e0b' : '#e8dfd0';
+  document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+
+  if (focusId) {
+    const el = document.getElementById(focusId);
+    if (el && el !== document.activeElement) {
+      el.focus({ preventScroll: true });
+      try { el.setSelectionRange(selStart, selEnd); } catch (e) {}
+    }
+  }
+}
+
+// ===================== события =====================
+app.addEventListener('click', e => {
+  const el = e.target.closest('[data-c]');
+  if (el && app.contains(el)) { const fn = actions[+el.dataset.c]; if (fn) fn(e); }
+});
+app.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset && el.dataset.i !== undefined) { const fn = actions[+el.dataset.i]; if (fn) fn(e); }
+});
+
+window.addEventListener('resize', () => { S.w = window.innerWidth; render(); });
+if (window.matchMedia) {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onMq = e => setS({ sysDark: e.matches });
+  if (mq.addEventListener) mq.addEventListener('change', onMq);
+  else if (mq.addListener) mq.addListener(onMq);
+}
+
+// ===================== старт =====================
+render();
+
+})();
+</script>
+</body>
+</html>
