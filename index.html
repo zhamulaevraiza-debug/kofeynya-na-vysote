@@ -236,7 +236,7 @@ const S = {
   myBks: sv.myBks || (Array.isArray(sv.bookings) ? sv.bookings.map((b, i) => b && b.id != null ? b.id : 'b' + i) : []),
   sPinWho: null, sPin: '', sPinErr: 0, sPinLock: +sv.sPinLock || 0, cancelAsk: 0, themeOpen: false,
   snotifs: sv.snotifs || SEED_SNOTIFS, sunread: sv.sunread != null ? sv.sunread : 4,
-  orders: (sv.orders || DEMO_ORDERS).map(normalizeOrder),
+  orders: (Array.isArray(sv.orders) ? sv.orders : DEMO_ORDERS).map(normalizeOrder), nextNum: +sv.nextNum || 0,
   w: window.innerWidth
 };
 // Счётчики непрочитанного не могут превышать длину своих лент
@@ -244,17 +244,96 @@ const S = {
 S.unread = Math.min(S.unread || 0, S.notifs.length);
 S.sunread = Math.min(S.sunread || 0, S.snotifs.length);
 
+// ---------- удержание данных и слияние между вкладками ----------
+const DAY = 86400000;
+const ST_RANK = { new: 0, work: 1, ready: 2, done: 3, cancel: 3 };
+const isClosed = o => o.st === 'done' || o.st === 'cancel';
+const orderTs = o => (o.tss && o.tss.new) || 0;
+// Две вкладки (клиент и панель) пишут одно хранилище. Вместо «последняя запись
+// побеждает» — слияние по ключу: заказ берётся тот, что дальше по цепочке статусов,
+// бронь — та, по которой уже принято решение.
+function mergeOrders(mine, theirs) {
+  const by = new Map(); theirs.forEach(o => by.set(o.num, o));
+  mine.forEach(o => { const t = by.get(o.num); if (!t || (ST_RANK[o.st] || 0) >= (ST_RANK[t.st] || 0)) by.set(o.num, o); });
+  return [...by.values()].sort((a, b) => orderTs(b) - orderTs(a) || b.num - a.num);
+}
+function mergeBookings(mine, theirs) {
+  const by = new Map(); theirs.forEach(b => by.set(b.id, b));
+  mine.forEach(b => { const t = by.get(b.id); const md = b.ok || b.no, td = t && (t.ok || t.no); by.set(b.id, (td && !md) ? t : b); });
+  return [...by.values()].sort((a, b) => (b.id > a.id ? 1 : -1));
+}
+// Закрытые заказы старше недели теряют журнал и состав для повтора, старше месяца —
+// уходят совсем; жёсткий потолок 3000 записей. `hard` — режим при переполнении квоты.
+function compactOrders(list, hard) {
+  const now = Date.now(), keepFull = hard ? 1 * DAY : 7 * DAY, keepAll = hard ? 7 * DAY : 30 * DAY, cap = hard ? 1200 : 3000;
+  let out = list.filter(o => !(isClosed(o) && now - orderTs(o) > keepAll)).map(o => {
+    if (isClosed(o) && now - orderTs(o) > keepFull && (o.hist || o.ids)) { const c = { ...o }; delete c.hist; delete c.ids; return c; }
+    return o;
+  });
+  if (out.length > cap) {
+    const drop = new Set(out.filter(isClosed).sort((a, b) => orderTs(a) - orderTs(b)).slice(0, out.length - cap).map(o => o.num));
+    out = out.filter(o => !drop.has(o.num));
+  }
+  return out;
+}
+// id брони — момент её создания; хранятся созданные за последние 30 дней, не больше 500.
+function compactBookings(list, hard) {
+  const lim = Date.now() - (hard ? 7 : 30) * DAY;
+  return list.filter(b => !(+b.id > 1e12 && +b.id < lim)).slice(0, hard ? 200 : 500);
+}
+// Номер заказа — из счётчика, а не из максимума по списку: после обрезки архива
+// номера не повторяются, а перед выдачей сверяемся с записью соседней вкладки.
+function allocOrderNum() {
+  let mx = Math.max(1253, +S.nextNum - 1 || 0);
+  S.orders.forEach(o => { if (+o.num > mx) mx = +o.num; });
+  try { const sv = JSON.parse(localStorage.getItem('knv2') || '{}'); (sv.orders || []).forEach(o => { if (+o.num > mx) mx = +o.num; }); if (+sv.nextNum - 1 > mx) mx = +sv.nextNum - 1; } catch (e) {}
+  S.nextNum = mx + 2;
+  return mx + 1;
+}
+function snapshot() {
+  return {
+    theme: S.theme, user: S.user, myNums: S.myNums, notifs: S.notifs, unread: S.unread,
+    snotifs: S.snotifs, sunread: S.sunread, nextNum: S.nextNum,
+    bonus: S.bonus, bonusEv: S.bonusEv, custom: S.custom, hidden: S.hidden, favs: S.favs,
+    orders: S.orders, cards: S.cards, mainCard: S.mainCard, bookings: S.bookings,
+    staffId: S.staffId, offShift: S.offShift, myBks: S.myBks, sPinLock: S.sPinLock
+  };
+}
 function save() {
+  // 1) слить с тем, что успела записать другая вкладка
   try {
-    localStorage.setItem('knv2', JSON.stringify({
-      theme: S.theme, user: S.user, myNums: S.myNums, notifs: S.notifs, unread: S.unread,
-      snotifs: S.snotifs, sunread: S.sunread,
-      bonus: S.bonus, bonusEv: S.bonusEv, custom: S.custom, hidden: S.hidden, favs: S.favs,
-      orders: S.orders, cards: S.cards, mainCard: S.mainCard, bookings: S.bookings,
-      staffId: S.staffId, offShift: S.offShift, myBks: S.myBks, sPinLock: S.sPinLock
-    }));
-  } catch (e) {
-    if (!S._saveWarned) { S._saveWarned = 1; setTimeout(() => showToast('Не удалось сохранить данные — хранилище браузера недоступно'), 0); }
+    const raw = localStorage.getItem('knv2');
+    if (raw && raw !== S._lastSaved) {
+      const sv = JSON.parse(raw) || {};
+      if (Array.isArray(sv.orders)) S.orders = mergeOrders(S.orders, sv.orders.map(normalizeOrder));
+      if (Array.isArray(sv.bookings)) S.bookings = mergeBookings(S.bookings, sv.bookings);
+      if (Array.isArray(sv.myNums)) S.myNums = [...new Set([...S.myNums, ...sv.myNums])];
+      if (Array.isArray(sv.myBks)) S.myBks = [...new Set([...S.myBks, ...sv.myBks])];
+      if (+sv.nextNum > (+S.nextNum || 0)) S.nextNum = +sv.nextNum;
+    }
+  } catch (e) {}
+  // 2) удержание и ограничения лент — в одном месте для всех путей записи
+  S.orders = compactOrders(S.orders, false);
+  S.bookings = compactBookings(S.bookings, false);
+  const nums = new Set(S.orders.map(o => o.num)), bids = new Set(S.bookings.map(b => b.id));
+  S.myNums = S.myNums.filter(n => nums.has(n));
+  S.myBks = (S.myBks || []).filter(id => bids.has(id));
+  S.notifs = S.notifs.slice(0, 25); S.unread = Math.min(S.unread || 0, S.notifs.length);
+  S.snotifs = S.snotifs.slice(0, 40); S.sunread = Math.min(S.sunread || 0, S.snotifs.length);
+  S.bonusEv = (S.bonusEv || []).slice(0, 100);
+  // 3) запись; при переполнении — жёсткое сжатие и повтор, и только потом предупреждение
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const str = JSON.stringify(snapshot());
+      localStorage.setItem('knv2', str);
+      S._lastSaved = str;
+      S.storageFull = 0;
+      return;
+    } catch (e) {
+      if (attempt === 0) { S.orders = compactOrders(S.orders, true); S.bookings = compactBookings(S.bookings, true); continue; }
+      // Не тост (его перекроет следующий), а постоянная плашка до первой удачной записи
+      S.storageFull = 1;
+    }
   }
 }
 function setS(patch) { Object.assign(S, patch); render(); }
@@ -464,13 +543,20 @@ function renderStaff() {
     return `<div style="display:flex;align-items:center;gap:4px;${col}">${SVG.clock}${label} ${m} мин</div>`;
   };
 
-  const stNav = [['dash','Главная'],['orders','Реестр заказов'],['books','Брони'],['menu','Меню и остатки'],['shifts','Смены'],['clients','Клиенты'],['fin','Финансы'],['notifx','Уведомления'],['profx','Профиль']].map(([k, label]) => {
+  const SECTIONS = [['dash','Главная'],['orders','Реестр заказов'],['books','Брони'],['menu','Меню и остатки'],['shifts','Смены'],['clients','Клиенты'],['fin','Финансы'],['notifx','Уведомления'],['profx','Профиль']];
+  // Один и тот же пункт меню в двух видах: строка бокового меню (широкий экран)
+  // и «чип» горизонтальной ленты вкладок (телефон).
+  const navItem = ([k, label], chip) => {
     const active = S.sview === k;
     const tap = act(() => setS({ sview: k }));
     const badge = k === 'notifx' && S.sunread > 0
       ? `<span style="margin-left:7px;background:${GG};color:#231b0e;border-radius:99px;padding:1px 7px;font:800 10.5px Manrope">${S.sunread}</span>` : '';
-    return `<div data-c="${tap}" class="h-nav" style="padding:11px 14px;border-radius:11px;cursor:pointer;font:700 13px Manrope;transition:all .15s;${active ? 'background:rgba(201,151,78,.14);color:var(--goldT);border:1px solid rgba(201,151,78,.45)' : 'color:var(--sub)'}">${label}${badge}</div>`;
-  }).join('');
+    const shape = chip ? 'flex:none;white-space:nowrap;padding:9px 13px;border-radius:99px;font:700 12.5px Manrope;' : 'padding:11px 14px;border-radius:11px;font:700 13px Manrope;';
+    const look = active ? 'background:rgba(201,151,78,.14);color:var(--goldT);border:1px solid rgba(201,151,78,.45)' : chip ? 'background:var(--card);border:1px solid var(--line);color:var(--sub2)' : 'color:var(--sub)';
+    return `<div data-c="${tap}" class="h-nav" style="${shape}cursor:pointer;transition:all .15s;${look}">${label}${badge}</div>`;
+  };
+  const stNav = SECTIONS.map(s => navItem(s, false)).join('');
+  const stNavChips = SECTIONS.map(s => navItem(s, true)).join('');
 
   let content = '';
   if (S.sview === 'dash') {
@@ -529,8 +615,12 @@ function renderStaff() {
   } else if (S.sview === 'books') {
     // Актуальные (ближайшие) сверху; просроченные без решения помечаются
     // отдельно и уже не подтверждаются задним числом.
-    const sorted = S.bookings.slice().sort((a, b) => (a.at || 0) - (b.at || 0) || (a.id > b.id ? 1 : -1));
-    const rows = sorted.map(b => {
+    // Сначала то, что ждёт решения (ближайшие сверху), затем решённые и просроченные —
+    // свежие сверху; длинный хвост не рисуется целиком.
+    const pending = b => !b.ok && !b.no && !(b.at && b.at < Date.now());
+    const sorted = S.bookings.slice().sort((a, b) => (pending(b) - pending(a)) || (pending(a) ? ((a.at || 0) - (b.at || 0)) : ((b.at || 0) - (a.at || 0))) || (a.id > b.id ? -1 : 1));
+    const bLimit = S.bookLimit || 60;
+    const rows = sorted.slice(0, bLimit).map(b => {
       const expired = !b.ok && !b.no && b.at && b.at < Date.now();
       const mine = S.myBks.includes(b.id);
       const tag = b.ok ? ['Подтверждена', 'background:rgba(111,191,138,.14);color:#6fbf8a']
@@ -562,7 +652,7 @@ function renderStaff() {
         showToast('Бронь отклонена' + (mine ? ' — клиент уведомлён' : ''));
       });
       return `
-      <div style="background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px 16px;animation:fadeUp .3s ease both">
+      <div data-key="b-${b.id}" style="background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px 16px;animation:fadeUp .3s ease both">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="font:600 16px 'Cormorant Garamond',serif;color:var(--goldT)">${esc(b.when)}</div>
           <div style="flex:1"></div>
@@ -578,6 +668,7 @@ function renderStaff() {
     }).join('');
     content = `<div data-key="sv-books">
       <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Брони столиков</div>
+      ${sorted.length > bLimit ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;max-width:560px;font:600 12px Manrope;color:var(--sub)">Показаны ${bLimit} из ${sorted.length} — сначала те, что ждут решения<div style="flex:1"></div><div data-c="${act(() => setS({ bookLimit: bLimit + 100 }))}" class="h-goldc" style="color:var(--goldT);cursor:pointer;font:700 12px Manrope">Показать ещё</div></div>` : ''}
       ${S.bookings.length === 0 ? '<div style="padding:50px 0;text-align:center;color:var(--sub);font:600 13.5px Manrope">Броней пока нет</div>' : ''}
       <div style="display:grid;gap:10px;max-width:560px">${rows}</div>
     </div>`;
@@ -679,9 +770,10 @@ function renderStaff() {
         </div>`).join('')}
       </div>
       ${list.length === 0 ? '<div style="padding:50px 0;text-align:center;color:var(--sub);font:600 14px Manrope">Пока нет ни заказов, ни броней</div>' : ''}
+      ${list.length > (S.clientLimit || 100) ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font:600 12px Manrope;color:var(--sub)">Показаны ${S.clientLimit || 100} самых активных из ${list.length}<div style="flex:1"></div><div data-c="${act(() => setS({ clientLimit: (S.clientLimit || 100) + 200 }))}" class="h-goldc" style="color:var(--goldT);cursor:pointer;font:700 12px Manrope">Показать ещё</div></div>` : ''}
       <div style="display:grid;gap:9px;max-width:760px">
-        ${list.map(c => `
-          <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;animation:fadeUp .3s ease both">
+        ${list.slice(0, S.clientLimit || 100).map(c => `
+          <div data-key="c-${esc(c.phone || 'n:' + c.name)}" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;animation:fadeUp .3s ease both">
             ${avatar(c.name.charAt(0).toUpperCase(), 40, 16, '.45')}
             <div style="flex:1;min-width:0">
               <div style="display:flex;align-items:center;gap:8px">
@@ -847,8 +939,11 @@ function renderStaff() {
       });
       return `<div data-c="${pick}" style="padding:9px 15px;border-radius:99px;cursor:pointer;font:700 12.5px Manrope;transition:all .15s;${active ? `background:${GG};color:#231b0e` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}${n ? ' ' + n : ''}</div>`;
     }).join('');
-    const cards = list.map(o => `
-      <div data-c="${act(() => setS({ sel: o.num, cancelAsk: 0 }))}" class="h-goldb2" style="background:var(--card);border:1px solid ${sel && sel.num === o.num ? 'rgba(201,151,78,.65)' : 'var(--line)'};border-radius:15px;padding:15px 16px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both">
+    // Архив закрытых не рисуется целиком: первые 50, дальше — по кнопке.
+    const shown = S.sTab === 'done' ? list.slice(0, S.doneLimit || 50) : list;
+    const more = shown.length < list.length ? `<div data-c="${act(() => setS({ doneLimit: (S.doneLimit || 50) + 100 }))}" class="h-gold" style="text-align:center;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);font:700 12.5px Manrope;cursor:pointer">Показать ещё · скрыто ${list.length - shown.length}</div>` : '';
+    const cards = shown.map(o => `
+      <div data-key="o-${o.num}" data-c="${act(() => setS({ sel: o.num, cancelAsk: 0 }))}" class="h-goldb2" style="background:var(--card);border:1px solid ${sel && sel.num === o.num ? 'rgba(201,151,78,.65)' : 'var(--line)'};border-radius:15px;padding:15px 16px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
           <div style="font:800 15px Manrope">№${o.num}</div>
           ${o.by ? `<div style="font:600 11px Manrope;color:var(--sub)">${esc(o.by)}</div>` : ''}
@@ -869,6 +964,8 @@ function renderStaff() {
       </div>`).join('') : '';
     const selAdvance = act(() => {
       if (!sel) return;
+      // Двойной клик не должен провести заказ на два шага
+      if (Date.now() - (S._lastAct || 0) < 600) return; S._lastAct = Date.now();
       // Защита от двойного клика: разметка могла устареть за время между
       // кликами — сверяемся с фактическим статусом заказа в состоянии.
       const cur = S.orders.find(o => o.num === sel.num);
@@ -897,6 +994,9 @@ function renderStaff() {
     });
     const doCancel = act(() => {
       if (!sel) return;
+      // Подтверждение появляется рядом с местом первого клика — второй клик той же
+      // серии не должен отменить заказ без осознанной паузы.
+      if (Date.now() - (S._askTs || 0) < 450 || Date.now() - (S._lastAct || 0) < 600) return; S._lastAct = Date.now();
       const cur = S.orders.find(o => o.num === sel.num);
       if (!cur || cur.st === 'done' || cur.st === 'cancel') return;
       const mine = S.myNums.includes(sel.num);
@@ -915,7 +1015,7 @@ function renderStaff() {
       <div style="display:grid;gap:16px;${wide ? 'grid-template-columns:1fr 320px' : ''}">
         <div style="display:grid;gap:12px;align-content:start">
           ${list.length === 0 ? '<div style="padding:50px 0;text-align:center;color:var(--sub);font:600 14px Manrope">В этой колонке пусто</div>' : ''}
-          ${cards}
+          ${cards}${more}
         </div>
         <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;align-self:start;animation:fadeIn .3s ease both">
           <div style="font:600 12px Manrope;color:var(--sub);margin-bottom:4px">Детали заказа</div>
@@ -942,15 +1042,17 @@ function renderStaff() {
           <div style="display:flex;gap:8px;margin-top:10px">
             <div data-c="${doCancel}" class="a98" style="flex:1;height:42px;border-radius:12px;background:rgba(224,138,122,.16);border:1px solid rgba(224,138,122,.55);color:#e08a7a;display:flex;align-items:center;justify-content:center;font:800 12.5px Manrope;cursor:pointer">Точно отменить</div>
             <div data-c="${act(() => setS({ cancelAsk: 0 }))}" class="a98" style="flex:1;height:42px;border-radius:12px;background:var(--hov);color:var(--sub2);display:flex;align-items:center;justify-content:center;font:800 12.5px Manrope;cursor:pointer">Оставить</div>
-          </div>` : `<div data-c="${act(() => setS({ cancelAsk: sel.num }))}" class="h-red" style="margin-top:8px;text-align:center;padding:10px;font:700 12px Manrope;color:var(--sub);cursor:pointer">Отменить заказ</div>`) : ''}
+          </div>` : `<div data-c="${act(() => setS({ cancelAsk: sel.num, _askTs: Date.now() }))}" class="h-red" style="margin-top:8px;text-align:center;padding:10px;font:700 12px Manrope;color:var(--sub);cursor:pointer">Отменить заказ</div>`) : ''}
         </div>
       </div>
     </div>`;
   }
 
-  return `
-  <div data-key="view-staff" style="display:flex;${wide ? '' : 'flex-direction:column;'}max-width:1280px;margin:0 auto;height:100%;overflow:hidden">
-    <div data-key="st-side" style="${wide ? 'width:230px;flex:none;border-right:1px solid var(--line);overflow-y:auto;' : 'border-bottom:1px solid var(--line);flex:none;'}padding:22px 18px;box-sizing:border-box;display:flex;flex-direction:column">
+  const logout = act(() => { slog('Выход из панели: ' + me.name, 'shift', true); set({ screen: 'auth', sview: 'orders', cancelAsk: 0 }); });
+  // Широкий экран — боковое меню. Телефон — компактная шапка: одна строка с логотипом,
+  // сотрудником и выходом плюс горизонтальная лента вкладок; список не занимает экран.
+  const side = wide ? `
+    <div data-key="st-side" style="width:230px;flex:none;border-right:1px solid var(--line);overflow-y:auto;padding:22px 18px;box-sizing:border-box;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px">
         ${SVG.logoSmall}
         <div><div style="font:600 13px 'Cormorant Garamond',serif;letter-spacing:.04em">КОФЕЙНЯ</div><div style="font:600 11px 'Cormorant Garamond',serif;color:#c9974e;font-style:italic">на высоте</div></div>
@@ -961,9 +1063,24 @@ function renderStaff() {
         ${onShift(10.5)}
       </div>
       <div style="display:grid;gap:4px;flex:1">${stNav}</div>
-      <div data-c="${act(() => { slog('Выход из панели: ' + me.name, 'shift', true); set({ screen: 'auth', sview: 'orders', cancelAsk: 0 }); })}" class="h-redbg" style="padding:12px 14px;border-radius:11px;color:#d97666;font:700 13px Manrope;cursor:pointer">Выйти</div>
-    </div>
-    <div data-key="st-main" style="flex:1;min-width:0;min-height:0;overflow-y:auto;padding:26px 26px 40px;box-sizing:border-box">${content}</div>
+      <div data-c="${logout}" class="h-redbg" style="padding:12px 14px;border-radius:11px;color:#d97666;font:700 13px Manrope;cursor:pointer">Выйти</div>
+    </div>` : `
+    <div data-key="st-side" style="flex:none;border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) 14px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        ${avatar(me.name.charAt(0), 36, 14)}
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px Manrope;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(me.name)} <span style="font:600 11px Manrope;color:var(--sub)">· ${esc(me.role)}</span></div>
+          <div style="font:600 11px 'Cormorant Garamond',serif;color:#c9974e;font-style:italic">Кофейня на высоте · панель</div>
+        </div>
+        ${onShift(10)}
+        <div data-c="${logout}" class="h-redbg" style="padding:8px 11px;border-radius:10px;color:#d97666;font:700 12px Manrope;cursor:pointer;flex:none">Выйти</div>
+      </div>
+      <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px 2px">${stNavChips}</div>
+    </div>`;
+  return `
+  <div data-key="view-staff" style="display:flex;${wide ? '' : 'flex-direction:column;'}max-width:1280px;margin:0 auto;height:100%;overflow:hidden">
+    ${side}
+    <div data-key="st-main" style="flex:1;min-width:0;min-height:0;overflow-y:auto;padding:${wide ? '26px 26px 40px' : '16px 14px 40px'};box-sizing:border-box">${content}</div>
   </div>`;
 }
 
@@ -1125,7 +1242,10 @@ function circleImg(img, size, radius, extra) {
 }
 
 function renderApp() {
-  const entries = Object.entries(S.cart);
+  // Товар могли удалить в другой вкладке панели — такая строка корзины не должна
+  // ронять рендер; она просто исчезает.
+  if (S.product && !item(S.product)) S.product = null;
+  const entries = Object.entries(S.cart).filter(([, x]) => item(x.id));
   const cartCount = entries.reduce((a, [, x]) => a + x.qty, 0);
   const sum = entries.reduce((a, [, x]) => a + unitPrice(x.id, x.size, x.adds) * x.qty, 0);
   const disc = Math.round(sum * 0.1);
@@ -1314,7 +1434,8 @@ function renderApp() {
     // Для отменённого заказа прогресс замирает на достигнутом шаге (по меткам).
     const idx = o => o.st === 'cancel' ? ((o.tss || {}).ready ? 2 : (o.tss || {}).work ? 1 : 0) : ({ new: 0, work: 1, ready: 2, done: 3 })[o.st];
     const TAGS = { new: ['Принят', 'background:rgba(201,151,78,.16);color:#c9974e'], work: ['Готовится', 'background:rgba(201,151,78,.16);color:#c9974e'], ready: ['Готов', 'background:rgba(111,191,138,.14);color:#6fbf8a'], done: ['Выдан', 'background:var(--line2);color:var(--sub)'], cancel: ['Отменён', 'background:rgba(224,138,122,.14);color:#e08a7a'] };
-    const mine = S.orders.filter(o => S.myNums.includes(o.num));
+    const mineSet = new Set(S.myNums);
+    const mine = S.orders.filter(o => mineSet.has(o.num));
     const active = mine.filter(o => (o.st !== 'done' && o.st !== 'cancel') || S.myNums[0] === o.num);
     const activeCards = active.length > 0 ? `
       <div style="display:grid;gap:12px;margin-bottom:18px">
@@ -1494,7 +1615,7 @@ function renderApp() {
           return;
         }
         if (S.pay === 0 && S.cards.length === 0) { showToast('Добавьте карту в профиле или выберите другой способ оплаты'); return; }
-        const num = (S.orders.length ? Math.max(...S.orders.map(o => +o.num || 0)) : 1253) + 1;
+        const num = allocOrderNum();
         const clientName = S.user && S.user.name ? S.user.name : 'Гость';
         const lines = es.map(([, x]) => { const it = item(x.id); return [it.n + (x.qty > 1 ? ' ×' + x.qty : ''), it.sz ? SIZES[x.size] : it.v, unitPrice(x.id, x.size, x.adds) * x.qty]; });
         const ids = es.map(([, x]) => ({ id: x.id, size: x.size, adds: x.adds, qty: x.qty }));
@@ -1546,7 +1667,8 @@ function renderApp() {
     const backBtn = `class="a90" style="width:38px;height:38px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer"`;
     let sub = '';
     if (S.psub === 'history') {
-      const mine = S.orders.filter(o => S.myNums.includes(o.num));
+      const mineSet = new Set(S.myNums);
+    const mine = S.orders.filter(o => mineSet.has(o.num));
       sub = `<div data-key="p-hist">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
           <div data-c="${act(() => setS({ psub: null }))}" ${backBtn}>${SVG.backSm}</div>
@@ -1759,7 +1881,7 @@ function renderApp() {
   const navItems = [['home','Главная','home'],['menu','Меню','menu'],['order','Заказ','order'],['bonus','Бонусы','bonus'],['profile','Профиль','prof']].map(([key, label, ic]) => {
     const active = S.tab === key;
     return `
-    <div data-c="${act(() => setS({ tab: key, product: null }))}" class="a94" style="position:relative;width:64px;height:62px;border-radius:19px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:all .2s;${active ? 'background:rgba(217,188,140,.16);border:1px solid rgba(217,188,140,.45);color:var(--goldT)' : 'color:var(--dim2)'}">
+    <div data-c="${act(() => setS({ tab: key, product: null, psub: (key === 'profile' && S.tab === 'profile') ? null : S.psub }))}" class="a94" style="position:relative;width:64px;height:62px;border-radius:19px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:all .2s;${active ? 'background:rgba(217,188,140,.16);border:1px solid rgba(217,188,140,.45);color:var(--goldT)' : 'color:var(--dim2)'}">
       <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav[ic]}</svg>
       <div style="font:600 11px Manrope;margin-top:5px">${label}</div>
       ${key === 'order' && cartCount > 0 ? `<div style="position:absolute;top:2px;right:4px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;background:${GG};color:#2a2016;border-radius:99px;font:800 10px/17px Manrope;text-align:center;animation:pop .3s ease both">${cartCount}</div>` : ''}
@@ -1808,7 +1930,8 @@ function render() {
   }
 
   const tpl = document.createElement('template');
-  tpl.innerHTML = `<div data-key="root" style="${vars};position:fixed;inset:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;transition:background .35s,color .35s">${inner}${toast}</div>`;
+  const storageWarn = S.storageFull ? `<div data-key="storage-warn" style="position:fixed;left:0;right:0;bottom:0;z-index:98;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#7a2e22;color:#fff;font:700 12.5px/1.4 Manrope;text-align:center">Хранилище браузера переполнено — изменения не сохраняются. Освободите место или очистите старые данные в браузере.</div>` : '';
+  tpl.innerHTML = `<div data-key="root" style="${vars};position:fixed;inset:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;transition:background .35s,color .35s">${inner}${toast}${storageWarn}</div>`;
   morphChildren(app, tpl.content);
 
   document.body.style.background = T.bg;
@@ -1835,7 +1958,10 @@ app.addEventListener('input', e => {
 });
 
 let rzT;
-window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { S.w = window.innerWidth; render(); }, 80); });
+// Разметка зависит от ширины только через два порога — перерисовка нужна лишь
+// при их пересечении, а не на каждый пиксель и не при показе клавиатуры.
+const bp = w => (w >= 980 ? 2 : w <= 520 ? 0 : 1);
+window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { const w = window.innerWidth; const changed = bp(w) !== bp(S.w); S.w = w; if (changed) render(); }, 80); });
 
 // Вторая вкладка сохранила состояние — подхватываем её данные вместо того,
 // чтобы молча затереть их своей следующей записью.
@@ -1859,7 +1985,12 @@ window.addEventListener('storage', e => {
 
 // Живые таймеры очереди: пока открыта панель, минуты «ждёт/готовится»
 // обновляются сами раз в полминуты (морфинг делает перерисовку дешёвой).
-setInterval(() => { if (S.screen === 'staff' || S.screen === 'spin') render(); }, 30000);
+// Минутные метки живут только в очереди (новые/в работе/готовы) и на экране PIN
+// (обратный отсчёт блокировки); архив и остальные разделы от часов не зависят.
+setInterval(() => {
+  if (document.hidden) return;
+  if (S.screen === 'spin' || (S.screen === 'staff' && S.sview === 'orders' && S.sTab !== 'done')) render();
+}, 30000);
 
 // PIN можно набирать и с физической клавиатуры
 document.addEventListener('keydown', e => {
