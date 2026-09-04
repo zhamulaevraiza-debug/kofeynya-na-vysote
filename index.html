@@ -230,7 +230,7 @@ const S = {
   ncNum: '', ncExp: '', ncCvc: '',
   bookings: (Array.isArray(sv.bookings) ? sv.bookings : []).map(normalizeBooking), bkOpen: false, bkDate: 0, bkTime: '', bkGuests: 2,
   cart: {}, favs: sv.favs || { cheese: 1 }, toast: '', lastOrder: null, orderType: 0, sel: 1257, sTab: 'work',
-  sview: 'orders', npName: '', npPrice: '', npCat: 'coffee', pay: 0,
+  sview: 'orders', npName: '', npPrice: '', npCat: 'coffee', npImg: '', pay: 0,
   staffId: sv.staffId || null, offShift: sv.offShift || {},
   // Брони, сделанные до появления myBks, принадлежат этому же устройству.
   myBks: sv.myBks || (Array.isArray(sv.bookings) ? sv.bookings.map((b, i) => b && b.id != null ? b.id : 'b' + i) : []),
@@ -349,6 +349,26 @@ function showToast(t) {
   toastTimer = setTimeout(() => setS({ toast: '' }), 2800);
 }
 function allProducts() { return [...M, ...S.custom].filter(m => m); }
+const SVG_CAMERA = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>';
+// Снимок с телефона весит мегабайты — в хранилище уходит квадрат 640×640 в JPEG
+// (~60–90 КБ): центр кадра обрезается так же, как его показывают карточки и круг товара.
+function readPhoto(file, cb) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const side = Math.min(img.width, img.height), out = Math.min(640, side);
+    const sx = Math.round((img.width - side) / 2), sy = Math.round((img.height - side) / 2);
+    const c = document.createElement('canvas'); c.width = out; c.height = out;
+    c.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, out, out);
+    URL.revokeObjectURL(url);
+    let data = '';
+    try { data = c.toDataURL('image/jpeg', 0.82); } catch (e) {}
+    if (!data || data.length < 200) { showToast('Не удалось обработать фото'); return; }
+    cb(data);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); showToast('Не удалось прочитать фото'); };
+  img.src = url;
+}
 // Событие в ленту панели. Меняет состояние напрямую — вызывать до set()/setS().
 // own=true — действие сделал сам сотрудник из панели: в ленту попадает,
 // но счётчик «непрочитанного» не накручивает.
@@ -679,7 +699,10 @@ function renderStaff() {
       const off = !!S.hidden[m.id];
       const cat = (CATS.find(c => c[0] === m.cat) || ['', '—'])[1];
       return `<div style="display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 12px;animation:fadeUp .3s ease both">
-        <div style="width:40px;height:40px;border-radius:11px;flex:none;${m.img ? `background:url(&quot;${esc(m.img)}&quot;) center/cover no-repeat` : 'background:var(--hov);display:flex;align-items:center;justify-content:center'};${off ? 'opacity:.4' : ''}"></div>
+        ${S.custom.some(x => x.id === m.id) ? `<label title="Сменить фото" style="position:relative;width:40px;height:40px;border-radius:11px;flex:none;cursor:pointer;${m.img ? `background:url(&quot;${esc(m.img)}&quot;) center/cover no-repeat` : 'background:var(--hov);display:flex;align-items:center;justify-content:center;color:var(--goldT)'};${off ? 'opacity:.4' : ''}">
+          <input type="file" accept="image/*" data-p="${m.id}" style="display:none">${m.img ? '' : SVG_CAMERA}
+          <div style="position:absolute;right:-5px;bottom:-5px;width:18px;height:18px;border-radius:50%;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 11px Manrope;border:2px solid var(--ph)">+</div>
+        </label>` : `<div style="width:40px;height:40px;border-radius:11px;flex:none;${m.img ? `background:url(&quot;${esc(m.img)}&quot;) center/cover no-repeat` : 'background:var(--hov);display:flex;align-items:center;justify-content:center'};${off ? 'opacity:.4' : ''}"></div>`}
         <div style="flex:1;min-width:0">
           <div style="font:700 13px Manrope;${off ? 'opacity:.45;text-decoration:line-through' : ''}">${esc(m.n)}</div>
           <div style="font:600 11px Manrope;color:var(--sub)">${cat} · ${m.p} ₽</div>
@@ -705,6 +728,12 @@ function renderStaff() {
           <div style="display:grid;gap:9px">
             <input id="np-name" maxlength="48" data-i="${act(e => setS({ npName: e.target.value.slice(0, 48) }))}" value="${esc(S.npName)}" placeholder="Название" style="width:100%;box-sizing:border-box;height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--ph);color:var(--ink);font:600 13.5px Manrope;outline:none">
             <input id="np-price" inputmode="numeric" maxlength="5" data-i="${act(e => setS({ npPrice: e.target.value.replace(/[^\d]/g, '').slice(0, 5) }))}" value="${esc(S.npPrice)}" placeholder="Цена, ₽" style="width:100%;box-sizing:border-box;height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--ph);color:var(--ink);font:600 13.5px Manrope;outline:none">
+            <label style="display:flex;align-items:center;gap:11px;cursor:pointer;background:var(--hov);border:1px dashed var(--bdr);border-radius:12px;padding:9px 12px">
+              <input id="np-photo" type="file" accept="image/*" data-p="new" style="display:none">
+              <div style="width:46px;height:46px;border-radius:12px;flex:none;${S.npImg ? `background:url(&quot;${S.npImg}&quot;) center/cover no-repeat` : 'background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--goldT)'}">${S.npImg ? '' : SVG_CAMERA}</div>
+              <div style="flex:1;min-width:0"><div style="font:700 12.5px Manrope">${S.npImg ? 'Фото выбрано' : 'Фото блюда'}</div><div style="font:600 11px Manrope;color:var(--sub)">${S.npImg ? 'нажмите, чтобы заменить' : 'камера или галерея · обрежется в квадрат'}</div></div>
+              ${S.npImg ? `<div data-c="${act(e => { e.preventDefault(); setS({ npImg: '' }); })}" style="width:28px;height:28px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--dim);font:700 13px Manrope">✕</div>` : ''}
+            </label>
             <div style="display:flex;gap:6px;flex-wrap:wrap">${npCats}</div>
             <div data-c="${act(() => {
               const nm = S.npName.trim();
@@ -712,7 +741,7 @@ function renderStaff() {
               if (allProducts().some(x => x.n.toLowerCase() === nm.toLowerCase())) { showToast('«' + nm + '» уже есть в меню'); return; }
               const id = 'c' + Date.now();
               slog('В меню добавлен «' + nm + '» · ' + (+S.npPrice) + ' ₽ · ' + staffName(), 'stock', true);
-              set({ custom: [...S.custom, { id, cat: S.npCat, n: nm, v: '1 шт', p: +S.npPrice, img: '', d: 'Новинка от бариста' }], npName: '', npPrice: '' });
+              set({ custom: [...S.custom, { id, cat: S.npCat, n: nm, v: '1 шт', p: +S.npPrice, img: S.npImg || '', d: 'Новинка от бариста' }], npName: '', npPrice: '', npImg: '' });
               showToast('Товар добавлен в меню');
             })}" class="a98" style="height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font:800 13.5px Manrope;cursor:pointer;transition:all .2s;${canAdd ? `background:${GG};color:#231b0e` : 'background:var(--hov);color:var(--dim)'}">Добавить в меню</div>
           </div>
@@ -1951,6 +1980,23 @@ function render() {
 app.addEventListener('click', e => {
   const el = e.target.closest('[data-c]');
   if (el && app.contains(el)) { const fn = actions[+el.dataset.c]; if (fn) fn(e); }
+});
+// Фото блюда: файл читается, обрезается в квадрат и сжимается прямо на устройстве,
+// в состояние уходит небольшой data:-снимок — как у остальных позиций меню.
+app.addEventListener('change', e => {
+  const el = e.target;
+  if (!el.dataset || el.dataset.p === undefined) return;
+  const f = el.files && el.files[0];
+  if (!f) return;
+  const target = el.dataset.p;
+  readPhoto(f, data => {
+    if (target === 'new') { setS({ npImg: data }); return; }
+    const m = S.custom.find(x => x.id === target);
+    if (!m) return;
+    slog('Обновлено фото: ' + m.n + ' · ' + staffName(), 'stock', true);
+    set({ custom: S.custom.map(x => x.id === target ? { ...x, img: data } : x) });
+    showToast('Фото «' + m.n + '» обновлено');
+  });
 });
 app.addEventListener('input', e => {
   const el = e.target;
