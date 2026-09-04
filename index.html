@@ -9,7 +9,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#120e0b}
+/* Корень приложения прибит к экрану: на iOS высота 100dvh «дышит» вместе с адресной
+   строкой Safari и страница пружинит при скролле — нижняя панель уезжала и пряталась. */
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+body{position:fixed;inset:0;width:100%;background:#120e0b;-webkit-text-size-adjust:100%}
 a{color:#d9bc8c;text-decoration:none}a:hover{color:#ecd9b4}
 input::placeholder{color:var(--dim);opacity:.8}
 ::-webkit-scrollbar{width:0;height:0}
@@ -92,7 +95,47 @@ const GALLERY = [
   {img:'assets/gal-gorge.jpg',n:'Аргунское ущелье',r:'Итум-Калинский район',pos:'50% 50%',kb:'16s',delay:'.55s'}
 ];
 const USERNAME = 'Мовсар';
-const GG = '#d9bc8c';
+// Акцент берётся из темы, а не из константы: у «атмосферных» палитр он карамельный.
+const GG = 'var(--acc)';
+
+// Именованные темы. Палитра — одна строка переменных на корне (см. справочник, 7.7);
+// «атмосферные» собраны по палитре заказчика: #122324 · #2F3A32 · #545748 · #DB9F75 · #804012 · #3E2411.
+const THEMES = {
+  dark: { label: 'Тёмная', dark: true, acc: '#d9bc8c', bg: '#120e0b', ph: '#1a1512', op: '.4',
+    tint: 'linear-gradient(180deg,rgba(26,21,18,.52),rgba(18,14,11,.86))',
+    vars: '--bg:#120e0b;--ph:#1a1512;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.1);--line2:rgba(255,255,255,.08);--ink:#f3ede4;--sub:#a99e8e;--sub2:#c9bfae;--goldT:#d9bc8c;--mut:#c9bfae;--dim:#8f8474;--dim2:#7d7264;--bdr:rgba(255,255,255,.22);--hov:rgba(255,255,255,.1);--av1:rgba(255,255,255,.12);--av2:rgba(255,255,255,.03);--navbg:rgba(30,24,20,.72)' },
+  light: { label: 'Светлая', dark: false, acc: '#d9bc8c', bg: '#e8dfd0', ph: '#f7f2ea', op: '.5',
+    tint: 'linear-gradient(180deg,rgba(247,242,234,.7),rgba(232,223,208,.9))',
+    vars: '--bg:#e8dfd0;--ph:#f7f2ea;--card:rgba(255,255,255,.62);--line:rgba(42,32,22,.12);--line2:rgba(42,32,22,.09);--ink:#2a2016;--sub:#7d7264;--sub2:#544b3e;--goldT:#9a7326;--mut:#6f6659;--dim:#8f8474;--dim2:#a89e8e;--bdr:rgba(42,32,22,.25);--hov:rgba(42,32,22,.06);--av1:rgba(255,255,255,.85);--av2:rgba(233,223,205,.9);--navbg:rgba(250,246,238,.72)' },
+  caramel: { label: 'Карамель', dark: false, acc: '#db9f75', bg: '#e3cdb6', ph: '#efdfcd', op: '.5',
+    tint: 'linear-gradient(180deg,rgba(239,223,205,.7),rgba(227,205,182,.9))',
+    vars: '--bg:#e3cdb6;--ph:#efdfcd;--card:rgba(255,255,255,.55);--line:rgba(62,36,17,.14);--line2:rgba(62,36,17,.1);--ink:#3e2411;--sub:#7d5a40;--sub2:#5c3f28;--goldT:#804012;--mut:#6f523c;--dim:#93765d;--dim2:#ab917b;--bdr:rgba(62,36,17,.28);--hov:rgba(62,36,17,.07);--av1:rgba(255,255,255,.8);--av2:rgba(219,159,117,.35);--navbg:rgba(243,228,212,.74)' },
+  mocha: { label: 'Мокка', dark: true, acc: '#db9f75', bg: '#2a1a0e', ph: '#3e2411', op: '.38',
+    tint: 'linear-gradient(180deg,rgba(62,36,17,.55),rgba(42,26,14,.9))',
+    vars: '--bg:#2a1a0e;--ph:#3e2411;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.12);--line2:rgba(255,255,255,.09);--ink:#f6ebe0;--sub:#c9ab94;--sub2:#e2c9b4;--goldT:#db9f75;--mut:#d8b9a0;--dim:#a88a72;--dim2:#8c6f58;--bdr:rgba(255,255,255,.25);--hov:rgba(255,255,255,.1);--av1:rgba(255,255,255,.14);--av2:rgba(255,255,255,.04);--navbg:rgba(62,36,17,.78)' },
+  pine: { label: 'Хвоя', dark: true, acc: '#db9f75', bg: '#0d1a1b', ph: '#122324', op: '.35',
+    tint: 'linear-gradient(180deg,rgba(18,35,36,.58),rgba(13,26,27,.9))',
+    vars: '--bg:#0d1a1b;--ph:#122324;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.11);--line2:rgba(255,255,255,.08);--ink:#eef1ec;--sub:#a4b0a6;--sub2:#c8d2c9;--goldT:#db9f75;--mut:#c9b7a4;--dim:#8d9a90;--dim2:#6f7c73;--bdr:rgba(255,255,255,.24);--hov:rgba(255,255,255,.09);--av1:rgba(255,255,255,.12);--av2:rgba(255,255,255,.03);--navbg:rgba(18,35,36,.76)' }
+};
+const THEME_LIST = [['dark', 'Тёмная'], ['light', 'Светлая'], ['system', 'Системная'], ['caramel', 'Карамель'], ['mocha', 'Мокка'], ['pine', 'Хвоя']];
+function themeKey() { return S.theme === 'system' ? (S.sysDark ? 'dark' : 'light') : (THEMES[S.theme] ? S.theme : 'dark'); }
+function themeDef() { return THEMES[themeKey()]; }
+// Три кружка палитры: фон, поверхность, акцент. «Системная» — половинки тёмной и светлой.
+function themeSwatch(k) {
+  const t = k === 'system' ? null : THEMES[k];
+  const dot = c => `<div style="width:14px;height:14px;border-radius:50%;flex:none;background:${c};border:1px solid rgba(0,0,0,.18)"></div>`;
+  const cols = t ? [t.bg, t.ph, t.acc] : ['linear-gradient(90deg,#120e0b 50%,#e8dfd0 50%)', 'linear-gradient(90deg,#1a1512 50%,#f7f2ea 50%)', '#d9bc8c'];
+  return `<div style="display:flex;gap:4px;margin-right:2px">${cols.map(dot).join('')}</div>`;
+}
+// Выпадающая карточка выбора темы под шапкой главной.
+function renderThemePanel() {
+  if (!S.themeOpen) return '';
+  return `<div data-key="theme-panel" style="margin-top:12px;border-radius:18px;background:var(--card);border:1px solid var(--line);padding:12px;animation:fadeUp .3s ease both">
+    <div style="font:700 11px Manrope;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:2px 4px 10px">Тема оформления</div>
+    <div style="display:grid;gap:6px">${THEME_LIST.map(([k, label]) => `
+      <div data-c="${act(() => set({ theme: k, themeOpen: false }))}" class="h-gold" style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;cursor:pointer;font:700 13px Manrope;transition:border-color .15s;border:1px solid ${S.theme === k ? 'rgba(217,188,140,.6)' : 'transparent'};background:${S.theme === k ? 'var(--hov)' : 'transparent'}">${themeSwatch(k)}<div style="flex:1">${label}</div>${S.theme === k ? '<div style="color:var(--goldT);font:800 12px Manrope">✓</div>' : ''}</div>`).join('')}</div>
+  </div>`;
+}
 
 // Персонал: вход в панель — по личному PIN (демо-коды в README).
 // Хранится только id вошедшего, сам PIN в localStorage не пишется.
@@ -191,7 +234,7 @@ const S = {
   staffId: sv.staffId || null, offShift: sv.offShift || {},
   // Брони, сделанные до появления myBks, принадлежат этому же устройству.
   myBks: sv.myBks || (Array.isArray(sv.bookings) ? sv.bookings.map((b, i) => b && b.id != null ? b.id : 'b' + i) : []),
-  sPinWho: null, sPin: '', sPinErr: 0, sPinLock: +sv.sPinLock || 0, cancelAsk: 0,
+  sPinWho: null, sPin: '', sPinErr: 0, sPinLock: +sv.sPinLock || 0, cancelAsk: 0, themeOpen: false,
   snotifs: sv.snotifs || SEED_SNOTIFS, sunread: sv.sunread != null ? sv.sunread : 4,
   orders: (sv.orders || DEMO_ORDERS).map(normalizeOrder),
   w: window.innerWidth
@@ -216,7 +259,7 @@ function save() {
 }
 function setS(patch) { Object.assign(S, patch); render(); }
 function set(patch) { Object.assign(S, patch); save(); render(); }
-function dark() { return S.theme === 'system' ? S.sysDark : S.theme === 'dark'; }
+function dark() { return themeDef().dark; }
 function now() { const d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
 function today() { const d = new Date(); return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.' + d.getFullYear(); }
 
@@ -764,7 +807,7 @@ function renderStaff() {
     const stats = [[mine.length, 'Заказов за смену'], [done, 'Доведено до выдачи'], [revenue.toLocaleString('ru-RU') + ' ₽', 'Сумма по ним']];
     const themeRow = (k, label) => `
       <div data-c="${act(() => set({ theme: k }))}" class="h-gold" style="display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 15px;cursor:pointer;font:700 13px Manrope;transition:border-color .15s">
-        <div style="width:17px;height:17px;border-radius:50%;box-sizing:border-box;transition:all .15s;${S.theme === k ? 'border:5px solid #c9974e' : 'border:2px solid var(--bdr)'}"></div>${label}
+        <div style="width:17px;height:17px;border-radius:50%;box-sizing:border-box;flex:none;transition:all .15s;${S.theme === k ? 'border:5px solid #c9974e' : 'border:2px solid var(--bdr)'}"></div>${themeSwatch(k)}${label}
       </div>`;
     content = `<div data-key="sv-profx">
       <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Профиль</div>
@@ -785,7 +828,7 @@ function renderStaff() {
         </div>
         <div>
           <div style="font:700 13px Manrope;margin-bottom:10px">Тема панели</div>
-          <div style="display:grid;gap:8px">${themeRow('dark', 'Тёмная')}${themeRow('light', 'Светлая')}${themeRow('system', 'Системная')}</div>
+          <div style="display:grid;gap:8px">${THEME_LIST.map(([k, l]) => themeRow(k, l)).join('')}</div>
         </div>
         <div data-c="${act(() => {
           slog('Смена закрыта: ' + me.name, 'shift', true);
@@ -906,7 +949,7 @@ function renderStaff() {
   }
 
   return `
-  <div data-key="view-staff" style="display:flex;${wide ? '' : 'flex-direction:column;'}max-width:1280px;margin:0 auto;height:100dvh;overflow:hidden">
+  <div data-key="view-staff" style="display:flex;${wide ? '' : 'flex-direction:column;'}max-width:1280px;margin:0 auto;height:100%;overflow:hidden">
     <div data-key="st-side" style="${wide ? 'width:230px;flex:none;border-right:1px solid var(--line);overflow-y:auto;' : 'border-bottom:1px solid var(--line);flex:none;'}padding:22px 18px;box-sizing:border-box;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px">
         ${SVG.logoSmall}
@@ -1089,7 +1132,9 @@ function renderApp() {
   const total = sum - disc;
   const name = userName();
 
-  const statusBar = `
+  // Нарисованный статус-бар — часть «рамки телефона» для показа на компьютере;
+  // на настоящем телефоне он дублировал системный и только отнимал место.
+  const statusBar = S.w <= 520 ? '' : `
   <div data-key="sbar" style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 6px;font:700 13px Manrope">
     <div>9:41</div>
     <div style="display:flex;gap:6px;align-items:center">
@@ -1191,17 +1236,21 @@ function renderApp() {
         <div style="position:absolute;left:12px;right:12px;bottom:10px"><div style="font:700 12px Manrope;color:#fff">${g.n}</div><div style="font:600 10px Manrope;color:rgba(255,255,255,.65)">${g.r}</div></div>
       </div>`).join('');
     screen = `
-    <div data-key="scr-home" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 112px;animation:fadeIn .3s ease both">
+    <div data-key="scr-home" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 120px;animation:fadeIn .3s ease both">
       <div style="display:flex;align-items:flex-start;gap:10px">
         <div style="flex:1">
           <div style="font:600 21px/1.2 'Cormorant Garamond',serif">Кофейня</div>
           <div style="font:600 21px/1.2 'Cormorant Garamond',serif;color:#c9974e">на высоте</div>
         </div>
-        <div data-c="${act(() => set({ notifOpen: !S.notifOpen, unread: 0 }))}" class="h-gold" style="position:relative;width:40px;height:40px;border-radius:50%;border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <div data-c="${act(() => setS({ themeOpen: !S.themeOpen, notifOpen: false }))}" class="h-gold" title="Тема оформления" style="width:40px;height:40px;border-radius:50%;border:1px solid ${S.themeOpen ? 'rgba(217,188,140,.6)' : 'var(--bdr)'};display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"></path></svg>
+        </div>
+        <div data-c="${act(() => set({ notifOpen: !S.notifOpen, themeOpen: false, unread: 0 }))}" class="h-gold" style="position:relative;width:40px;height:40px;border-radius:50%;border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer">
           ${SVG.bell}
           ${S.unread > 0 ? `<div style="position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 3px;border-radius:99px;background:#c0564a;color:#fff;font:800 9.5px/16px Manrope;text-align:center;border:2px solid var(--ph);box-sizing:content-box;animation:pop .3s ease both">${S.unread}</div>` : ''}
         </div>
       </div>
+      ${renderThemePanel()}
       ${notifPanel}
       <div style="font:600 15px Manrope;color:var(--sub2);margin:14px 0 14px">${S.user && S.user.name ? greet + ', ' + esc(S.user.name) + '! ☕' : greet + '! ☕'}</div>
       <div data-c="${act(() => setS({ tab: 'menu', cat: 'bakery' }))}" style="position:relative;border-radius:20px;overflow:hidden;height:190px;cursor:pointer;animation:fadeUp .45s ease both;box-shadow:0 22px 44px -24px rgba(0,0,0,.55)">
@@ -1251,7 +1300,7 @@ function renderApp() {
         <div data-c="${act(() => { addCart(m.id, 0, {}, 1); showToast(m.n + ' — в заказе'); })}" class="a90" style="width:34px;height:34px;border-radius:11px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 19px Manrope;cursor:pointer;box-shadow:0 8px 16px -8px rgba(201,151,78,.8)">+</div>
       </div>`).join('');
     screen = `
-    <div data-key="scr-menu" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 112px;animation:fadeIn .3s ease both">
+    <div data-key="scr-menu" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 120px;animation:fadeIn .3s ease both">
       <div style="display:flex;align-items:center;margin-bottom:14px">
         <div style="font:600 24px 'Cormorant Garamond',serif">Меню</div>
         <div style="flex:1"></div>
@@ -1460,7 +1509,7 @@ function renderApp() {
       })}" class="a98" style="margin-top:18px;height:52px;border-radius:14px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 15px Manrope;cursor:pointer;box-shadow:0 16px 32px -14px rgba(201,151,78,.8)">Оформить заказ</div>`;
     }
     screen = `
-    <div data-key="scr-order" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 112px;animation:fadeIn .3s ease both">
+    <div data-key="scr-order" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 120px;animation:fadeIn .3s ease both">
       <div style="display:flex;align-items:center;margin-bottom:16px">
         <div style="font:600 24px 'Cormorant Garamond',serif">Мой заказ</div>
         <div style="flex:1"></div>
@@ -1474,7 +1523,7 @@ function renderApp() {
     </div>`;
   } else if (S.tab === 'bonus') {
     screen = `
-    <div data-key="scr-bonus" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 112px;animation:fadeIn .3s ease both">
+    <div data-key="scr-bonus" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 120px;animation:fadeIn .3s ease both">
       <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Бонусы</div>
       <div style="position:relative;border-radius:18px;overflow:hidden;padding:20px;background:linear-gradient(120deg,var(--hov),var(--card) 60%);border:1px solid rgba(201,151,78,.4);display:flex;align-items:center;animation:fadeUp .4s ease both">
         <div>
@@ -1561,9 +1610,9 @@ function renderApp() {
         </div>
         <div style="font:700 13px Manrope;margin-bottom:10px">Тема</div>
         <div style="display:grid;gap:8px">
-          ${[['dark','Тёмная'],['light','Светлая'],['system','Системная']].map(([k, label]) => `
+          ${THEME_LIST.map(([k, label]) => `
             <div data-c="${act(() => set({ theme: k }))}" class="h-gold" style="display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 15px;cursor:pointer;font:700 13.5px Manrope;transition:border-color .15s">
-              <div style="width:17px;height:17px;border-radius:50%;box-sizing:border-box;transition:all .15s;${S.theme === k ? 'border:5px solid #c9974e' : 'border:2px solid var(--bdr)'}"></div>${label}
+              <div style="width:17px;height:17px;border-radius:50%;box-sizing:border-box;flex:none;transition:all .15s;${S.theme === k ? 'border:5px solid #c9974e' : 'border:2px solid var(--bdr)'}"></div>${themeSwatch(k)}${label}
             </div>`).join('')}
         </div>
         <div style="font:600 12px/1.6 Manrope;color:var(--sub);margin-top:12px">Тема применяется мгновенно ко всему приложению. «Системная» следует настройкам устройства.</div>
@@ -1704,20 +1753,20 @@ function renderApp() {
         <div data-c="${act(() => set({ screen: 'auth', authMode: 'welcome', user: null, psub: null }))}" class="h-redbg" style="margin-top:18px;text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:#d97666;font:700 13.5px Manrope;cursor:pointer">Выйти</div>
       </div>`;
     }
-    screen = `<div data-key="scr-profile" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 112px;animation:fadeIn .3s ease both">${sub}</div>`;
+    screen = `<div data-key="scr-profile" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 20px 120px;animation:fadeIn .3s ease both">${sub}</div>`;
   }
 
   const navItems = [['home','Главная','home'],['menu','Меню','menu'],['order','Заказ','order'],['bonus','Бонусы','bonus'],['profile','Профиль','prof']].map(([key, label, ic]) => {
     const active = S.tab === key;
     return `
-    <div data-c="${act(() => setS({ tab: key, product: null }))}" class="a94" style="position:relative;width:58px;height:56px;border-radius:17px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:all .2s;${active ? 'background:rgba(217,188,140,.16);border:1px solid rgba(217,188,140,.45);color:var(--goldT)' : 'color:var(--dim2)'}">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav[ic]}</svg>
-      <div style="font:600 10px Manrope;margin-top:4px">${label}</div>
+    <div data-c="${act(() => setS({ tab: key, product: null }))}" class="a94" style="position:relative;width:64px;height:62px;border-radius:19px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:all .2s;${active ? 'background:rgba(217,188,140,.16);border:1px solid rgba(217,188,140,.45);color:var(--goldT)' : 'color:var(--dim2)'}">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav[ic]}</svg>
+      <div style="font:600 11px Manrope;margin-top:5px">${label}</div>
       ${key === 'order' && cartCount > 0 ? `<div style="position:absolute;top:2px;right:4px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;background:${GG};color:#2a2016;border-radius:99px;font:800 10px/17px Manrope;text-align:center;animation:pop .3s ease both">${cartCount}</div>` : ''}
     </div>`;
   }).join('');
   const navbar = !S.product ? `
-  <div data-key="nav" style="position:absolute;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:30;height:72px;box-sizing:border-box;border-radius:24px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 4px;box-shadow:0 20px 40px -20px rgba(0,0,0,.8)">${navItems}</div>` : '';
+  <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:30;height:80px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 4px;box-shadow:0 20px 40px -20px rgba(0,0,0,.8)">${navItems}</div>` : '';
 
   return statusBar + screen + navbar;
 }
@@ -1725,10 +1774,9 @@ function renderApp() {
 // ===================== корневой рендер =====================
 function render() {
   actions = [];
-  const isDark = dark();
-  const vars = isDark
-    ? '--bg:#120e0b;--ph:#1a1512;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.1);--line2:rgba(255,255,255,.08);--ink:#f3ede4;--sub:#a99e8e;--sub2:#c9bfae;--goldT:#d9bc8c;--mut:#c9bfae;--dim:#8f8474;--dim2:#7d7264;--bdr:rgba(255,255,255,.22);--hov:rgba(255,255,255,.1);--av1:rgba(255,255,255,.12);--av2:rgba(255,255,255,.03);--navbg:rgba(30,24,20,.72)'
-    : '--bg:#e8dfd0;--ph:#f7f2ea;--card:rgba(255,255,255,.62);--line:rgba(42,32,22,.12);--line2:rgba(42,32,22,.09);--ink:#2a2016;--sub:#7d7264;--sub2:#544b3e;--goldT:#9a7326;--mut:#6f6659;--dim:#8f8474;--dim2:#a89e8e;--bdr:rgba(42,32,22,.25);--hov:rgba(42,32,22,.06);--av1:rgba(255,255,255,.85);--av2:rgba(233,223,205,.9);--navbg:rgba(250,246,238,.72)';
+  const T = themeDef();
+  const isDark = T.dark;
+  const vars = T.vars + ';--acc:' + T.acc;
 
   let inner = '';
   // Прямой доступ в панель без входа невозможен: нет сотрудника — нет панели.
@@ -1738,19 +1786,18 @@ function render() {
   } else {
     // Стеклянным панелям нужна подложка, иначе размывать нечего: фотография
     // интерьера уходит в сильное размытие и приглушается тонирующим слоем.
-    const tint = isDark
-      ? 'linear-gradient(180deg,rgba(26,21,18,.52),rgba(18,14,11,.86))'
-      : 'linear-gradient(180deg,rgba(247,242,234,.7),rgba(232,223,208,.9))';
     inner = `
-    <div data-key="view-phone" style="max-width:430px;width:100%;box-sizing:border-box;margin:0 auto;height:100dvh;background:var(--ph);position:relative;display:flex;flex-direction:column;box-shadow:0 0 90px rgba(0,0,0,.65);overflow:hidden">
-      <img data-key="ph-bg" src="assets/interior.jpg" alt="" style="position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(28px) saturate(.7);opacity:${isDark ? '.4' : '.5'}">
-      <div data-key="ph-tint" style="position:absolute;inset:0;background:${tint}"></div>
-      <div data-key="ph-body" style="position:relative;z-index:1;flex:1;min-height:0;display:flex;flex-direction:column">
+    <div data-key="view-phone" style="max-width:430px;width:100%;box-sizing:border-box;margin:0 auto;height:100%;background:var(--ph);position:relative;display:flex;flex-direction:column;box-shadow:0 0 90px rgba(0,0,0,.65);overflow:hidden">
+      <img data-key="ph-bg" src="assets/interior.jpg" alt="" style="position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(28px) saturate(.7);opacity:${T.op}">
+      <div data-key="ph-tint" style="position:absolute;inset:0;background:${T.tint}"></div>
+      <div data-key="ph-body" style="position:relative;z-index:1;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box;padding-top:env(safe-area-inset-top)">
         ${S.screen === 'splash' ? renderSplash() : S.screen === 'auth' ? renderAuth() : S.screen === 'spin' ? renderStaffPin() : renderApp()}
       </div>
     </div>`;
   }
-  const toast = S.toast ? `<div data-key="toast" style="position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:99;box-sizing:border-box;width:min(390px,calc(100% - 40px));background:var(--navbg);border:1px solid rgba(217,188,140,.4);color:var(--ink);padding:12px 18px;border-radius:14px;font:700 12.5px Manrope;box-shadow:0 18px 40px -14px rgba(0,0,0,.6);animation:fadeUp .3s ease both;text-align:center">${esc(S.toast)}</div>` : '';
+  // Центрирование через left/right + margin:auto, а не transform: анимация появления
+  // перезаписывала transform, и на телефоне плашка уезжала за правый край.
+  const toast = S.toast ? `<div data-key="toast" style="position:fixed;top:calc(18px + env(safe-area-inset-top));left:0;right:0;margin:0 auto;z-index:99;box-sizing:border-box;width:min(390px,calc(100% - 40px));background:var(--navbg);border:1px solid rgba(217,188,140,.4);color:var(--ink);padding:12px 18px;border-radius:14px;font:700 12.5px Manrope;box-shadow:0 18px 40px -14px rgba(0,0,0,.6);animation:fadeUp .3s ease both;text-align:center">${esc(S.toast)}</div>` : '';
 
   // сохранить фокус и каретку через перерисовку
   const ae = document.activeElement;
@@ -1761,11 +1808,11 @@ function render() {
   }
 
   const tpl = document.createElement('template');
-  tpl.innerHTML = `<div data-key="root" style="${vars};height:100dvh;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;transition:background .35s,color .35s">${inner}${toast}</div>`;
+  tpl.innerHTML = `<div data-key="root" style="${vars};position:fixed;inset:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;transition:background .35s,color .35s">${inner}${toast}</div>`;
   morphChildren(app, tpl.content);
 
-  document.body.style.background = isDark ? '#120e0b' : '#e8dfd0';
-  document.documentElement.style.background = isDark ? '#120e0b' : '#e8dfd0';
+  document.body.style.background = T.bg;
+  document.documentElement.style.background = T.bg;
   document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
 
   if (focusId) {
