@@ -1116,7 +1116,7 @@ function renderStaffPin() {
   const chips = STAFF.map(m => `
     <div data-c="${act(() => setS({ sPinWho: m.id, sPin: '' }))}" class="a97" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border-radius:16px;cursor:pointer;transition:all .15s;${S.sPinWho === m.id ? 'background:rgba(217,188,140,.16);border:1px solid rgba(217,188,140,.55)' : 'background:var(--card);border:1px solid var(--line)'}">
       ${avatar(m.name.charAt(0), 44, 17, S.sPinWho === m.id ? '.8' : '.4')}
-      <div style="text-align:center"><div style="font:700 13px Manrope">${esc(m.name)}</div><div style="font:600 10.5px Manrope;color:var(--sub);margin-top:1px">${esc(m.role)}</div></div>
+      <div style="text-align:center"><div style="font:700 13px Manrope">${esc(m.name)}</div><div style="font:600 10.5px Manrope;color:var(--sub);margin-top:1px">${esc(m.role)}</div><div style="font:800 12px Manrope;color:var(--goldT);margin-top:4px;letter-spacing:.14em">PIN ${esc(m.pin)}</div></div>
     </div>`).join('');
   const dots = [0, 1, 2, 3].map(i => `<div style="width:13px;height:13px;border-radius:50%;box-sizing:border-box;transition:all .15s;${i < S.sPin.length ? 'background:#d9bc8c' : 'border:2px solid var(--bdr)'}"></div>`).join('');
   const key = (label, v) => `<div data-c="${press(v)}" class="a92" style="height:56px;border-radius:16px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 19px Manrope;cursor:pointer;user-select:none;${locked ? 'opacity:.4' : ''}">${label}</div>`;
