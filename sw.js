@@ -3,7 +3,7 @@
    приложение открывается без сети. index.html берётся из сети в первую очередь
    (так обновления доходят сразу), из кэша — только если сети нет. Снимки
    напитков с фотостока и шрифты кэшируются по мере обращения. */
-const VERSION = 'knv-2026-09-05-1';
+const VERSION = 'knv-2026-09-05-2';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',

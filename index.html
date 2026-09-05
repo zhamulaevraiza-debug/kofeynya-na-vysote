@@ -9,7 +9,7 @@
 <meta property="og:title" content="Кофейня на высоте">
 <meta property="og:description" content="Заказ кофе и десертов, бронь столика, бонусы. Кофе с видом на горы.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="assets/interior.jpg">
+<meta property="og:image" content="https://zhamulaevraiza-debug.github.io/kofeynya-na-vysote/icons/icon-512.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -64,6 +64,9 @@ input::placeholder{color:var(--dim);opacity:.8}
    а не выходит за рамку. На обычный текст не влияет. */
 #app{overflow-wrap:anywhere}
 
+/* Доступность: видимый фокус с клавиатуры; уважение к «уменьшить движение» */
+#app [data-c]:focus-visible,#app input:focus-visible,#app a:focus-visible{outline:2px solid #d9bc8c;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){#app *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .a90:active{transform:scale(.9)!important}
 .a92:active{transform:scale(.92)!important}
 .a94:active{transform:scale(.94)!important}
@@ -158,7 +161,16 @@ const DEFAULT_STAFF = [
 ];
 // Правила кофейни, которые меняет администратор: скидка в приложении, процент
 // бонусов с заказа, приветственные баллы, показ PIN на экране входа.
-const DEFAULT_CFG = { disc: 10, bonus: 5, regBonus: 500, showPins: true };
+const DEFAULT_CFG = {
+  disc: 10, bonus: 5, regBonus: 500, showPins: true,
+  // онлайн-оплата включается только после подключения платёжного провайдера;
+  // до этого честный способ — оплата при получении
+  onlinePay: false, acceptOrders: true, open: '09:00', close: '21:00', prepMin: 10, tipsUrl: '',
+  // сведения о продавце — обязательны по закону о защите прав потребителей
+  legal: { name: 'Кофейня на высоте', form: 'ИП', inn: '', ogrn: '', regBody: '', address: 'Трасса Грозный — Шатой, смотровая площадка', phone: '', email: '', lat: '', lng: '' },
+  cancelReasons: ['Гость передумал', 'Долгое ожидание', 'Ошибка бариста', 'Нет ингредиента', 'Дубль заказа']
+};
+function mkCfg(c) { c = c || {}; return { ...DEFAULT_CFG, ...c, legal: { ...DEFAULT_CFG.legal, ...(c.legal || {}) }, cancelReasons: Array.isArray(c.cancelReasons) && c.cancelReasons.length ? c.cancelReasons : DEFAULT_CFG.cancelReasons }; }
 // Демо-заказы получают настоящие временные метки относительно первого запуска:
 // «ждёт N мин» и «готовится N мин» считаются от них, а не берутся из констант.
 const hhmm = ts => { const d = new Date(ts); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); };
@@ -249,8 +261,11 @@ const S = {
   sview: 'orders', npName: '', npPrice: '', npCat: 'coffee', npImg: '', pay: 0,
   staffId: sv.staffId || null, offShift: sv.offShift || {},
   staff: Array.isArray(sv.staff) && sv.staff.length ? sv.staff : DEFAULT_STAFF,
-  cfg: { ...DEFAULT_CFG, ...(sv.cfg || {}) },
-  edStaff: null, edF: null, resetAsk: 0,
+  cfg: mkCfg(sv.cfg),
+  itemInfo: sv.itemInfo || {}, alertSeen: sv.alertSeen || {},
+  edStaff: null, edF: null, resetAsk: 0, edInfo: null, edInfoF: null,
+  receiptTo: '', pickAsap: true, pickAt: 0, adultOk: false, cancelReason: '', cancelNote: '', agreeMkt: false, doc: null,
+  online: navigator.onLine !== false,
   // Брони, сделанные до появления myBks, принадлежат этому же устройству.
   myBks: sv.myBks || (Array.isArray(sv.bookings) ? sv.bookings.map((b, i) => b && b.id != null ? b.id : 'b' + i) : []),
   sPinWho: null, sPin: '', sPinErr: 0, sPinLock: +sv.sPinLock || 0, cancelAsk: 0, themeOpen: false,
@@ -316,7 +331,7 @@ function snapshot() {
     bonus: S.bonus, bonusEv: S.bonusEv, custom: S.custom, hidden: S.hidden, favs: S.favs,
     orders: S.orders, cards: S.cards, mainCard: S.mainCard, bookings: S.bookings,
     staffId: S.staffId, offShift: S.offShift, myBks: S.myBks, sPinLock: S.sPinLock,
-    staff: S.staff, cfg: S.cfg
+    staff: S.staff, cfg: S.cfg, itemInfo: S.itemInfo, alertSeen: S.alertSeen
   };
 }
 function save() {
@@ -562,8 +577,10 @@ function renderStaff() {
   const inTab = o => S.sTab === 'done' ? (o.st === 'done' || o.st === 'cancel') : o.st === S.sTab;
   // Очередь — по-честному: новые/в работе/готовые отдаются в порядке поступления
   // (FIFO), закрытые — свежие сверху.
+  // В «Новых» заказ «ко времени» встаёт по своему сроку, «как можно скорее» — по поступлению
+  const due = o => (S.sTab === 'new' && o.dueAt) ? o.dueAt : (o.tss && o.tss.new) || 0;
   const list = S.orders.filter(inTab).slice().sort((a, b) => {
-    const ta = (a.tss && a.tss.new) || 0, tb = (b.tss && b.tss.new) || 0;
+    const ta = due(a), tb = due(b);
     return S.sTab === 'done' ? tb - ta || b.num - a.num : ta - tb || a.num - b.num;
   });
   // Выбор живёт только внутри открытой колонки: пустая вкладка не подсовывает
@@ -582,7 +599,8 @@ function renderStaff() {
     else if (o.st === 'cancel') { return t.cancel ? `<div style="display:flex;align-items:center;gap:4px">отменён в ${hhmm(t.cancel)}</div>` : ''; }
     if (m == null) return '';
     const col = warn === 2 ? 'color:#e08a7a;font-weight:800' : warn === 1 ? 'color:var(--goldT);font-weight:800' : '';
-    return `<div style="display:flex;align-items:center;gap:4px;${col}">${SVG.clock}${label} ${m} мин</div>`;
+    // состояние не только цветом — словом тоже (WCAG 1.4.1)
+    return `<div style="display:flex;align-items:center;gap:4px;${col}">${SVG.clock}${label} ${m} мин${warn === 2 ? ' · срочно' : warn === 1 ? ' · долго' : ''}</div>`;
   };
 
   const SECTIONS = [['dash','Главная'],['orders','Реестр заказов'],['books','Брони'],['menu','Меню и остатки'],['shifts','Смены'],['clients','Клиенты'],['fin','Финансы'],['notifx','Уведомления'],['profx','Профиль'], ...(isAdmin() ? [['admin','Администрирование']] : [])];
@@ -730,6 +748,7 @@ function renderStaff() {
           <div style="font:600 11px Manrope;color:var(--sub)">${cat} · ${m.p} ₽</div>
         </div>
         <div data-c="${act(() => { slog((off ? 'Позиция возвращена в меню: ' : 'Позиция скрыта: ') + m.n + ' · ' + staffName(), 'stock', true); set({ hidden: { ...S.hidden, [m.id]: !off } }); })}" style="padding:7px 11px;border-radius:9px;font:700 11px Manrope;cursor:pointer;user-select:none;${off ? 'background:var(--hov);color:var(--sub)' : 'background:rgba(111,191,138,.13);color:#6fbf8a'}">${off ? 'Скрыт' : 'В меню'}</div>
+        <div data-c="${act(() => setS({ edInfo: m.id, edInfoF: { ...itemInfo(m.id), allerg: [...(itemInfo(m.id).allerg || [])] } }))}" class="h-gold" title="Состав, калорийность, аллергены, 18+" style="padding:7px 10px;border-radius:9px;border:1px solid var(--line);font:700 11.5px Manrope;cursor:pointer;color:${itemInfo(m.id).ingr ? 'var(--sub2)' : 'var(--goldT)'}">Состав</div>
         ${S.custom.some(x => x.id === m.id) ? `<div data-c="${act(() => {
           // Вместе с товаром вычищаются все ссылки на него: избранное,
           // скрытия и корзина — чтобы нигде не остался «мёртвый» id.
@@ -769,7 +788,24 @@ function renderStaff() {
           </div>
           <div style="font:600 11px/1.5 Manrope;color:var(--dim);margin-top:10px">Товар сразу появится в клиентском меню.</div>
         </div>
-        <div style="display:grid;gap:8px;align-self:start;align-content:start">${rows}</div>
+        <div style="display:grid;gap:8px;align-self:start;align-content:start">${(() => {
+          if (!S.edInfo) return '';
+          const m = item(S.edInfo); if (!m) return '';
+          const IF = S.edInfoF || {};
+          const inp = (id, key, ph, extra) => `<input id="${id}" ${extra || ''} data-i="${act(e => setS({ edInfoF: { ...S.edInfoF, [key]: key === 'kcal' ? e.target.value.replace(/\D/g, '').slice(0, 4) : e.target.value } }))}" value="${esc(IF[key] == null ? '' : String(IF[key]))}" placeholder="${ph}" style="width:100%;box-sizing:border-box;height:42px;padding:0 12px;border-radius:11px;border:1px solid var(--line);background:var(--hov);color:var(--ink);font:600 13px Manrope;outline:none">`;
+          return `<div data-key="info-editor" style="background:var(--card);border:1px solid rgba(217,188,140,.45);border-radius:14px;padding:14px;display:grid;gap:8px">
+            <div style="font:700 13px Manrope">${esc(m.n)} — состав и пищевая ценность</div>
+            <div style="font:600 11px/1.5 Manrope;color:var(--sub)">Правила общепита требуют указывать состав, выход и калорийность каждой позиции; аллергены — по перечню ТР ТС 022/2011.</div>
+            ${inp('if-ingr', 'ingr', 'Состав: эспрессо, молоко 3,2 %, сироп…', 'maxlength="300"')}
+            ${inp('if-kcal', 'kcal', 'Калорийность порции, ккал', 'inputmode="numeric" maxlength="4"')}
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${ALLERGENS.map(([c, l]) => `<div data-c="${act(() => { const a = new Set(S.edInfoF.allerg || []); a.has(c) ? a.delete(c) : a.add(c); setS({ edInfoF: { ...S.edInfoF, allerg: [...a] } }); })}" style="padding:7px 11px;border-radius:99px;cursor:pointer;font:700 11.5px Manrope;${(IF.allerg || []).includes(c) ? `background:${GG};color:#231b0e` : 'background:var(--hov);color:var(--sub2)'}">${l}</div>`).join('')}</div>
+            <div data-c="${act(() => setS({ edInfoF: { ...S.edInfoF, adult: !IF.adult } }))}" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 2px"><div style="width:19px;height:19px;border-radius:6px;box-sizing:border-box;flex:none;${IF.adult ? `background:${GG};box-shadow:inset 0 0 0 4px var(--ph)` : 'border:2px solid var(--bdr)'}"></div><div style="font:600 12.5px Manrope">18+ — тонизирующий (энергетический) напиток</div></div>
+            <div style="display:flex;gap:8px">
+              <div data-c="${act(() => { const f = S.edInfoF || {}; slog('Обновлён состав: ' + m.n + ' · ' + staffName(), 'stock', true); set({ itemInfo: { ...S.itemInfo, [m.id]: { ingr: (f.ingr || '').trim(), kcal: f.kcal === '' || f.kcal == null ? '' : +f.kcal, allerg: f.allerg || [], adult: !!f.adult } }, edInfo: null, edInfoF: null }); showToast('Состав сохранён'); })}" class="a98" style="flex:1;height:42px;border-radius:11px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 13px Manrope;cursor:pointer">Сохранить</div>
+              <div data-c="${act(() => setS({ edInfo: null, edInfoF: null }))}" style="height:42px;padding:0 16px;border-radius:11px;border:1px solid var(--line);display:flex;align-items:center;font:700 13px Manrope;cursor:pointer;color:var(--sub2)">Отмена</div>
+            </div>
+          </div>`;
+        })()}${rows}</div>
       </div>
     </div>`;
   } else if (S.sview === 'admin') {
@@ -822,6 +858,9 @@ function renderStaff() {
       </div>`).join('');
     const cfgRow = (id, key, label, max, hint) => `<div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 14px"><div style="flex:1;min-width:0"><div style="font:600 13px Manrope">${label}</div>${hint ? `<div style="font:600 11px Manrope;color:var(--sub);margin-top:1px">${hint}</div>` : ''}</div><input id="${id}" inputmode="numeric" maxlength="${max}" data-i="${act(e => { const v = e.target.value.replace(/\D/g, '').slice(0, max); set({ cfg: { ...S.cfg, [key]: v === '' ? 0 : +v } }); })}" value="${S.cfg[key]}" style="width:76px;text-align:right;height:36px;padding:0 10px;border-radius:9px;border:1px solid var(--line);background:var(--hov);color:var(--ink);font:800 14px Manrope;outline:none"></div>`;
     const toggle = (key, label, hint) => `<div data-c="${act(() => set({ cfg: { ...S.cfg, [key]: !S.cfg[key] } }))}" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;cursor:pointer"><div style="flex:1;min-width:0"><div style="font:600 13px Manrope">${label}</div><div style="font:600 11px Manrope;color:var(--sub);margin-top:1px">${hint}</div></div><div style="width:42px;height:24px;border-radius:99px;flex:none;position:relative;transition:background .2s;background:${S.cfg[key] ? GG : 'var(--bdr)'}"><div style="position:absolute;top:3px;${S.cfg[key] ? 'right:3px' : 'left:3px'};width:18px;height:18px;border-radius:50%;background:#fff"></div></div></div>`;
+    const textInp = (id, val, ph, onInput) => `<input id="${id}" data-i="${onInput}" value="${esc(val || '')}" placeholder="${ph}" aria-label="${ph}" style="width:100%;box-sizing:border-box;height:40px;padding:0 12px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 13px Manrope;outline:none">`;
+    const cfgText = (id, key, ph) => textInp(id, S.cfg[key], ph, act(e => set({ cfg: { ...S.cfg, [key]: e.target.value } })));
+    const legalText = (key, ph) => textInp('lg-' + key, S.cfg.legal[key], ph, act(e => set({ cfg: { ...S.cfg, legal: { ...S.cfg.legal, [key]: e.target.value } } })));
     const exportData = act(() => {
       const blob = new Blob([JSON.stringify(snapshot(), null, 1)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'kofeynya-' + today().replace(/\./g, '-') + '.json';
@@ -847,6 +886,19 @@ function renderStaff() {
           ${cfgRow('cfg-bonus', 'bonus', 'Бонусы с заказа, %', 2, 'начисляются при выдаче заказа')}
           ${cfgRow('cfg-reg', 'regBonus', 'Приветственные баллы', 4, 'за регистрацию клиента')}
           ${toggle('showPins', 'Показывать PIN на экране входа', 'удобно, пока панелью пользуетесь только вы')}
+          ${toggle('onlinePay', 'Онлайн-оплата в приложении', 'включайте только после подключения платёжного провайдера; выключено — оплата при получении')}
+          ${toggle('acceptOrders', 'Приём заказов из приложения', 'выключите при наплыве — гости увидят, что заказы принимаются у стойки')}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${cfgText('cfg-open', 'open', 'Открытие, например 09:00')}${cfgText('cfg-close', 'close', 'Закрытие, например 21:00')}</div>
+          ${cfgText('cfg-tips', 'tipsUrl', 'Ссылка на чаевые бариста (CloudTips, Нетмонет)')}
+          <div style="font:600 17px 'Cormorant Garamond',serif;margin-top:8px">Реквизиты</div>
+          <div style="font:600 11px/1.5 Manrope;color:var(--dim)">Показываются гостям в разделе «О кофейне и документы», в условиях заказа и политике — это обязательные сведения о продавце.</div>
+          ${legalText('name', 'Наименование: ООО «…» или ИП Фамилия И. О.')}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${legalText('form', 'Форма: ИП или ООО')}${legalText('inn', 'ИНН')}</div>
+          ${legalText('ogrn', 'ОГРН или ОГРНИП')}
+          ${legalText('regBody', 'Кем зарегистрирован (орган)')}
+          ${legalText('address', 'Адрес кофейни')}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${legalText('phone', 'Телефон для связи')}${legalText('email', 'E-mail для обращений')}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${legalText('lat', 'Широта (для маршрута)')}${legalText('lng', 'Долгота')}</div>
           <div style="font:600 17px 'Cormorant Garamond',serif;margin-top:8px">Данные</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <div data-c="${exportData}" class="h-gold" style="padding:10px 14px;border-radius:11px;border:1px solid var(--line);background:var(--card);font:700 12.5px Manrope;cursor:pointer">Скачать копию</div>
@@ -1089,7 +1141,7 @@ function renderStaff() {
         </div>
         <div style="font:600 13px/1.5 Manrope;color:var(--sub2);margin-bottom:7px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
         <div style="display:flex;align-items:center;gap:14px;font:600 11.5px Manrope;color:var(--sub);flex-wrap:wrap">
-          <div>Время: ${o.time}</div>
+          <div>Время: ${o.time}</div>${o.dueAt && o.st !== 'done' && o.st !== 'cancel' ? `<div style="font-weight:800;color:${o.dueAt - Date.now() < 10 * 60000 ? '#e08a7a' : 'var(--goldT)'}">к ${hhmm(o.dueAt)}${o.dueAt - Date.now() < 10 * 60000 ? ' · пора' : ''}</div>` : ''}${o.adult ? '<div style="font-weight:800;color:#e08a7a">18+ · проверьте документ</div>' : ''}
           ${timerChip(o)}
         </div>
       </div>`).join('');
@@ -1133,21 +1185,26 @@ function renderStaff() {
       if (!sel) return;
       // Подтверждение появляется рядом с местом первого клика — второй клик той же
       // серии не должен отменить заказ без осознанной паузы.
-      if (Date.now() - (S._askTs || 0) < 450 || Date.now() - (S._lastAct || 0) < 600) return; S._lastAct = Date.now();
+      if (Date.now() - (S._askTs || 0) < 450 || Date.now() - (S._lastAct || 0) < 600) return;
       const cur = S.orders.find(o => o.num === sel.num);
       if (!cur || cur.st === 'done' || cur.st === 'cancel') return;
+      if (!S.cancelReason) { showToast('Выберите причину отмены'); return; }
+      S._lastAct = Date.now();
       const mine = S.myNums.includes(sel.num);
-      slog('Заказ №' + sel.num + ' отменён · ' + staffName(), 'order', true);
-      const patch = { cancelAsk: 0, orders: S.orders.map(o => o.num === sel.num ? { ...o, st: 'cancel', tss: { ...o.tss, cancel: Date.now() }, hist: [...(o.hist || []), ['Заказ отменён', now(), staffName()]] } : o) };
+      slog('Заказ №' + sel.num + ' отменён (' + S.cancelReason + ') · ' + staffName(), 'order', true);
+      const patch = { cancelAsk: 0, cancelReason: '', cancelNote: '', orders: S.orders.map(o => o.num === sel.num ? { ...o, st: 'cancel', cancel: { reason: S.cancelReason, comment: (S.cancelNote || '').trim(), by: staffName(), at: Date.now(), writeOff: cur.st !== 'new' }, tss: { ...o.tss, cancel: Date.now() }, hist: [...(o.hist || []), ['Заказ отменён: ' + S.cancelReason, now(), staffName()]] } : o) };
       if (mine) {
-        patch.notifs = [{ text: 'Заказ №' + sel.num + ' отменён кофейней.' + (sel.pay !== 2 ? ' Оплата вернётся тем же способом в течение дня.' : '') + ' Приносим извинения', time: now() }, ...S.notifs];
+        patch.notifs = [{ text: 'Заказ №' + sel.num + ' отменён кофейней (' + S.cancelReason.toLowerCase() + ').' + (sel.pay !== 2 ? ' Оплата вернётся тем же способом в течение дня.' : '') + ' Приносим извинения', time: now() }, ...S.notifs];
         patch.unread = S.unread + 1;
       }
       set(patch);
       showToast('Заказ №' + sel.num + ' отменён' + (mine ? ' — клиент уведомлён' : ''));
     });
     content = `<div data-key="sv-orders">
-      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Реестр заказов</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="font:600 24px 'Cormorant Garamond',serif">Реестр заказов</div><div style="flex:1"></div>
+        <div data-c="${act(() => { const next = !S.cfg.acceptOrders; slog((next ? 'Приём заказов из приложения возобновлён' : 'Приём заказов из приложения приостановлен') + ' · ' + staffName(), 'shift', true); set({ cfg: { ...S.cfg, acceptOrders: next } }); })}" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:99px;cursor:pointer;font:700 12px Manrope;border:1px solid ${S.cfg.acceptOrders ? 'var(--line)' : '#e08a7a'};background:var(--card);color:${S.cfg.acceptOrders ? 'var(--sub2)' : '#e08a7a'}"><div style="width:8px;height:8px;border-radius:50%;background:${S.cfg.acceptOrders ? '#6fbf8a' : '#e08a7a'}"></div>${S.cfg.acceptOrders ? 'Приём заказов открыт' : 'Приём на паузе — гости видят «у стойки»'}</div>
+      </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${stTabs}</div>
       <div style="display:grid;gap:16px;${wide ? 'grid-template-columns:1fr 320px' : ''}">
         <div style="display:grid;gap:12px;align-content:start">
@@ -1176,10 +1233,15 @@ function renderStaff() {
           </div>` : ''}
           ${sel && NEXT[sel.st] ? `<div data-c="${selAdvance}" class="a98" style="margin-top:16px;height:44px;border-radius:12px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 13.5px Manrope;cursor:pointer">${NEXT[sel.st][0]}</div>` : ''}
           ${sel && sel.st !== 'done' && sel.st !== 'cancel' ? (S.cancelAsk === sel.num ? `
-          <div style="display:flex;gap:8px;margin-top:10px">
-            <div data-c="${doCancel}" class="a98" style="flex:1;height:42px;border-radius:12px;background:rgba(224,138,122,.16);border:1px solid rgba(224,138,122,.55);color:#e08a7a;display:flex;align-items:center;justify-content:center;font:800 12.5px Manrope;cursor:pointer">Точно отменить</div>
-            <div data-c="${act(() => setS({ cancelAsk: 0 }))}" class="a98" style="flex:1;height:42px;border-radius:12px;background:var(--hov);color:var(--sub2);display:flex;align-items:center;justify-content:center;font:800 12.5px Manrope;cursor:pointer">Оставить</div>
-          </div>` : `<div data-c="${act(() => setS({ cancelAsk: sel.num, _askTs: Date.now() }))}" class="h-red" style="margin-top:8px;text-align:center;padding:10px;font:700 12px Manrope;color:var(--sub);cursor:pointer">Отменить заказ</div>`) : ''}
+          <div style="margin-top:12px;padding:12px;border-radius:12px;background:rgba(224,138,122,.08);border:1px solid rgba(224,138,122,.35)">
+            <div style="font:700 12.5px Manrope;margin-bottom:8px">Отменить заказ №${sel.num} на ${orderTotal(sel)} ₽?${sel.st !== 'new' ? ' Напиток уже готовится — это списание.' : ''}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${S.cfg.cancelReasons.map(r => `<div data-c="${act(() => setS({ cancelReason: r }))}" style="padding:7px 11px;border-radius:99px;cursor:pointer;font:700 11.5px Manrope;${S.cancelReason === r ? 'background:#e08a7a;color:#2a1410' : 'background:var(--hov);color:var(--sub2)'}">${esc(r)}</div>`).join('')}</div>
+            <input id="cn-note" maxlength="120" data-i="${act(e => setS({ cancelNote: e.target.value }))}" value="${esc(S.cancelNote || '')}" placeholder="Комментарий (необязательно)" style="width:100%;box-sizing:border-box;height:40px;margin-top:8px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 12.5px Manrope;outline:none">
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <div data-c="${doCancel}" class="a98" style="flex:1;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font:800 12.5px Manrope;cursor:pointer;${S.cancelReason ? 'background:#e08a7a;color:#2a1410' : 'background:var(--hov);color:var(--dim)'}">Отменить заказ</div>
+              <div data-c="${act(() => setS({ cancelAsk: 0, cancelReason: '', cancelNote: '' }))}" class="a98" style="flex:1;height:42px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--sub2);display:flex;align-items:center;justify-content:center;font:800 12.5px Manrope;cursor:pointer">Оставить</div>
+            </div>
+          </div>` : `<div data-c="${act(() => setS({ cancelAsk: sel.num, cancelReason: '', cancelNote: '', _askTs: Date.now() }))}" class="h-red" style="margin-top:8px;text-align:center;padding:10px;font:700 12px Manrope;color:var(--sub);cursor:pointer">Отменить заказ</div>`) : ''}
         </div>
       </div>
     </div>`;
@@ -1307,15 +1369,16 @@ function renderSplash() {
 function renderAuth() {
   const phoneOk = (S.fPhone.match(/\d/g) || []).length >= 6;
   const authInput = (id, type, inputmode, value, handler, ph) =>
-    `<input id="${id}" ${type ? `type="${type}"` : ''} ${inputmode ? `inputmode="${inputmode}"` : ''} data-i="${handler}" value="${esc(value)}" placeholder="${ph}" style="width:100%;box-sizing:border-box;height:50px;padding:0 16px;border-radius:13px;border:1px solid rgba(255,255,255,.14);background:rgba(20,17,13,.6);backdrop-filter:blur(6px);color:#f2ecdf;font:600 14px Manrope;outline:none">`;
+    `<input id="${id}" ${type ? `type="${type}"` : ''} ${inputmode ? `inputmode="${inputmode}"` : ''} autocomplete="${/phone/.test(id) ? 'tel' : /name/.test(id) ? 'name' : /pass/.test(id) ? (id.includes('reg') ? 'new-password' : 'current-password') : 'off'}" aria-label="${ph}" data-i="${handler}" value="${esc(value)}" placeholder="${ph}" style="width:100%;box-sizing:border-box;height:50px;padding:0 16px;border-radius:13px;border:1px solid rgba(255,255,255,.14);background:rgba(20,17,13,.6);backdrop-filter:blur(6px);color:#f2ecdf;font:600 14px Manrope;outline:none">`;
 
   let mode = '';
   if (S.authMode === 'welcome') {
     mode = `<div data-key="am-welcome" style="display:grid;gap:12px">
       <div data-c="${act(() => setS({ authMode: 'login', fPhone: S.user ? S.user.phone : '', fPass: '' }))}" class="a98" style="height:52px;border-radius:14px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 15px Manrope;cursor:pointer;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)">Войти</div>
-      <div data-c="${act(() => setS({ authMode: 'reg', fName: '', fPhone: '', fPass: '', agree: false }))}" class="h-goldbg a98" style="height:52px;border-radius:14px;border:1px solid rgba(201,151,78,.55);color:#e3c48b;display:flex;align-items:center;justify-content:center;font:700 15px Manrope;cursor:pointer">Зарегистрироваться</div>
+      <div data-c="${act(() => setS({ authMode: 'reg', fName: '', fPhone: '', fPass: '', agree: false, agreeMkt: false }))}" class="h-goldbg a98" style="height:52px;border-radius:14px;border:1px solid rgba(201,151,78,.55);color:#e3c48b;display:flex;align-items:center;justify-content:center;font:700 15px Manrope;cursor:pointer">Зарегистрироваться</div>
       <div data-c="${act(() => setS({ screen: 'app', tab: 'home' }))}" class="h-cream" style="padding:10px;text-align:center;color:#b8ad9c;font:600 13px Manrope;cursor:pointer">Пропустить</div>
       <div data-c="${act(() => setS({ screen: 'spin', sPin: '', sPinErr: 0, sPinWho: S.staffId || S.staff[0].id }))}" class="h-goldc" style="padding:2px;text-align:center;color:#8d8471;font:600 11px Manrope;letter-spacing:.08em;cursor:pointer;text-transform:uppercase">Вход для персонала</div>
+      <div data-c="${act(() => setS({ doc: 'about' }))}" class="h-cream" style="padding:4px;text-align:center;color:#8d8471;font:600 11px Manrope;cursor:pointer">О кофейне · реквизиты · документы</div>
     </div>`;
   } else if (S.authMode === 'login') {
     const can = phoneOk && S.fPass;
@@ -1341,13 +1404,17 @@ function renderAuth() {
       ${authInput('f-name-reg', '', '', S.fName, act(e => setS({ fName: e.target.value })), 'Имя')}
       ${authInput('f-phone-reg', 'tel', 'tel', S.fPhone, act(e => setS({ fPhone: e.target.value })), 'Номер телефона')}
       ${authInput('f-pass-reg', 'password', '', S.fPass, act(e => setS({ fPass: e.target.value })), 'Пароль')}
-      <div data-c="${act(() => setS({ agree: !S.agree }))}" style="display:flex;align-items:center;gap:10px;padding:4px 2px;cursor:pointer">
-        <div style="width:19px;height:19px;border-radius:6px;flex:none;box-sizing:border-box;transition:all .15s;${S.agree ? `background:${GG};box-shadow:inset 0 0 0 4px rgba(20,17,13,.75)` : 'border:2px solid rgba(255,255,255,.3)'}"></div>
-        <div style="font:600 12px Manrope;color:#b8ad9c">Согласен с условиями сервиса</div>
+      <div data-c="${act(() => setS({ agree: !S.agree }))}" style="display:flex;align-items:flex-start;gap:10px;padding:4px 2px;cursor:pointer">
+        <div style="width:19px;height:19px;border-radius:6px;flex:none;box-sizing:border-box;transition:all .15s;margin-top:1px;${S.agree ? `background:${GG};box-shadow:inset 0 0 0 4px rgba(20,17,13,.75)` : 'border:2px solid rgba(255,255,255,.3)'}"></div>
+        <div style="font:600 12px/1.45 Manrope;color:#b8ad9c">Принимаю <span data-c="${act(() => setS({ doc: 'terms' }))}" style="color:#e3c48b">условия заказа</span> и <span data-c="${act(() => setS({ doc: 'policy' }))}" style="color:#e3c48b">политику обработки данных</span> — обязательно</div>
+      </div>
+      <div data-c="${act(() => setS({ agreeMkt: !S.agreeMkt }))}" style="display:flex;align-items:flex-start;gap:10px;padding:4px 2px;cursor:pointer">
+        <div style="width:19px;height:19px;border-radius:6px;flex:none;box-sizing:border-box;transition:all .15s;margin-top:1px;${S.agreeMkt ? `background:${GG};box-shadow:inset 0 0 0 4px rgba(20,17,13,.75)` : 'border:2px solid rgba(255,255,255,.3)'}"></div>
+        <div style="font:600 12px/1.45 Manrope;color:#b8ad9c">Получать акции и новости — по желанию, отключается в профиле</div>
       </div>
       <div data-c="${act(() => {
         if (!(S.fName.trim() && (S.fPhone.match(/\d/g) || []).length >= 6 && S.fPass && S.agree)) return;
-        set({ user: { name: S.fName.trim(), phone: S.fPhone }, screen: 'app', tab: 'home', authMode: 'welcome', bonus: S.bonus + (S.cfg.regBonus || 0), bonusEv: S.cfg.regBonus > 0 ? [['Бонус за регистрацию', today(), S.cfg.regBonus], ...S.bonusEv] : S.bonusEv });
+        set({ user: { name: S.fName.trim(), phone: S.fPhone, consents: { terms: { v: DOC_VERSION, at: Date.now() }, marketing: { on: !!S.agreeMkt, at: Date.now() } } }, screen: 'app', tab: 'home', authMode: 'welcome', bonus: S.bonus + (S.cfg.regBonus || 0), bonusEv: S.cfg.regBonus > 0 ? [['Бонус за регистрацию', today(), S.cfg.regBonus], ...S.bonusEv] : S.bonusEv });
         showToast('Аккаунт создан!' + (S.cfg.regBonus > 0 ? ' +' + S.cfg.regBonus + ' баллов' : ''));
       })}" class="a98" style="height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font:800 14px Manrope;cursor:pointer;transition:all .2s;${can ? `background:${GG};color:#231b0e;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)` : 'background:rgba(255,255,255,.08);color:#8d8471;cursor:not-allowed'}">Создать аккаунт${S.cfg.regBonus > 0 ? ' · +' + S.cfg.regBonus + ' баллов' : ''}</div>
       <div data-c="${act(() => setS({ authMode: 'welcome' }))}" class="h-cream" style="padding:8px 2px;text-align:center;color:#b8ad9c;font:600 12.5px Manrope;cursor:pointer">← Назад</div>
@@ -1378,6 +1445,118 @@ function circleImg(img, size, radius, extra) {
   return `width:${size}px;height:${size}px;border-radius:${radius};flex:none;${img ? `background:url(&quot;${esc(img)}&quot;) center/cover no-repeat` : 'background:var(--hov)'}${extra || ''}`;
 }
 
+// ===================== документы, реквизиты, состав, «заказ готов» =====================
+const DOC_VERSION = '2026-09-05';
+// Аллергены — 15 групп из ТР ТС 022/2011
+const ALLERGENS = [['gluten', 'глютен'], ['milk', 'молоко и лактоза'], ['egg', 'яйца'], ['nuts', 'орехи'], ['peanut', 'арахис'], ['soy', 'соя'], ['sesame', 'кунжут'], ['fish', 'рыба'], ['crust', 'ракообразные'], ['mollusc', 'моллюски'], ['celery', 'сельдерей'], ['mustard', 'горчица'], ['sulfite', 'сульфиты'], ['lupin', 'люпин'], ['aspartame', 'аспартам']];
+const ALLERGEN_LABEL = Object.fromEntries(ALLERGENS);
+// Состав, калорийность, аллергены и 18+ живут отдельно от карточки товара (S.itemInfo),
+// поэтому заполняются для любых позиций — и базовых, и добавленных бариста.
+function itemInfo(id) {
+  const it = item(id) || {}, o = (S.itemInfo || {})[id] || {};
+  return { ingr: o.ingr || it.ingr || '', kcal: o.kcal != null && o.kcal !== '' ? o.kcal : (it.kcal || ''), allerg: o.allerg || it.allerg || [], adult: !!(o.adult != null ? o.adult : it.adult) };
+}
+SVG.prof.iI = '<circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path>';
+function toMin(hm) { const m = /^(\d{1,2}):(\d{2})$/.exec(hm || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; }
+function isOpenNow() {
+  const o = toMin(S.cfg.open), c = toMin(S.cfg.close);
+  if (o == null || c == null) return true;
+  const d = new Date(), n = d.getHours() * 60 + d.getMinutes();
+  return c > o ? (n >= o && n < c) : (n >= o || n < c);
+}
+// Слоты «ко времени»: шаг 10 минут, не раньше чем через 15 минут, не раньше открытия и до закрытия
+function pickupSlots() {
+  const o = toMin(S.cfg.open), c = toMin(S.cfg.close);
+  const d = new Date(Date.now() + 15 * 60000); d.setSeconds(0, 0); d.setMinutes(Math.ceil(d.getMinutes() / 10) * 10);
+  if (o != null && d.getHours() * 60 + d.getMinutes() < o) d.setHours(Math.floor(o / 60), o % 60, 0, 0);
+  const out = [];
+  for (let i = 0; i < 80; i++) { const m = d.getHours() * 60 + d.getMinutes(); if (c != null && m >= c) break; out.push(d.getTime()); d.setMinutes(d.getMinutes() + 10); }
+  return out;
+}
+// «Обычно готовим ~N мин» — медиана по последним выданным заказам сегодня, иначе норматив из правил
+function medianPrepMin() {
+  const xs = S.orders.filter(o => o.st === 'done' && o.tss && o.tss.ready && o.tss.new && isTodayOrder(o)).slice(0, 20)
+    .map(o => (o.tss.ready - o.tss.new) / 60000).filter(x => x > 0 && x < 120).sort((a, b) => a - b);
+  return xs.length ? Math.max(3, Math.round(xs[Math.floor(xs.length / 2)])) : (S.cfg.prepMin || 10);
+}
+const DOC_TITLES = { policy: 'Политика обработки данных', terms: 'Условия заказа', bonus: 'Правила бонусов и скидок', about: 'О кофейне и документы' };
+// Тексты документов собираются из реквизитов и правил, заданных администратором,
+// поэтому всегда совпадают с тем, как приложение реально работает.
+function docHtml(key) {
+  const l = S.cfg.legal, nm = esc(l.name || 'Кофейня на высоте'), adr = esc(l.address || 'адрес не указан'), ph = esc(l.phone || '—'), em = esc(l.email || '—');
+  const reg = (l.inn ? ', ИНН ' + esc(l.inn) : '') + (l.ogrn ? ', ' + (l.form === 'ООО' ? 'ОГРН ' : 'ОГРНИП ') + esc(l.ogrn) : '');
+  const h = t => `<div style="font:700 14px Manrope;margin:16px 0 6px">${t}</div>`;
+  const p = t => `<div style="font:500 13px/1.6 Manrope;color:var(--sub2)">${t}</div>`;
+  const foot = p(`<br>Редакция от ${DOC_VERSION}.`);
+  if (key === 'policy') return h('1. Оператор') + p(`${nm}${reg}. Адрес: ${adr}. Связь: ${ph}, ${em}.`)
+    + h('2. Какие данные и зачем') + p('Имя и телефон — чтобы принять заказ и позвать вас, когда он готов (исполнение договора). История заказов, избранное, адреса, бренд и последние четыре цифры карты, баллы — для программы лояльности. Телефон или e-mail для чека — чтобы отправить электронный чек. Полный номер карты, срок и код приложение не хранит.')
+    + h('3. Где хранятся данные') + p('В памяти вашего браузера на вашем устройстве. На сервер кофейни и третьим лицам данные не передаются. Удалить их можно в любой момент: Профиль → Личные данные → «Удалить мои данные», либо очистив данные сайта в браузере.')
+    + h('4. Сроки') + p('Данные заказов хранятся 30 дней и удаляются автоматически. Данные аккаунта — до удаления вами.')
+    + h('5. Сообщения') + p('О статусе заказа и брони — всегда. Акции и новости — только при отдельном согласии; отозвать его можно в личных данных.')
+    + h('6. Ваши права') + p(`Получить сведения об обработке, потребовать уточнения, блокирования или уничтожения данных, отозвать согласие. Обращения: ${ph}, ${em}.`) + foot;
+  if (key === 'terms') return h('1. Стороны') + p(`Продавец: ${nm}${reg}, ${adr}. Покупатель — тот, кто оформляет заказ в приложении.`)
+    + h('2. Заказ') + p('Договор заключён, когда кофейня принимает заказ (статус «Принят»). Состав, объём, цена каждой позиции и итог со скидкой показываются до оформления и в подтверждении.')
+    + h('3. Приготовление и получение') + p('Ориентировочное время показывается в подтверждении; заказ «ко времени» готовится к выбранному слоту. Получение — у стойки по номеру заказа. Готовый напиток ждёт выдачи 30 минут.')
+    + h('4. Оплата') + p(S.cfg.onlinePay ? 'Онлайн в приложении либо при получении — наличными или картой на кассе. Кассовый чек — электронный на указанный контакт или бумажный на кассе.' : 'При получении — наличными или картой на кассе; онлайн-оплата пока не подключена. Кассовый чек выдаётся на кассе, электронный — на указанный вами телефон или e-mail.')
+    + h('5. Отказ и отмена') + p('До начала приготовления вы вправе отказаться от заказа без потерь; после — с оплатой фактически понесённых расходов. Кофейня может отменить заказ, если позиция закончилась: вы получите уведомление, предоплата возвращается тем же способом не позднее 10 дней.')
+    + h('6. Бронь столика') + p('Бронь действует 15 минут после выбранного времени, затем столик освобождается. Кофейня подтверждает или отклоняет бронь уведомлением.') + foot;
+  if (key === 'bonus') return h('Начисление') + p(`${S.cfg.bonus}% от суммы заказа возвращается баллами при выдаче. За регистрацию — ${S.cfg.regBonus} баллов.`)
+    + h('Скидка') + p(`${S.cfg.disc}% на каждый заказ в приложении, учитывается в корзине до оплаты.`)
+    + h('Условия') + p('Баллы не являются деньгами, не обмениваются на наличные и не передаются другим лицам. Условия могут меняться — об изменениях сообщается в приложении заранее.') + foot;
+  return '';
+}
+function routeButtons() {
+  const l = S.cfg.legal, has = l.lat && l.lng, q = encodeURIComponent(l.address || 'Кофейня на высоте');
+  const ya = has ? `https://yandex.ru/maps/?rtext=~${esc(l.lat)},${esc(l.lng)}` : `https://yandex.ru/maps/?text=${q}`;
+  const dg = has ? `https://2gis.ru/routeSearch/to/${esc(l.lng)},${esc(l.lat)}` : `https://2gis.ru/search/${q}`;
+  const btn = (href, t) => `<a href="${href}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;padding:11px 8px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--ink);font:700 12.5px Manrope;text-decoration:none;text-align:center">${t}</a>`;
+  return `<div style="display:flex;gap:8px;margin-top:10px">${btn(ya, 'Маршрут · Яндекс Карты')}${btn(dg, 'Маршрут · 2ГИС')}</div>`;
+}
+function renderAboutBody() {
+  const l = S.cfg.legal;
+  const row = (k, v) => v ? `<div style="display:flex;gap:10px;font:600 12.5px Manrope;padding:8px 0;border-bottom:1px solid var(--line2)"><div style="color:var(--sub);min-width:118px">${k}</div><div style="flex:1;color:var(--ink);overflow-wrap:anywhere">${esc(v)}</div></div>` : '';
+  const docBtn = (k, t) => `<div data-c="${act(() => setS({ doc: k }))}" class="h-gold" style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 15px;cursor:pointer;font:600 13.5px Manrope">${t}<div style="flex:1"></div>${SVG.chev}</div>`;
+  return `<div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:6px">
+    <div style="font:600 18px 'Cormorant Garamond',serif;margin-bottom:6px">${esc(l.name || 'Кофейня на высоте')}</div>
+    ${row('Форма', l.form)}${row('ИНН', l.inn)}${row(l.form === 'ООО' ? 'ОГРН' : 'ОГРНИП', l.ogrn)}${row('Регистрация', l.regBody)}${row('Адрес', l.address)}${row('Режим работы', S.cfg.open && S.cfg.close ? S.cfg.open + '–' + S.cfg.close + ' ежедневно' : '')}${row('Телефон', l.phone)}${row('E-mail', l.email)}
+    ${!(l.inn || l.ogrn) ? '<div style="font:600 11.5px/1.5 Manrope;color:var(--dim);margin-top:10px">Реквизиты заполняются администратором: панель → Администрирование → Реквизиты.</div>' : ''}
+  </div>
+  ${routeButtons()}
+  <div style="display:grid;gap:8px;margin-top:14px">${docBtn('terms', 'Условия заказа')}${docBtn('policy', 'Политика обработки данных')}${docBtn('bonus', 'Правила бонусов и скидок')}</div>
+  <div style="font:600 11px/1.5 Manrope;color:var(--dim);margin-top:12px">Редакция документов от ${DOC_VERSION}.</div>`;
+}
+// Полноэкранный лист документа поверх любого экрана — доступен и до входа
+function renderDoc() {
+  if (!S.doc) return '';
+  const key = S.doc, body = key === 'about' ? renderAboutBody() : docHtml(key);
+  return `<div data-key="doc-sheet" style="position:absolute;inset:0;z-index:70;background:var(--ph);color:var(--ink);display:flex;flex-direction:column;animation:fadeIn .25s ease both">
+    <div style="display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 18px 10px">
+      <div data-c="${act(() => setS({ doc: null }))}" class="a90" style="width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer">${SVG.backSm}</div>
+      <div style="font:600 21px 'Cormorant Garamond',serif">${DOC_TITLES[key] || ''}</div>
+    </div>
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:4px 20px 40px">${body}</div>
+  </div>`;
+}
+// «Заказ готов» / «Заказ отменён» — на весь экран, крупным номером, с вибрацией:
+// пассивную плашку в списке гость замечал, только открыв вкладку.
+function renderAlert() {
+  const mineSet = new Set(S.myNums);
+  const o = S.orders.find(x => mineSet.has(x.num) && (x.st === 'ready' || x.st === 'cancel') && !(S.alertSeen || {})[x.num + ':' + x.st]);
+  if (!o) return '';
+  const key = o.num + ':' + o.st, ready = o.st === 'ready';
+  if (S._buzzed !== key) { S._buzzed = key; try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {} }
+  const tips = ready && S.cfg.tipsUrl ? `<a href="${esc(S.cfg.tipsUrl)}" target="_blank" rel="noopener" style="display:block;margin-top:14px;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,255,255,.35);color:#fff;font:700 13px Manrope;text-decoration:none">Поблагодарить бариста${o.by ? ' ' + esc(o.by) : ''} ☕</a>` : '';
+  const why = ready ? 'Подойдите к стойке и покажите этот экран бариста.' : ((o.cancel && o.cancel.reason ? 'Причина: ' + esc(o.cancel.reason) + '. ' : '') + (o.pay !== 2 ? 'Оплата вернётся тем же способом.' : 'Приносим извинения.'));
+  return `<div data-key="alert-sheet" role="alert" aria-live="assertive" style="position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px;box-sizing:border-box;background:${ready ? '#1f7a4a' : '#7a2e22'};color:#fff;animation:fadeIn .3s ease both">
+    <div style="font:700 13px Manrope;letter-spacing:.14em;text-transform:uppercase;opacity:.85">${ready ? 'Ваш заказ готов' : 'Заказ отменён кофейней'}</div>
+    <div style="font:800 112px/1 Manrope;margin:14px 0 6px;letter-spacing:-.02em">${o.num}</div>
+    <div style="font:600 15px/1.5 Manrope;max-width:300px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
+    <div style="font:500 13px/1.5 Manrope;opacity:.9;margin-top:14px;max-width:300px">${why}</div>
+    ${tips}
+    <div data-c="${act(() => set({ alertSeen: { ...(S.alertSeen || {}), [key]: 1 } }))}" class="a98" style="margin-top:26px;padding:15px 42px;border-radius:99px;background:#fff;color:${ready ? '#1f7a4a' : '#7a2e22'};font:800 15px Manrope;cursor:pointer">Понятно</div>
+  </div>`;
+}
+
 function renderApp() {
   // Товар могли удалить в другой вкладке панели — такая строка корзины не должна
   // ронять рендер; она просто исчезает.
@@ -1397,6 +1576,15 @@ function renderApp() {
       <div style="font:700 13px Manrope;margin:18px 0 9px;animation:fadeUp .4s .2s ease both">Объём</div>
       <div style="display:flex;gap:8px;animation:fadeUp .4s .22s ease both">
         ${SIZES.map((label, i) => `<div data-c="${act(() => setS({ pSize: i }))}" class="a95" style="flex:1;padding:11px 0;text-align:center;border-radius:11px;cursor:pointer;font:700 13px Manrope;transition:all .15s;${S.pSize === i ? `background:${GG};color:#231b0e` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('')}
+      </div>` : '';
+    const info = itemInfo(it.id);
+    const infoBlock = (info.ingr || info.kcal !== '' || (info.allerg && info.allerg.length) || info.adult) ? `
+      <div style="margin-top:16px;padding:12px 14px;border-radius:14px;background:var(--hov);animation:fadeUp .4s .3s ease both">
+        <div style="font:700 11px Manrope;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:6px">Состав и пищевая ценность</div>
+        ${info.ingr ? `<div style="font:500 12.5px/1.55 Manrope;color:var(--sub2)">${esc(info.ingr)}</div>` : ''}
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font:600 12px Manrope;color:var(--sub2)">${it.v ? `<div>Выход: ${esc(it.v)}</div>` : ''}${info.kcal !== '' ? `<div>${esc(String(info.kcal))} ккал</div>` : ''}</div>
+        ${info.allerg && info.allerg.length ? `<div style="font:600 12px/1.5 Manrope;color:#e08a7a;margin-top:6px">Аллергены: ${info.allerg.map(c => esc(ALLERGEN_LABEL[c] || c)).join(', ')}</div>` : ''}
+        ${info.adult ? `<div data-c="${act(() => setS({ adultOk: !S.adultOk }))}" style="display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer"><div style="width:19px;height:19px;border-radius:6px;flex:none;box-sizing:border-box;${S.adultOk ? `background:${GG};box-shadow:inset 0 0 0 4px var(--ph)` : 'border:2px solid var(--bdr)'}"></div><div style="font:700 12.5px Manrope">Мне есть 18 лет — тонизирующий напиток 18+</div></div>` : ''}
       </div>` : '';
     const adds = (it.cat === 'coffee' || it.cat === 'drinks') ? `
       <div style="font:700 13px Manrope;margin:18px 0 9px;animation:fadeUp .4s .26s ease both">Добавки</div>
@@ -1424,6 +1612,7 @@ function renderApp() {
         <div style="font:500 13.5px/1.6 Manrope;color:var(--sub);animation:fadeUp .4s .15s ease both">${esc(it.d)}</div>
         ${sizes}
         ${adds}
+        ${infoBlock}
         <div style="display:flex;gap:12px;margin-top:22px;animation:fadeUp .4s .32s ease both">
           <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:4px 8px">
             <div data-c="${act(() => setS({ pQty: Math.max(1, S.pQty - 1) }))}" style="width:34px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:800 19px Manrope;color:#c9974e;user-select:none">−</div>
@@ -1432,7 +1621,7 @@ function renderApp() {
           </div>
           <div data-c="${act(() => {
             if (!item(it.id) || S.hidden[it.id]) { showToast('Позиции временно нет в меню'); setS({ product: null }); return; }
-            addCart(it.id, S.pSize, S.pAdds, S.pQty); setS({ product: null, tab: 'order' }); showToast(it.n + ' — в заказе');
+            if (info.adult && !S.adultOk) { showToast('Подтвердите возраст — напиток 18+'); return; } addCart(it.id, S.pSize, S.pAdds, S.pQty); setS({ product: null, tab: 'order' }); showToast(it.n + ' — в заказе');
           })}" class="a98" style="flex:1;height:48px;border-radius:13px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 14.5px Manrope;cursor:pointer;box-shadow:0 14px 28px -14px rgba(201,151,78,.8)">В корзину · ${unit * S.pQty} ₽</div>
         </div>
       </div>
@@ -1534,16 +1723,19 @@ function renderApp() {
     </div>`;
   } else if (S.tab === 'menu') {
     const chips = CATS.map(([k, label]) => `<div data-c="${act(() => setS({ cat: k }))}" class="a95" style="flex:none;padding:9px 16px;border-radius:99px;cursor:pointer;font:700 12.5px Manrope;transition:all .15s;${S.cat === k ? `background:${GG};color:#231b0e` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('');
-    const rows = allProducts().filter(m => m.cat === S.cat && !S.hidden[m.id]).map(m => `
-      <div data-c="${act(() => setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {} }))}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer;animation:fadeUp .4s ease both;transition:border-color .15s">
+    const rows = allProducts().filter(m => m.cat === S.cat).map(m => {
+      const off = !!S.hidden[m.id], info = itemInfo(m.id);
+      return `
+      <div data-c="${off ? act(() => showToast('Сегодня этой позиции нет')) : act(() => setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }))}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both;${off ? 'opacity:.55' : ''}">
         <div style="${circleImg(m.img, 58, '50%', ';border:2px solid var(--line)')}"></div>
         <div style="flex:1;min-width:0">
-          <div style="font:700 14px Manrope">${esc(m.n)}</div>
-          <div style="font:600 11.5px Manrope;color:var(--sub);margin:2px 0 5px">${esc(m.v || '—')}</div>
+          <div style="font:700 14px Manrope;display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(m.n)}${info.adult ? '<span style="font:800 10px Manrope;padding:1px 6px;border-radius:99px;border:1px solid #e08a7a;color:#e08a7a">18+</span>' : ''}${off ? '<span style="font:700 10px Manrope;padding:2px 7px;border-radius:99px;background:var(--hov);color:var(--sub)">Сегодня нет</span>' : ''}</div>
+          <div style="font:600 11.5px Manrope;color:var(--sub);margin:2px 0 5px">${esc(m.v || '—')}${info.kcal !== '' ? ' · ' + esc(String(info.kcal)) + ' ккал' : ''}</div>
           <div style="font:800 14px Manrope;color:var(--goldT)">${m.p} ₽</div>
         </div>
-        <div data-c="${act(() => { addCart(m.id, 0, {}, 1); showToast(m.n + ' — в заказе'); })}" class="a90" style="width:34px;height:34px;border-radius:11px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 19px Manrope;cursor:pointer;box-shadow:0 8px 16px -8px rgba(201,151,78,.8)">+</div>
-      </div>`).join('');
+        ${off ? '' : `<div data-c="${act(() => { if (info.adult) { setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }); showToast('Напиток 18+ — подтвердите возраст в карточке'); return; } addCart(m.id, 0, {}, 1); showToast(m.n + ' — в заказе'); })}" class="a90" aria-label="В заказ" style="width:34px;height:34px;border-radius:11px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;font:800 20px/1 Manrope">+</div>`}
+      </div>`;
+    }).join('');
     screen = `
     <div data-key="scr-menu" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">
       <div style="display:flex;align-items:center;margin-bottom:14px">
@@ -1569,6 +1761,7 @@ function renderApp() {
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
               <div style="font:800 15px Manrope">№${o.num}</div>
               <div style="font:600 11.5px Manrope;color:var(--sub)">${o.time}</div>
+              ${o.dueAt && o.st !== 'done' && o.st !== 'cancel' ? `<div style="font:700 11.5px Manrope;color:var(--goldT)">заберите к ${hhmm(o.dueAt)}</div>` : ''}
               <div style="flex:1"></div>
               <div style="padding:4px 10px;border-radius:99px;font:700 11px Manrope;${TAGS[o.st][1]}">${TAGS[o.st][0]}</div>
             </div>
@@ -1595,7 +1788,7 @@ function renderApp() {
                   </div>`).join('')}
               </div>` : ''}
             ${o.st === 'ready' ? '<div style="margin-top:12px;padding:11px;border-radius:11px;background:rgba(111,191,138,.12);color:#6fbf8a;font:700 12.5px Manrope;text-align:center;animation:pop .4s ease both">☕ Ваш заказ готов — подходите к стойке!</div>' : ''}
-            ${o.st === 'cancel' ? `<div style="margin-top:12px;padding:11px;border-radius:11px;background:rgba(224,138,122,.1);color:#e08a7a;font:700 12.5px Manrope;text-align:center">Заказ отменён кофейней${o.pay !== 2 ? ' — оплата вернётся тем же способом' : ''}. Приносим извинения</div>` : ''}
+            ${o.st === 'cancel' ? `<div style="margin-top:12px;padding:11px;border-radius:11px;background:rgba(224,138,122,.1);color:#e08a7a;font:700 12.5px Manrope;text-align:center">Заказ отменён кофейней${o.cancel && o.cancel.reason ? ': ' + esc(o.cancel.reason).toLowerCase() : ''}${o.pay !== 2 ? ' — оплата вернётся тем же способом' : ''}. Приносим извинения</div>` : ''}
           </div>`).join('')}
       </div>` : '';
 
@@ -1668,14 +1861,27 @@ function renderApp() {
         ${myBookings}
       </div>`;
 
-    const justOrdered = entries.length === 0 && S.lastOrder ? `
-      <div style="background:var(--card);border:1px solid rgba(201,151,78,.5);border-radius:18px;padding:26px 20px;text-align:center;animation:pop .45s ease both">
-        <div style="width:56px;height:56px;border-radius:50%;background:${GG};margin:0 auto 14px;display:flex;align-items:center;justify-content:center">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#231b0e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg>
+    const lastO = S.lastOrder ? S.orders.find(o => o.num === S.lastOrder) : null;
+    const justOrdered = entries.length === 0 && lastO ? `
+      <div style="background:var(--card);border:1px solid rgba(201,151,78,.5);border-radius:18px;padding:20px 18px;animation:pop .45s ease both">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:44px;height:44px;border-radius:50%;background:${GG};flex:none;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#231b0e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg></div>
+          <div><div style="font:600 20px 'Cormorant Garamond',serif">Заказ №${lastO.num} принят</div><div style="font:600 12px Manrope;color:var(--sub)">${lastO.time} · ${lastO.type === 1 ? 'с собой' : 'в зале'}</div></div>
         </div>
-        <div style="font:600 20px 'Cormorant Garamond',serif;margin-bottom:6px">Заказ №${S.lastOrder} принят</div>
-        <div style="font:500 13px/1.55 Manrope;color:var(--sub)">Бариста уже видит его в реестре. Мы позовём вас, когда всё будет готово.</div>
-        <div data-c="${act(() => setS({ tab: 'menu' }))}" style="display:inline-flex;margin-top:16px;padding:12px 24px;border-radius:12px;background:${GG};color:#231b0e;font:800 13px Manrope;cursor:pointer">В меню</div>
+        <div style="display:grid;gap:6px;margin-top:14px;border-top:1px solid var(--line2);padding-top:12px">
+          ${lastO.lines.map(([n, v, p]) => `<div style="display:flex;gap:10px;font:600 12.5px Manrope"><div style="flex:1;min-width:0">${esc(n)} <span style="color:var(--sub)">${esc(v || '')}</span></div><div style="white-space:nowrap">${p} ₽</div></div>`).join('')}
+          <div style="display:flex;font:800 14px Manrope;margin-top:4px"><div>Итого со скидкой</div><div style="flex:1"></div><div>${lastO.total} ₽</div></div>
+        </div>
+        <div style="display:grid;gap:6px;margin-top:12px;font:600 12px/1.5 Manrope;color:var(--sub2)">
+          <div>⏱ ${lastO.dueAt ? 'Заберите к ' + hhmm(lastO.dueAt) : 'Как можно скорее — обычно около ' + medianPrepMin() + ' мин'}</div>
+          <div>💳 ${lastO.pay === 2 ? 'Оплата при получении — наличными или картой на кассе' : lastO.pay === 1 ? 'Онлайн-оплата' : 'Банковская карта'}${lastO.receiptTo ? ' · чек: ' + esc(lastO.receiptTo) : ''}</div>
+          <div>📍 ${esc(S.cfg.legal.address || 'у стойки')}${S.cfg.legal.phone ? ' · ' + esc(S.cfg.legal.phone) : ''}</div>
+          <div style="color:var(--sub)">Отказаться без потерь можно до начала приготовления — скажите бариста. Мы позовём вас, когда заказ будет готов.</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <div data-c="${act(() => setS({ tab: 'menu' }))}" style="flex:1;padding:12px;text-align:center;border-radius:12px;background:${GG};color:#231b0e;font:800 13px Manrope;cursor:pointer">В меню</div>
+          <div data-c="${act(() => setS({ doc: 'terms' }))}" style="padding:12px 14px;border-radius:12px;border:1px solid var(--line);color:var(--sub2);font:700 12.5px Manrope;cursor:pointer">Условия</div>
+        </div>
       </div>` : '';
     const empty = entries.length === 0 && !S.lastOrder ? `
       <div style="text-align:center;padding:60px 16px;color:var(--sub)">
@@ -1710,7 +1916,9 @@ function renderApp() {
         </div>`;
       }).join('');
       const mainCard = (S.cards || [])[S.mainCard || 0];
-      const payChips = [mainCard ? (mainCard.brand + ' •••• ' + mainCard.last4) : 'Банковская карта', 'Онлайн-оплата', 'На кассе'].map((label, i) => `<div data-c="${act(() => setS({ pay: i }))}" style="padding:10px 14px;border-radius:11px;cursor:pointer;font:700 12px Manrope;transition:all .15s;${S.pay === i ? `background:${GG};color:#231b0e` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${esc(label)}</div>`).join('');
+      const payOn = !!S.cfg.onlinePay;
+      const payEff = payOn ? S.pay : 2;
+      const payChips = [[0, mainCard ? (mainCard.brand + ' •••• ' + mainCard.last4) : 'Банковская карта', payOn], [1, 'Онлайн-оплата', payOn], [2, 'Оплата при получении', true]].map(([i, label, on]) => `<div data-c="${on ? act(() => setS({ pay: i })) : act(() => showToast('Онлайн-оплата появится после подключения платёжного провайдера'))}" style="padding:10px 14px;border-radius:11px;cursor:pointer;font:700 12.5px Manrope;transition:all .15s;${!on ? 'opacity:.5;background:var(--hov);color:var(--sub)' : payEff === i ? `background:${GG};color:#231b0e` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}${!on ? ' · скоро' : ''}</div>`).join('');
       const otStyle = on => `flex:1;display:flex;align-items:center;gap:9px;padding:13px 14px;border-radius:13px;cursor:pointer;font:700 13.5px Manrope;transition:all .15s;${on ? 'background:var(--card);border:1px solid rgba(201,151,78,.6)' : 'background:var(--card);border:1px solid var(--line);color:var(--sub)'}`;
       const otDot = on => `width:16px;height:16px;border-radius:50%;box-sizing:border-box;${on ? 'border:5px solid #c9974e' : 'border:2px solid var(--bdr)'}`;
       cartBlock = `
@@ -1725,11 +1933,23 @@ function renderApp() {
         <div data-c="${act(() => setS({ orderType: 0 }))}" style="${otStyle(S.orderType === 0)}"><div style="${otDot(S.orderType === 0)}"></div>В зале</div>
         <div data-c="${act(() => setS({ orderType: 1 }))}" style="${otStyle(S.orderType === 1)}"><div style="${otDot(S.orderType === 1)}"></div>С собой</div>
       </div>
+      <div style="font:700 13px Manrope;margin:16px 0 10px">Когда забрать?</div>
+      <div style="display:flex;gap:10px">
+        <div data-c="${act(() => setS({ pickAsap: true }))}" style="${otStyle(S.pickAsap)}"><div style="${otDot(S.pickAsap)}"></div>Как можно скорее</div>
+        <div data-c="${act(() => setS({ pickAsap: false, pickAt: S.pickAt || (pickupSlots()[0] || 0) }))}" style="${otStyle(!S.pickAsap)}"><div style="${otDot(!S.pickAsap)}"></div>Ко времени</div>
+      </div>
+      ${S.pickAsap ? `<div style="font:600 11.5px Manrope;color:var(--sub);margin-top:8px">${isOpenNow() ? 'Обычно готовим около ' + medianPrepMin() + ' мин' : 'Сейчас закрыто — откроемся в ' + esc(S.cfg.open) + '. Выберите «Ко времени»'}</div>` : `<div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:10px -20px 0;padding:0 20px">${pickupSlots().map(ts => `<div data-c="${act(() => setS({ pickAt: ts }))}" style="flex:none;padding:9px 13px;border-radius:99px;cursor:pointer;font:700 12.5px Manrope;${S.pickAt === ts ? `background:${GG};color:#231b0e` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${hhmm(ts)}</div>`).join('') || `<div style="font:600 12px Manrope;color:var(--sub)">На сегодня слотов не осталось — закрываемся в ${esc(S.cfg.close)}</div>`}</div>`}
+      <div style="font:700 13px Manrope;margin:16px 0 10px">Чек</div>
+      <input id="rc-to" type="text" inputmode="email" autocomplete="tel" aria-label="Контакт для электронного чека" data-i="${act(e => setS({ receiptTo: e.target.value }))}" value="${esc(S.receiptTo || (S.user && S.user.phone) || '')}" placeholder="Телефон или e-mail для электронного чека" style="width:100%;box-sizing:border-box;height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 13px Manrope;outline:none">
+      <div style="font:600 11px/1.5 Manrope;color:var(--dim);margin-top:6px">${S.cfg.onlinePay ? 'Электронный чек придёт на этот контакт — при онлайн-оплате обязательно.' : 'Кассовый чек выдадим на кассе; электронный — на этот контакт, если укажете.'}</div>
       <div style="font:700 13px Manrope;margin:16px 0 10px">Способ оплаты</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${payChips}</div>
-      <div data-c="${act(() => {
+      ${!S.cfg.acceptOrders ? `<div style="margin-top:18px;padding:14px 16px;border-radius:14px;background:rgba(224,138,122,.12);border:1px solid rgba(224,138,122,.4);color:var(--ink);font:600 13px/1.5 Manrope">Кофейня временно принимает заказы только у стойки. Подойдите к бариста — всё сделаем на месте.</div>` : `<div data-c="${act(() => {
         const es = Object.entries(S.cart);
         if (es.length === 0) return;
+        if (!S.pickAsap && !S.pickAt) { showToast('Выберите время получения'); return; }
+        if (S.pickAsap && !isOpenNow()) { showToast('Сейчас закрыто — выберите «Ко времени»'); return; }
+        if (S.cfg.onlinePay && S.pay !== 2 && !(S.receiptTo || '').trim()) { showToast('Укажите телефон или e-mail для чека'); return; }
         // Пока корзина лежала, бариста мог скрыть или удалить позицию —
         // такие строки убираются, заказ не уходит с несуществующим составом.
         const stale = es.filter(([, x]) => !item(x.id) || S.hidden[x.id]);
@@ -1739,20 +1959,21 @@ function renderApp() {
           showToast('Часть позиций стала недоступна и убрана из корзины');
           return;
         }
-        if (S.pay === 0 && S.cards.length === 0) { showToast('Добавьте карту в профиле или выберите другой способ оплаты'); return; }
+        if (S.cfg.onlinePay && S.pay === 0 && S.cards.length === 0) { showToast('Добавьте карту в профиле или выберите другой способ оплаты'); return; }
         const num = allocOrderNum();
         const clientName = S.user && S.user.name ? S.user.name : 'Гость';
         const lines = es.map(([, x]) => { const it = item(x.id); return [it.n + (x.qty > 1 ? ' ×' + x.qty : ''), it.sz ? SIZES[x.size] : it.v, unitPrice(x.id, x.size, x.adds) * x.qty]; });
         const ids = es.map(([, x]) => ({ id: x.id, size: x.size, adds: x.adds, qty: x.qty }));
         const s2 = es.reduce((a, [, x]) => a + unitPrice(x.id, x.size, x.adds) * x.qty, 0);
         set({
-          orders: [{ num, st: 'new', time: now(), tss: { new: Date.now() }, by: '', lines, ids, client: clientName, phone: (S.user && S.user.phone) || '', type: S.orderType, pay: S.pay, total: s2 - Math.round(s2 * (S.cfg.disc || 0) / 100), hist: [['Заявка отправлена', now()]] }, ...S.orders],
-          cart: {}, lastOrder: num, myNums: [num, ...S.myNums],
+          orders: [{ num, st: 'new', time: now(), tss: { new: Date.now() }, by: '', lines, ids, client: clientName, phone: (S.user && S.user.phone) || '', type: S.orderType, pay: S.cfg.onlinePay ? S.pay : 2, asap: !!S.pickAsap, dueAt: S.pickAsap ? 0 : S.pickAt, receiptTo: (S.receiptTo || (S.user && S.user.phone) || '').trim(), adult: es.some(([, x]) => itemInfo(x.id).adult), consentV: DOC_VERSION, total: s2 - Math.round(s2 * (S.cfg.disc || 0) / 100), hist: [['Заявка отправлена', now()]] }, ...S.orders],
+          cart: {}, lastOrder: num, myNums: [num, ...S.myNums], pickAsap: true, pickAt: 0, adultOk: false,
           snotifs: [{ text: 'Новый заказ №' + num + ' · ' + clientName, time: now(), kind: 'order' }, ...S.snotifs].slice(0, 40), sunread: Math.min((S.sunread || 0) + 1, 40),
           notifs: [{ text: 'Заказ №' + num + ' принят. Мы сообщим, когда он будет готов', time: now() }, ...S.notifs].slice(0, 25), unread: Math.min(S.unread + 1, 25)
         });
         showToast('Заказ №' + num + ' отправлен бариста');
-      })}" class="a98" style="margin-top:18px;height:52px;border-radius:14px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 15px Manrope;cursor:pointer;box-shadow:0 16px 32px -14px rgba(201,151,78,.8)">Оформить заказ</div>`;
+      })}" class="a98" style="margin-top:18px;height:52px;border-radius:14px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 15px Manrope;cursor:pointer;box-shadow:0 16px 32px -14px rgba(201,151,78,.8)">Оформить заказ</div>
+      <div style="font:600 11px/1.5 Manrope;color:var(--dim);margin-top:10px;text-align:center">Оформляя заказ, вы принимаете <span data-c="${act(() => setS({ doc: 'terms' }))}" style="color:var(--goldT);cursor:pointer">условия заказа</span> и <span data-c="${act(() => setS({ doc: 'policy' }))}" style="color:var(--goldT);cursor:pointer">политику обработки данных</span></div>`}`;
     }
     screen = `
     <div data-key="scr-order" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">
@@ -1876,12 +2097,13 @@ function renderApp() {
             <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,17,13,.05),rgba(20,17,13,.72))"></div>
             <div style="position:absolute;left:16px;bottom:12px;display:flex;align-items:center;gap:7px">
               <div style="width:8px;height:8px;border-radius:50%;background:#6fbf8a;box-shadow:0 0 0 4px rgba(111,191,138,.25)"></div>
-              <div style="font:700 12px Manrope;color:#fff">Открыто до 23:00</div>
+              <div style="font:700 12px Manrope;color:#fff">${isOpenNow() ? 'Открыто до ' + esc(S.cfg.close) : 'Закрыто · откроется в ' + esc(S.cfg.open)}</div>
             </div>
           </div>
           <div style="padding:16px">
             <div style="font:600 17px 'Cormorant Garamond',serif;margin-bottom:4px">Кофейня на высоте</div>
-            <div style="font:600 13px/1.55 Manrope;color:var(--sub2)">Трасса Грозный — Шатой, смотровая площадка</div>
+            <div style="font:600 13px/1.55 Manrope;color:var(--sub2)">${esc(S.cfg.legal.address || 'Адрес не указан')}</div>
+            ${routeButtons()}
             <div style="display:grid;gap:8px;margin-top:12px">
               <div style="display:flex;align-items:center;gap:10px;font:600 12.5px Manrope;color:var(--sub)">
                 ${SVG.clockGold}
@@ -1966,11 +2188,15 @@ function renderApp() {
           <input id="pers-name" data-i="${act(e => setS({ fName: e.target.value }))}" value="${esc(S.fName)}" placeholder="Имя" style="width:100%;box-sizing:border-box;height:50px;padding:0 16px;border-radius:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 14px Manrope;outline:none">
           <input id="pers-phone" type="tel" inputmode="tel" data-i="${act(e => setS({ fPhone: e.target.value }))}" value="${esc(S.fPhone)}" placeholder="Номер телефона" style="width:100%;box-sizing:border-box;height:50px;padding:0 16px;border-radius:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 14px Manrope;outline:none">
           <div data-c="${act(() => { if (!S.fName.trim()) return; set({ user: { name: S.fName.trim(), phone: S.fPhone }, psub: null }); showToast('Данные сохранены'); })}" class="a98" style="height:50px;border-radius:13px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 14px Manrope;cursor:pointer">Сохранить</div>
+          ${S.user ? `<div data-c="${act(() => { const c = { ...(S.user.consents || {}) }; const on = !(c.marketing && c.marketing.on); c.marketing = { on, at: Date.now() }; set({ user: { ...S.user, consents: c } }); showToast(on ? 'Будем присылать акции и новости' : 'Акции и новости отключены'); })}" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;cursor:pointer;margin-top:6px"><div style="flex:1;min-width:0"><div style="font:600 13px Manrope">Акции и новости</div><div style="font:600 11px Manrope;color:var(--sub);margin-top:1px">отдельное согласие — отключается в любой момент</div></div><div style="width:42px;height:24px;border-radius:99px;flex:none;position:relative;background:${S.user.consents && S.user.consents.marketing && S.user.consents.marketing.on ? GG : 'var(--bdr)'}"><div style="position:absolute;top:3px;${S.user.consents && S.user.consents.marketing && S.user.consents.marketing.on ? 'right:3px' : 'left:3px'};width:18px;height:18px;border-radius:50%;background:#fff"></div></div></div>
+          <div data-c="${act(() => setS({ doc: 'policy' }))}" style="font:600 12px Manrope;color:var(--goldT);cursor:pointer;padding:6px 2px">Как мы обрабатываем данные →</div>
+          <div data-c="${act(() => { if (!S.delAsk) { setS({ delAsk: 1 }); return; } set({ user: null, myNums: [], myBks: [], favs: {}, cards: [], mainCard: 0, bonus: 0, bonusEv: [], notifs: [], unread: 0, alertSeen: {}, delAsk: 0, screen: 'auth', authMode: 'welcome', psub: null }); showToast('Ваши данные удалены с этого устройства'); })}" class="h-redbg" style="margin-top:8px;text-align:center;padding:13px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:#d97666;font:700 13px Manrope;cursor:pointer">${S.delAsk ? 'Точно удалить аккаунт, историю, избранное, карты и баллы?' : 'Удалить мои данные'}</div>` : ''}
         </div>
       </div>`;
     } else {
-      const rows = [['iU','Личные данные'],['iH','История заказов'],['iF','Избранное'],['iP','Адреса'],['iC','Способы оплаты'],['iB','Уведомления'],['iS','Настройки']].map(([ic, label]) => {
+      const rows = [['iU','Личные данные'],['iH','История заказов'],['iF','Избранное'],['iP','Адреса'],['iC','Способы оплаты'],['iB','Уведомления'],['iS','Настройки'],['iI','О кофейне и документы']].map(([ic, label]) => {
         const tap = act(() => {
+          if (ic === 'iI') { setS({ doc: 'about' }); return; }
           if (ic === 'iU') { setS({ psub: 'personal', fName: S.user ? S.user.name : '', fPhone: S.user ? S.user.phone : '' }); return; }
           if (ic === 'iH') { setS({ psub: 'history' }); return; }
           if (ic === 'iF') { setS({ psub: 'fav' }); return; }
@@ -2039,12 +2265,13 @@ function render() {
       <div data-key="ph-tint" style="position:absolute;inset:0;background:${T.tint}"></div>
       <div data-key="ph-body" style="position:relative;z-index:1;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box;padding-top:env(safe-area-inset-top)">
         ${S.screen === 'splash' ? renderSplash() : S.screen === 'auth' ? renderAuth() : S.screen === 'spin' ? renderStaffPin() : renderApp()}
+        ${S.screen === 'app' ? renderAlert() : ''}${renderDoc()}
       </div>
     </div>`;
   }
   // Центрирование через left/right + margin:auto, а не transform: анимация появления
   // перезаписывала transform, и на телефоне плашка уезжала за правый край.
-  const toast = S.toast ? `<div data-key="toast" style="position:fixed;top:calc(18px + env(safe-area-inset-top));left:0;right:0;margin:0 auto;z-index:99;box-sizing:border-box;width:min(390px,calc(100% - 40px));background:var(--navbg);border:1px solid rgba(217,188,140,.4);color:var(--ink);padding:12px 18px;border-radius:14px;font:700 12.5px Manrope;box-shadow:0 18px 40px -14px rgba(0,0,0,.6);animation:fadeUp .3s ease both;text-align:center">${esc(S.toast)}</div>` : '';
+  const toast = S.toast ? `<div data-key="toast" role="status" aria-live="polite" style="position:fixed;top:calc(18px + env(safe-area-inset-top));left:0;right:0;margin:0 auto;z-index:99;box-sizing:border-box;width:min(390px,calc(100% - 40px));background:var(--navbg);border:1px solid rgba(217,188,140,.4);color:var(--ink);padding:12px 18px;border-radius:14px;font:700 12.5px Manrope;box-shadow:0 18px 40px -14px rgba(0,0,0,.6);animation:fadeUp .3s ease both;text-align:center">${esc(S.toast)}</div>` : '';
 
   // сохранить фокус и каретку через перерисовку
   const ae = document.activeElement;
@@ -2055,8 +2282,9 @@ function render() {
   }
 
   const tpl = document.createElement('template');
+  const offlineBar = S.online === false ? `<div data-key="offline-bar" role="status" style="position:fixed;left:0;right:0;top:0;z-index:97;padding:calc(8px + env(safe-area-inset-top)) 16px 8px;background:#5a4632;color:#fff;font:700 12px Manrope;text-align:center">Нет связи — меню доступно, заказы сохраняются на этом устройстве</div>` : '';
   const storageWarn = S.storageFull ? `<div data-key="storage-warn" style="position:fixed;left:0;right:0;bottom:0;z-index:98;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#7a2e22;color:#fff;font:700 12.5px/1.4 Manrope;text-align:center">Хранилище браузера переполнено — изменения не сохраняются. Освободите место или очистите старые данные в браузере.</div>` : '';
-  tpl.innerHTML = `<div data-key="root" style="${vars};position:fixed;inset:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;transition:background .35s,color .35s">${inner}${toast}${storageWarn}</div>`;
+  tpl.innerHTML = `<div data-key="root" style="${vars};position:fixed;inset:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;transition:background .35s,color .35s">${inner}${toast}${storageWarn}${offlineBar}</div>`;
   morphChildren(app, tpl.content);
 
   document.body.style.background = T.bg;
@@ -2132,7 +2360,8 @@ window.addEventListener('storage', e => {
     snotifs: nv.snotifs || [], sunread: Math.min(nv.sunread || 0, (nv.snotifs || []).length),
     bonus: nv.bonus != null ? nv.bonus : S.bonus, bonusEv: nv.bonusEv || S.bonusEv,
     custom: nv.custom || [], hidden: nv.hidden || {}, favs: nv.favs || {},
-    staff: Array.isArray(nv.staff) && nv.staff.length ? nv.staff : S.staff, cfg: { ...DEFAULT_CFG, ...(nv.cfg || {}) },
+    staff: Array.isArray(nv.staff) && nv.staff.length ? nv.staff : S.staff, cfg: mkCfg(nv.cfg),
+    itemInfo: nv.itemInfo || S.itemInfo, alertSeen: nv.alertSeen || S.alertSeen,
     orders: (Array.isArray(nv.orders) ? nv.orders : []).map(normalizeOrder),
     cards: nv.cards || [], mainCard: nv.mainCard || 0,
     bookings: (Array.isArray(nv.bookings) ? nv.bookings : []).map(normalizeBooking),
@@ -2166,6 +2395,10 @@ if (window.matchMedia) {
 
 // ===================== старт =====================
 render();
+
+// Связь: явный баннер вместо молчаливых сбоев — в горах интернет нестабилен
+window.addEventListener('online', () => { S.online = true; render(); showToast('Связь восстановлена'); });
+window.addEventListener('offline', () => { S.online = false; render(); });
 
 // PWA: сервис-воркер даёт офлайн-оболочку и установку на главный экран.
 // Регистрируется только по http(s) — автономная копия с диска обходится без него.
