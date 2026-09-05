@@ -139,10 +139,15 @@ function renderThemePanel() {
 
 // Персонал: вход в панель — по личному PIN (демо-коды в README).
 // Хранится только id вошедшего, сам PIN в localStorage не пишется.
-const STAFF = [
-  { id: 'ahmad', name: 'Ахмад', role: 'Бариста', shift: '09:00–18:00', pin: '2412' },
-  { id: 'musa',  name: 'Муса',  role: 'Бариста', shift: '12:00–21:00', pin: '7391' }
+// Список сотрудников живёт в состоянии (S.staff) и правится администратором в
+// разделе «Администрирование»; это лишь начальный состав при первом запуске.
+const DEFAULT_STAFF = [
+  { id: 'admin', name: 'Мовсар', role: 'Администратор', shift: '—', pin: '0000', admin: true },
+  { id: 'aisha', name: 'Айша', role: 'Бариста', shift: '09:00–21:00', pin: '1122' }
 ];
+// Правила кофейни, которые меняет администратор: скидка в приложении, процент
+// бонусов с заказа, приветственные баллы, показ PIN на экране входа.
+const DEFAULT_CFG = { disc: 10, bonus: 5, regBonus: 500, showPins: true };
 // Демо-заказы получают настоящие временные метки относительно первого запуска:
 // «ждёт N мин» и «готовится N мин» считаются от них, а не берутся из констант.
 const hhmm = ts => { const d = new Date(ts); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); };
@@ -232,6 +237,9 @@ const S = {
   cart: {}, favs: sv.favs || { cheese: 1 }, toast: '', lastOrder: null, orderType: 0, sel: 1257, sTab: 'work',
   sview: 'orders', npName: '', npPrice: '', npCat: 'coffee', npImg: '', pay: 0,
   staffId: sv.staffId || null, offShift: sv.offShift || {},
+  staff: Array.isArray(sv.staff) && sv.staff.length ? sv.staff : DEFAULT_STAFF,
+  cfg: { ...DEFAULT_CFG, ...(sv.cfg || {}) },
+  edStaff: null, edF: null, resetAsk: 0,
   // Брони, сделанные до появления myBks, принадлежат этому же устройству.
   myBks: sv.myBks || (Array.isArray(sv.bookings) ? sv.bookings.map((b, i) => b && b.id != null ? b.id : 'b' + i) : []),
   sPinWho: null, sPin: '', sPinErr: 0, sPinLock: +sv.sPinLock || 0, cancelAsk: 0, themeOpen: false,
@@ -296,7 +304,8 @@ function snapshot() {
     snotifs: S.snotifs, sunread: S.sunread, nextNum: S.nextNum,
     bonus: S.bonus, bonusEv: S.bonusEv, custom: S.custom, hidden: S.hidden, favs: S.favs,
     orders: S.orders, cards: S.cards, mainCard: S.mainCard, bookings: S.bookings,
-    staffId: S.staffId, offShift: S.offShift, myBks: S.myBks, sPinLock: S.sPinLock
+    staffId: S.staffId, offShift: S.offShift, myBks: S.myBks, sPinLock: S.sPinLock,
+    staff: S.staff, cfg: S.cfg
   };
 }
 function save() {
@@ -377,8 +386,9 @@ function slog(text, kind, own) {
   if (!own) S.sunread = Math.min((S.sunread || 0) + 1, 40);
 }
 function orderTotal(o) { return o.total != null ? o.total : o.lines.reduce((a, l) => a + l[2], 0); }
-function staff() { return STAFF.find(x => x.id === S.staffId) || null; }
+function staff() { return S.staff.find(x => x.id === S.staffId) || null; }
 function staffName() { const s = staff(); return s ? s.name : ''; }
+function isAdmin() { const s = staff(); return !!(s && s.admin); }
 // Смена считается завершённой до конца дня; на следующий день сотрудник снова в графике.
 function onDuty(m) { return S.offShift[m.id] !== today(); }
 // Карта и онлайн оплачены при оформлении; «на кассе» — только при выдаче.
@@ -534,6 +544,7 @@ const onShift = fs => `<div style="display:flex;align-items:center;gap:5px;font:
 // ===================== экран персонала =====================
 function renderStaff() {
   const wide = S.w >= 980;
+  if (S.sview === 'admin' && !isAdmin()) S.sview = 'orders';
   const me = staff();
   const TAGS = { new: ['Новый', 'background:rgba(201,151,78,.16);color:var(--goldT)'], work: ['В работе', 'background:var(--hov);color:var(--sub2)'], ready: ['Готов', 'background:rgba(111,191,138,.18);color:#6fbf8a'], done: ['Выполнен', 'background:var(--line2);color:var(--sub)'], cancel: ['Отменён', 'background:rgba(224,138,122,.14);color:#e08a7a'] };
   const cnt = st => S.orders.filter(o => o.st === st).length;
@@ -563,7 +574,7 @@ function renderStaff() {
     return `<div style="display:flex;align-items:center;gap:4px;${col}">${SVG.clock}${label} ${m} мин</div>`;
   };
 
-  const SECTIONS = [['dash','Главная'],['orders','Реестр заказов'],['books','Брони'],['menu','Меню и остатки'],['shifts','Смены'],['clients','Клиенты'],['fin','Финансы'],['notifx','Уведомления'],['profx','Профиль']];
+  const SECTIONS = [['dash','Главная'],['orders','Реестр заказов'],['books','Брони'],['menu','Меню и остатки'],['shifts','Смены'],['clients','Клиенты'],['fin','Финансы'],['notifx','Уведомления'],['profx','Профиль'], ...(isAdmin() ? [['admin','Администрирование']] : [])];
   // Один и тот же пункт меню в двух видах: строка бокового меню (широкий экран)
   // и «чип» горизонтальной ленты вкладок (телефон).
   const navItem = ([k, label], chip) => {
@@ -622,7 +633,7 @@ function renderStaff() {
         <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;align-self:start">
           <div style="font:600 17px 'Cormorant Garamond',serif;margin-bottom:12px">Сотрудники на смене</div>
           <div style="display:grid;gap:10px">
-            ${STAFF.map(m => `
+            ${S.staff.map(m => `
               <div style="display:flex;align-items:center;gap:11px">
                 ${avatar(m.name.charAt(0), 36, 14, '.45')}
                 <div style="flex:1"><div style="font:700 13px Manrope">${esc(m.name)}</div><div style="font:600 11px Manrope;color:var(--sub)">${esc(m.role)} · ${esc(m.shift)}</div></div>
@@ -750,11 +761,97 @@ function renderStaff() {
         <div style="display:grid;gap:8px;align-self:start;align-content:start">${rows}</div>
       </div>
     </div>`;
+  } else if (S.sview === 'admin') {
+    // Раздел администратора: сотрудники, правила кофейни, данные.
+    const ed = S.edStaff, F = S.edF || {};
+    const inp = (id, key, ph, extra) => `<input id="${id}" ${extra || ''} data-i="${act(e => setS({ edF: { ...S.edF, [key]: e.target.value } }))}" value="${esc(F[key] || '')}" placeholder="${ph}" style="width:100%;box-sizing:border-box;height:42px;padding:0 12px;border-radius:11px;border:1px solid var(--line);background:var(--hov);color:var(--ink);font:600 13px Manrope;outline:none">`;
+    const editor = ed ? `
+      <div data-key="st-editor" style="background:var(--card);border:1px solid rgba(217,188,140,.45);border-radius:14px;padding:14px;display:grid;gap:8px">
+        <div style="font:700 13px Manrope">${ed === 'new' ? 'Новый сотрудник' : 'Изменить сотрудника'}</div>
+        ${inp('ed-name', 'name', 'Имя', 'maxlength="32"')}
+        ${inp('ed-role', 'role', 'Должность: Бариста, Управляющий…', 'maxlength="32"')}
+        ${inp('ed-shift', 'shift', 'Смена, например 09:00–18:00', 'maxlength="24"')}
+        ${inp('ed-pin', 'pin', 'PIN — 4 цифры', 'inputmode="numeric" maxlength="4"')}
+        <div data-c="${act(() => setS({ edF: { ...S.edF, admin: !F.admin } }))}" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 2px">
+          <div style="width:19px;height:19px;border-radius:6px;box-sizing:border-box;flex:none;${F.admin ? `background:${GG};box-shadow:inset 0 0 0 4px var(--ph)` : 'border:2px solid var(--bdr)'}"></div>
+          <div style="font:600 12.5px Manrope">Права администратора — доступ к этому разделу</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div data-c="${act(() => {
+            const name = (F.name || '').trim(), role = (F.role || '').trim() || 'Бариста', shift = (F.shift || '').trim() || '—', pin = String(F.pin || '').replace(/\D/g, '');
+            if (!name) { showToast('Введите имя'); return; }
+            if (pin.length !== 4) { showToast('PIN — ровно 4 цифры'); return; }
+            if (S.staff.some(x => x.id !== ed && x.pin === pin)) { showToast('Такой PIN уже у другого сотрудника'); return; }
+            const list = ed === 'new'
+              ? [...S.staff, { id: 's' + Date.now(), name, role, shift, pin, admin: !!F.admin }]
+              : S.staff.map(x => x.id === ed ? { ...x, name, role, shift, pin, admin: !!F.admin } : x);
+            if (!list.some(x => x.admin)) { showToast('Должен остаться хотя бы один администратор'); return; }
+            slog((ed === 'new' ? 'Добавлен сотрудник: ' : 'Изменён сотрудник: ') + name + ' · ' + staffName(), 'shift', true);
+            set({ staff: list, edStaff: null, edF: null });
+            showToast(ed === 'new' ? 'Сотрудник добавлен' : 'Изменения сохранены');
+          })}" class="a98" style="flex:1;height:42px;border-radius:11px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 13px Manrope;cursor:pointer">Сохранить</div>
+          <div data-c="${act(() => setS({ edStaff: null, edF: null }))}" style="height:42px;padding:0 16px;border-radius:11px;border:1px solid var(--line);display:flex;align-items:center;font:700 13px Manrope;cursor:pointer;color:var(--sub2)">Отмена</div>
+        </div>
+      </div>` : '';
+    const rows = S.staff.map(m => `
+      <div data-key="st-${m.id}" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;flex-wrap:wrap">
+        ${avatar(m.name.charAt(0), 40, 16, '.45')}
+        <div style="flex:1;min-width:140px">
+          <div style="font:700 13.5px Manrope">${esc(m.name)}${m.admin ? ' <span style="font:700 10px Manrope;color:var(--goldT);border:1px solid rgba(217,188,140,.45);border-radius:99px;padding:1px 7px;vertical-align:middle">админ</span>' : ''}${m.id === S.staffId ? ' <span style="font:600 11px Manrope;color:var(--sub)">— это вы</span>' : ''}</div>
+          <div style="font:600 11.5px Manrope;color:var(--sub);margin-top:2px">${esc(m.role)} · ${esc(m.shift)} · PIN <span style="letter-spacing:.12em;color:var(--goldT)">${esc(m.pin)}</span></div>
+        </div>
+        <div data-c="${act(() => setS({ edStaff: m.id, edF: { name: m.name, role: m.role, shift: m.shift, pin: m.pin, admin: !!m.admin } }))}" class="h-gold" style="padding:8px 12px;border-radius:10px;border:1px solid var(--line);font:700 12px Manrope;cursor:pointer">Изменить</div>
+        ${m.id !== S.staffId ? `<div data-c="${act(() => {
+          if (m.admin && S.staff.filter(x => x.admin).length === 1) { showToast('Нельзя удалить единственного администратора'); return; }
+          slog('Удалён сотрудник: ' + m.name + ' · ' + staffName(), 'shift', true);
+          const off = { ...S.offShift }; delete off[m.id];
+          set({ staff: S.staff.filter(x => x.id !== m.id), offShift: off, edStaff: S.edStaff === m.id ? null : S.edStaff });
+          showToast('«' + m.name + '» удалён из списка');
+        })}" class="h-del" style="width:32px;height:32px;border-radius:9px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim)">✕</div>` : ''}
+      </div>`).join('');
+    const cfgRow = (id, key, label, max, hint) => `<div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 14px"><div style="flex:1;min-width:0"><div style="font:600 13px Manrope">${label}</div>${hint ? `<div style="font:600 11px Manrope;color:var(--sub);margin-top:1px">${hint}</div>` : ''}</div><input id="${id}" inputmode="numeric" maxlength="${max}" data-i="${act(e => { const v = e.target.value.replace(/\D/g, '').slice(0, max); set({ cfg: { ...S.cfg, [key]: v === '' ? 0 : +v } }); })}" value="${S.cfg[key]}" style="width:76px;text-align:right;height:36px;padding:0 10px;border-radius:9px;border:1px solid var(--line);background:var(--hov);color:var(--ink);font:800 14px Manrope;outline:none"></div>`;
+    const toggle = (key, label, hint) => `<div data-c="${act(() => set({ cfg: { ...S.cfg, [key]: !S.cfg[key] } }))}" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;cursor:pointer"><div style="flex:1;min-width:0"><div style="font:600 13px Manrope">${label}</div><div style="font:600 11px Manrope;color:var(--sub);margin-top:1px">${hint}</div></div><div style="width:42px;height:24px;border-radius:99px;flex:none;position:relative;transition:background .2s;background:${S.cfg[key] ? GG : 'var(--bdr)'}"><div style="position:absolute;top:3px;${S.cfg[key] ? 'right:3px' : 'left:3px'};width:18px;height:18px;border-radius:50%;background:#fff"></div></div></div>`;
+    const exportData = act(() => {
+      const blob = new Blob([JSON.stringify(snapshot(), null, 1)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'kofeynya-' + today().replace(/\./g, '-') + '.json';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      showToast('Файл с данными сохранён на устройство');
+    });
+    const resetAll = act(() => {
+      if (!S.resetAsk) { setS({ resetAsk: 1 }); return; }
+      localStorage.removeItem('knv2'); location.reload();
+    });
+    content = `<div data-key="sv-admin">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Администрирование</div>
+      <div style="display:grid;gap:16px;${wide ? 'grid-template-columns:1fr 1fr' : ''};align-items:start">
+        <div style="display:grid;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px"><div style="font:600 17px 'Cormorant Garamond',serif">Сотрудники</div><div style="flex:1"></div>${ed ? '' : `<div data-c="${act(() => setS({ edStaff: 'new', edF: { name: '', role: 'Бариста', shift: '', pin: '', admin: false } }))}" class="a96" style="padding:9px 14px;border-radius:11px;background:${GG};color:#231b0e;font:800 12.5px Manrope;cursor:pointer">+ Добавить</div>`}</div>
+          ${editor}
+          ${rows}
+          <div style="font:600 11px/1.5 Manrope;color:var(--dim)">Сотрудник входит в панель, выбрав себя на экране входа и набрав свой PIN. Администратор видит этот раздел, остальные — нет.</div>
+        </div>
+        <div style="display:grid;gap:10px">
+          <div style="font:600 17px 'Cormorant Garamond',serif">Правила кофейни</div>
+          ${cfgRow('cfg-disc', 'disc', 'Скидка в приложении, %', 2, 'применяется к каждому заказу в корзине')}
+          ${cfgRow('cfg-bonus', 'bonus', 'Бонусы с заказа, %', 2, 'начисляются при выдаче заказа')}
+          ${cfgRow('cfg-reg', 'regBonus', 'Приветственные баллы', 4, 'за регистрацию клиента')}
+          ${toggle('showPins', 'Показывать PIN на экране входа', 'удобно, пока панелью пользуетесь только вы')}
+          <div style="font:600 17px 'Cormorant Garamond',serif;margin-top:8px">Данные</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div data-c="${exportData}" class="h-gold" style="padding:10px 14px;border-radius:11px;border:1px solid var(--line);background:var(--card);font:700 12.5px Manrope;cursor:pointer">Скачать копию</div>
+            <label class="h-gold" style="padding:10px 14px;border-radius:11px;border:1px solid var(--line);background:var(--card);font:700 12.5px Manrope;cursor:pointer"><input type="file" accept="application/json,.json" data-p="import" style="display:none">Восстановить из файла</label>
+            <div data-c="${resetAll}" class="h-del" style="padding:10px 14px;border-radius:11px;border:1px solid ${S.resetAsk ? '#e08a7a' : 'var(--line)'};background:${S.resetAsk ? 'rgba(224,138,122,.16)' : 'var(--card)'};color:${S.resetAsk ? '#e08a7a' : 'var(--sub2)'};font:700 12.5px Manrope;cursor:pointer">${S.resetAsk ? 'Точно стереть всё?' : 'Сбросить все данные'}</div>
+            ${S.resetAsk ? `<div data-c="${act(() => setS({ resetAsk: 0 }))}" style="padding:10px 14px;font:700 12.5px Manrope;color:var(--sub);cursor:pointer">Оставить</div>` : ''}
+          </div>
+          <div style="font:600 11px/1.5 Manrope;color:var(--dim)">Данные живут в этом браузере. Копия — файл JSON: заказы, клиенты, меню, сотрудники и правила. Сброс возвращает демонстрационное состояние.</div>
+        </div>
+      </div>
+    </div>`;
   } else if (S.sview === 'shifts') {
     content = `<div data-key="sv-shifts">
       <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Смены</div>
       <div style="display:grid;gap:10px;max-width:520px">
-        ${STAFF.map(m => {
+        ${S.staff.map(m => {
           const taken = S.orders.filter(o => o.by === m.name && o.st !== 'cancel').length;
           return `
           <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px;${onDuty(m) ? '' : 'opacity:.65'}">
@@ -1011,7 +1108,7 @@ function renderStaff() {
         patch.unread = S.unread + 1;
         if (nx === 'done') {
           const tot = sel.total || sel.lines.reduce((a, l) => a + l[2], 0);
-          const pts = Math.max(1, Math.round(tot * 0.05));
+          const pts = S.cfg.bonus > 0 ? Math.max(1, Math.round(tot * S.cfg.bonus / 100)) : 0;
           patch.bonus = S.bonus + pts;
           patch.bonusEv = [['Заказ №' + sel.num, today(), pts], ...S.bonusEv];
           patch.notifs = [{ text: '+' + pts + ' баллов за заказ №' + sel.num, time: now() }, ...patch.notifs];
@@ -1122,7 +1219,7 @@ function staffPinInput(d) {
   if (d === 'del') { setS({ sPin: S.sPin.slice(0, -1) }); return; }
   const p = (S.sPin + d).slice(0, 4);
   if (p.length < 4) { setS({ sPin: p }); return; }
-  const emp = STAFF.find(x => x.id === S.sPinWho);
+  const emp = S.staff.find(x => x.id === S.sPinWho);
   if (emp && p === emp.pin) {
     slog('Вход в панель: ' + emp.name, 'shift', true);
     const off = { ...S.offShift }; delete off[emp.id];
@@ -1140,12 +1237,12 @@ function staffPinInput(d) {
 
 function renderStaffPin() {
   const locked = S.sPinLock > Date.now();
-  const who = STAFF.find(x => x.id === S.sPinWho) || null;
+  const who = S.staff.find(x => x.id === S.sPinWho) || null;
   const press = d => act(() => staffPinInput(d));
-  const chips = STAFF.map(m => `
+  const chips = S.staff.map(m => `
     <div data-c="${act(() => setS({ sPinWho: m.id, sPin: '' }))}" class="a97" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border-radius:16px;cursor:pointer;transition:all .15s;${S.sPinWho === m.id ? 'background:rgba(217,188,140,.16);border:1px solid rgba(217,188,140,.55)' : 'background:var(--card);border:1px solid var(--line)'}">
       ${avatar(m.name.charAt(0), 44, 17, S.sPinWho === m.id ? '.8' : '.4')}
-      <div style="text-align:center"><div style="font:700 13px Manrope">${esc(m.name)}</div><div style="font:600 10.5px Manrope;color:var(--sub);margin-top:1px">${esc(m.role)}</div><div style="font:800 12px Manrope;color:var(--goldT);margin-top:4px;letter-spacing:.14em">PIN ${esc(m.pin)}</div></div>
+      <div style="text-align:center"><div style="font:700 13px Manrope">${esc(m.name)}</div><div style="font:600 10.5px Manrope;color:var(--sub);margin-top:1px">${esc(m.role)}</div>${S.cfg.showPins ? `<div style="font:800 12px Manrope;color:var(--goldT);margin-top:4px;letter-spacing:.14em">PIN ${esc(m.pin)}</div>` : ''}</div>
     </div>`).join('');
   const dots = [0, 1, 2, 3].map(i => `<div style="width:13px;height:13px;border-radius:50%;box-sizing:border-box;transition:all .15s;${i < S.sPin.length ? 'background:#d9bc8c' : 'border:2px solid var(--bdr)'}"></div>`).join('');
   const key = (label, v) => `<div data-c="${press(v)}" class="a92" style="height:56px;border-radius:16px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 19px Manrope;cursor:pointer;user-select:none;${locked ? 'opacity:.4' : ''}">${label}</div>`;
@@ -1207,7 +1304,7 @@ function renderAuth() {
       <div data-c="${act(() => setS({ authMode: 'login', fPhone: S.user ? S.user.phone : '', fPass: '' }))}" class="a98" style="height:52px;border-radius:14px;background:${GG};color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 15px Manrope;cursor:pointer;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)">Войти</div>
       <div data-c="${act(() => setS({ authMode: 'reg', fName: '', fPhone: '', fPass: '', agree: false }))}" class="h-goldbg a98" style="height:52px;border-radius:14px;border:1px solid rgba(201,151,78,.55);color:#e3c48b;display:flex;align-items:center;justify-content:center;font:700 15px Manrope;cursor:pointer">Зарегистрироваться</div>
       <div data-c="${act(() => setS({ screen: 'app', tab: 'home' }))}" class="h-cream" style="padding:10px;text-align:center;color:#b8ad9c;font:600 13px Manrope;cursor:pointer">Пропустить</div>
-      <div data-c="${act(() => setS({ screen: 'spin', sPin: '', sPinErr: 0, sPinWho: S.staffId || STAFF[0].id }))}" class="h-goldc" style="padding:2px;text-align:center;color:#8d8471;font:600 11px Manrope;letter-spacing:.08em;cursor:pointer;text-transform:uppercase">Вход для персонала</div>
+      <div data-c="${act(() => setS({ screen: 'spin', sPin: '', sPinErr: 0, sPinWho: S.staffId || S.staff[0].id }))}" class="h-goldc" style="padding:2px;text-align:center;color:#8d8471;font:600 11px Manrope;letter-spacing:.08em;cursor:pointer;text-transform:uppercase">Вход для персонала</div>
     </div>`;
   } else if (S.authMode === 'login') {
     const can = phoneOk && S.fPass;
@@ -1239,9 +1336,9 @@ function renderAuth() {
       </div>
       <div data-c="${act(() => {
         if (!(S.fName.trim() && (S.fPhone.match(/\d/g) || []).length >= 6 && S.fPass && S.agree)) return;
-        set({ user: { name: S.fName.trim(), phone: S.fPhone }, screen: 'app', tab: 'home', authMode: 'welcome', bonus: S.bonus + 500, bonusEv: [['Бонус за регистрацию', today(), 500], ...S.bonusEv] });
-        showToast('Аккаунт создан! +500 баллов');
-      })}" class="a98" style="height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font:800 14px Manrope;cursor:pointer;transition:all .2s;${can ? `background:${GG};color:#231b0e;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)` : 'background:rgba(255,255,255,.08);color:#8d8471;cursor:not-allowed'}">Создать аккаунт · +500 баллов</div>
+        set({ user: { name: S.fName.trim(), phone: S.fPhone }, screen: 'app', tab: 'home', authMode: 'welcome', bonus: S.bonus + (S.cfg.regBonus || 0), bonusEv: S.cfg.regBonus > 0 ? [['Бонус за регистрацию', today(), S.cfg.regBonus], ...S.bonusEv] : S.bonusEv });
+        showToast('Аккаунт создан!' + (S.cfg.regBonus > 0 ? ' +' + S.cfg.regBonus + ' баллов' : ''));
+      })}" class="a98" style="height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font:800 14px Manrope;cursor:pointer;transition:all .2s;${can ? `background:${GG};color:#231b0e;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)` : 'background:rgba(255,255,255,.08);color:#8d8471;cursor:not-allowed'}">Создать аккаунт${S.cfg.regBonus > 0 ? ' · +' + S.cfg.regBonus + ' баллов' : ''}</div>
       <div data-c="${act(() => setS({ authMode: 'welcome' }))}" class="h-cream" style="padding:8px 2px;text-align:center;color:#b8ad9c;font:600 12.5px Manrope;cursor:pointer">← Назад</div>
     </div>`;
   }
@@ -1277,7 +1374,7 @@ function renderApp() {
   const entries = Object.entries(S.cart).filter(([, x]) => item(x.id));
   const cartCount = entries.reduce((a, [, x]) => a + x.qty, 0);
   const sum = entries.reduce((a, [, x]) => a + unitPrice(x.id, x.size, x.adds) * x.qty, 0);
-  const disc = Math.round(sum * 0.1);
+  const disc = Math.round(sum * (S.cfg.disc || 0) / 100);
   const total = sum - disc;
   const name = userName();
 
@@ -1395,7 +1492,7 @@ function renderApp() {
         <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(24,20,15,.94) 26%,rgba(24,20,15,.2))"></div>
         <div style="position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 20px;box-sizing:border-box">
           <div style="font:700 10px Manrope;letter-spacing:.22em;text-transform:uppercase;color:#e3c48b">Акция</div>
-          <div style="font:800 20px/1.25 Manrope;max-width:240px;color:#f2ecdf">−10% на каждый заказ в приложении</div>
+          <div style="font:800 20px/1.25 Manrope;max-width:240px;color:#f2ecdf">${S.cfg.disc > 0 ? '−' + S.cfg.disc + '% на каждый заказ в приложении' : 'Свежая выпечка каждое утро'}</div>
           <div style="font:600 13px Manrope;color:#b8ad9c">Скидка видна в корзине</div>
           <div style="margin-top:9px;display:inline-flex;align-self:flex-start;padding:10px 18px;border-radius:11px;background:${GG};color:#231b0e;font:800 13px Manrope;box-shadow:0 10px 22px -10px rgba(201,151,78,.7)">Подробнее</div>
         </div>
@@ -1638,7 +1735,7 @@ function renderApp() {
         const ids = es.map(([, x]) => ({ id: x.id, size: x.size, adds: x.adds, qty: x.qty }));
         const s2 = es.reduce((a, [, x]) => a + unitPrice(x.id, x.size, x.adds) * x.qty, 0);
         set({
-          orders: [{ num, st: 'new', time: now(), tss: { new: Date.now() }, by: '', lines, ids, client: clientName, phone: (S.user && S.user.phone) || '', type: S.orderType, pay: S.pay, total: s2 - Math.round(s2 * 0.1), hist: [['Заявка отправлена', now()]] }, ...S.orders],
+          orders: [{ num, st: 'new', time: now(), tss: { new: Date.now() }, by: '', lines, ids, client: clientName, phone: (S.user && S.user.phone) || '', type: S.orderType, pay: S.pay, total: s2 - Math.round(s2 * (S.cfg.disc || 0) / 100), hist: [['Заявка отправлена', now()]] }, ...S.orders],
           cart: {}, lastOrder: num, myNums: [num, ...S.myNums],
           snotifs: [{ text: 'Новый заказ №' + num + ' · ' + clientName, time: now(), kind: 'order' }, ...S.snotifs].slice(0, 40), sunread: Math.min((S.sunread || 0) + 1, 40),
           notifs: [{ text: 'Заказ №' + num + ' принят. Мы сообщим, когда он будет готов', time: now() }, ...S.notifs].slice(0, 25), unread: Math.min(S.unread + 1, 25)
@@ -1919,7 +2016,7 @@ function render() {
 
   let inner = '';
   // Прямой доступ в панель без входа невозможен: нет сотрудника — нет панели.
-  if (S.screen === 'staff' && !S.staffId) S.screen = 'spin';
+  if (S.screen === 'staff' && !staff()) S.screen = 'spin';
   if (S.screen === 'staff') {
     inner = renderStaff();
   } else {
@@ -1977,6 +2074,20 @@ app.addEventListener('change', e => {
   const f = el.files && el.files[0];
   if (!f) return;
   const target = el.dataset.p;
+  if (target === 'import') {
+    // Восстановление из файла экспорта: проверяем форму записи и перечитываем страницу
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const obj = JSON.parse(String(rd.result));
+        if (!obj || !Array.isArray(obj.orders)) throw new Error('bad');
+        localStorage.setItem('knv2', JSON.stringify(obj));
+        location.reload();
+      } catch (err) { showToast('Это не файл данных кофейни'); }
+    };
+    rd.readAsText(f);
+    return;
+  }
   readPhoto(f, data => {
     if (target === 'new') { setS({ npImg: data }); return; }
     const m = S.custom.find(x => x.id === target);
@@ -2009,6 +2120,7 @@ window.addEventListener('storage', e => {
     snotifs: nv.snotifs || [], sunread: Math.min(nv.sunread || 0, (nv.snotifs || []).length),
     bonus: nv.bonus != null ? nv.bonus : S.bonus, bonusEv: nv.bonusEv || S.bonusEv,
     custom: nv.custom || [], hidden: nv.hidden || {}, favs: nv.favs || {},
+    staff: Array.isArray(nv.staff) && nv.staff.length ? nv.staff : S.staff, cfg: { ...DEFAULT_CFG, ...(nv.cfg || {}) },
     orders: (Array.isArray(nv.orders) ? nv.orders : []).map(normalizeOrder),
     cards: nv.cards || [], mainCard: nv.mainCard || 0,
     bookings: (Array.isArray(nv.bookings) ? nv.bookings : []).map(normalizeBooking),
