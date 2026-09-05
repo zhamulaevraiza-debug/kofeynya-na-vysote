@@ -1,0 +1,16 @@
+{
+  "name": "Кофейня на высоте",
+  "short_name": "На высоте",
+  "description": "Заказ кофе и десертов, бронь столика, бонусы. Кофе с видом на горы.",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#120e0b",
+  "theme_color": "#120e0b",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["food", "shopping"]
+}

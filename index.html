@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Кофейня на высоте</title>
+<meta name="description" content="Кофейня на высоте — заказ кофе и десертов с предзаказом, бронь столика, бонусы. Кофе с видом на горы.">
+<meta name="theme-color" content="#120e0b">
+<meta property="og:title" content="Кофейня на высоте">
+<meta property="og:description" content="Заказ кофе и десертов, бронь столика, бонусы. Кофе с видом на горы.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/interior.jpg">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="На высоте">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -12 86 68'%3E%3Cpath d='M4 40 L26 10 L38 26 L48 14 L62 32' fill='none' stroke='%23c9974e' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M52 40 L66 20 L82 40' fill='none' stroke='%23c9974e' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2050,6 +2061,7 @@ function render() {
 
   document.body.style.background = T.bg;
   document.documentElement.style.background = T.bg;
+  const tc = document.querySelector('meta[name="theme-color"]'); if (tc && tc.content !== T.bg) tc.content = T.bg;
   document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
 
   if (focusId) {
@@ -2154,6 +2166,21 @@ if (window.matchMedia) {
 
 // ===================== старт =====================
 render();
+
+// PWA: сервис-воркер даёт офлайн-оболочку и установку на главный экран.
+// Регистрируется только по http(s) — автономная копия с диска обходится без него.
+if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    // Новая версия встала на место старой — говорим об этом, но не перезагружаем
+    // страницу сами: у бариста может быть открыт заказ.
+    let hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController) showToast('Приложение обновлено — изменения вступят в силу при следующем открытии');
+      hadController = true;
+    });
+    setInterval(() => { if (!document.hidden) reg.update().catch(() => {}); }, 60 * 60 * 1000);
+  }).catch(() => {});
+}
 
 })();
 </script>
