@@ -24,7 +24,7 @@
    строкой Safari и страница пружинит при скролле — нижняя панель уезжала и пряталась. */
 html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%;background:#120e0b;-webkit-text-size-adjust:100%}
-a{color:var(--goldT);text-decoration:none}a:hover{color:#ecd9b4}
+a{color:var(--goldT);text-decoration:none}a:hover{opacity:.8}
 input::placeholder{color:var(--dim);opacity:1}
 ::-webkit-scrollbar{width:0;height:0}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -51,11 +51,11 @@ input::placeholder{color:var(--dim);opacity:1}
 .h-nav:hover{background:var(--hov)!important;color:var(--goldT)!important}
 .h-redbg:hover{background:rgba(224,138,122,.1)!important}
 .h-cream:hover{color:#ecd9b4!important}
-.h-goldc:hover{color:#d9bc8c!important}
+.h-goldc:hover{opacity:.8}
 .h-goldbg:hover{background:rgba(var(--accRGB),.12)!important}
-.h-red:hover{color:#e08a7a!important}
-.h-red2:hover{color:#e08a7a!important}
-.h-del:hover{color:#e08a7a!important;border-color:#e08a7a!important}
+.h-red:hover{color:var(--bad)!important}
+.h-red2:hover{color:var(--bad)!important}
+.h-del:hover{color:var(--bad)!important;border-color:var(--bad)!important}
 .h-addcard:hover{border-color:rgba(var(--accRGB),.5)!important;background:rgba(var(--accRGB),.07)!important}
 }
 /* Одноколоночные списки не должны растягиваться по самому широкому элементу:
@@ -122,39 +122,39 @@ const GG = 'var(--acc)';
 const THEMES = {
   dark: { label: 'Тёмная', dark: true, acc: '#d9bc8c', bg: '#120e0b', ph: '#1a1512', op: '.4',
     tint: 'linear-gradient(180deg,rgba(26,21,18,.52),rgba(18,14,11,.86))',
-    vars: '--bg:#120e0b;--ph:#1a1512;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.1);--line2:rgba(255,255,255,.08);--ink:#f3ede4;--sub:#a99e8e;--sub2:#c9bfae;--goldT:#d9bc8c;--mut:#c9bfae;--dim:#93897a;--dim2:#92897e;--bdr:rgba(255,255,255,.22);--hov:rgba(255,255,255,.1);--av1:rgba(255,255,255,.12);--av2:rgba(255,255,255,.03);--navbg:rgba(30,24,20,.72);--accInk:#231b0e;--shadow:rgba(0,0,0,.8)' },
+    vars: '--bg:#120e0b;--ph:#1a1512;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.1);--line2:rgba(255,255,255,.08);--ink:#f3ede4;--sub:#a99e8e;--sub2:#c9bfae;--goldT:#d9bc8c;--mut:#c9bfae;--dim:#93897a;--dim2:#92897e;--bdr:rgba(255,255,255,.22);--hov:rgba(255,255,255,.1);--av1:rgba(255,255,255,.12);--av2:rgba(255,255,255,.03);--navbg:rgba(30,24,20,.72);--accInk:#231b0e;--shadow:rgba(0,0,0,.8);--ok:#6fbf8a;--bad:#e08a7a' },
   light: { label: 'Светлая', dark: false, acc: '#d9bc8c', bg: '#e8dfd0', ph: '#f7f2ea', op: '.5',
     tint: 'linear-gradient(180deg,rgba(247,242,234,.7),rgba(232,223,208,.9))',
-    vars: '--bg:#e8dfd0;--ph:#f7f2ea;--card:rgba(255,255,255,.62);--line:rgba(42,32,22,.12);--line2:rgba(42,32,22,.09);--ink:#2a2016;--sub:#6c6256;--sub2:#544b3e;--goldT:#7e5e1f;--mut:#6b6256;--dim:#6b6256;--dim2:#696359;--bdr:rgba(42,32,22,.25);--hov:rgba(42,32,22,.06);--av1:rgba(255,255,255,.85);--av2:rgba(233,223,205,.9);--navbg:rgba(250,246,238,.72);--accInk:#231b0e;--shadow:rgba(42,32,22,.25)' },
+    vars: '--bg:#e8dfd0;--ph:#f7f2ea;--card:rgba(255,255,255,.62);--line:rgba(42,32,22,.12);--line2:rgba(42,32,22,.09);--ink:#2a2016;--sub:#6c6256;--sub2:#544b3e;--goldT:#7e5e1f;--mut:#6b6256;--dim:#6b6256;--dim2:#696359;--bdr:rgba(42,32,22,.25);--hov:rgba(42,32,22,.06);--av1:rgba(255,255,255,.85);--av2:rgba(233,223,205,.9);--navbg:rgba(250,246,238,.72);--accInk:#231b0e;--shadow:rgba(42,32,22,.25);--ok:#277043;--bad:#a8362a' },
   caramel: { label: 'Карамель', dark: false, acc: '#db9f75', bg: '#e3cdb6', ph: '#efdfcd', op: '.5',
     tint: 'linear-gradient(180deg,rgba(239,223,205,.7),rgba(227,205,182,.9))',
-    vars: '--bg:#e3cdb6;--ph:#efdfcd;--card:rgba(255,255,255,.55);--line:rgba(62,36,17,.14);--line2:rgba(62,36,17,.1);--ink:#3e2411;--sub:#73533b;--sub2:#5c3f28;--goldT:#804012;--mut:#6f523c;--dim:#6b5544;--dim2:#66574a;--bdr:rgba(62,36,17,.28);--hov:rgba(62,36,17,.07);--av1:rgba(255,255,255,.8);--av2:rgba(219,159,117,.35);--navbg:rgba(243,228,212,.74);--accInk:#231b0e;--shadow:rgba(42,32,22,.25)' },
+    vars: '--bg:#e3cdb6;--ph:#efdfcd;--card:rgba(255,255,255,.55);--line:rgba(62,36,17,.14);--line2:rgba(62,36,17,.1);--ink:#3e2411;--sub:#73533b;--sub2:#5c3f28;--goldT:#804012;--mut:#6f523c;--dim:#6b5544;--dim2:#66574a;--bdr:rgba(62,36,17,.28);--hov:rgba(62,36,17,.07);--av1:rgba(255,255,255,.8);--av2:rgba(219,159,117,.35);--navbg:rgba(243,228,212,.74);--accInk:#231b0e;--shadow:rgba(42,32,22,.25);--ok:#23663d;--bad:#a03428' },
   mocha: { label: 'Мокка', dark: true, acc: '#db9f75', bg: '#2a1a0e', ph: '#3e2411', op: '.38',
     tint: 'linear-gradient(180deg,rgba(62,36,17,.55),rgba(42,26,14,.9))',
-    vars: '--bg:#2a1a0e;--ph:#3e2411;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.12);--line2:rgba(255,255,255,.09);--ink:#f6ebe0;--sub:#c9ab94;--sub2:#e2c9b4;--goldT:#db9f75;--mut:#d8b9a0;--dim:#b69d89;--dim2:#b19e8e;--bdr:rgba(255,255,255,.25);--hov:rgba(255,255,255,.1);--av1:rgba(255,255,255,.14);--av2:rgba(255,255,255,.04);--navbg:rgba(62,36,17,.78);--accInk:#231b0e;--shadow:rgba(0,0,0,.8)' },
+    vars: '--bg:#2a1a0e;--ph:#3e2411;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.12);--line2:rgba(255,255,255,.09);--ink:#f6ebe0;--sub:#c9ab94;--sub2:#e2c9b4;--goldT:#db9f75;--mut:#d8b9a0;--dim:#b69d89;--dim2:#b19e8e;--bdr:rgba(255,255,255,.25);--hov:rgba(255,255,255,.1);--av1:rgba(255,255,255,.14);--av2:rgba(255,255,255,.04);--navbg:rgba(62,36,17,.78);--accInk:#231b0e;--shadow:rgba(0,0,0,.8);--ok:#6fbf8a;--bad:#e08b7b' },
   pine: { label: 'Хвоя', dark: true, acc: '#db9f75', bg: '#0d1a1b', ph: '#122324', op: '.35',
     tint: 'linear-gradient(180deg,rgba(18,35,36,.58),rgba(13,26,27,.9))',
-    vars: '--bg:#0d1a1b;--ph:#122324;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.11);--line2:rgba(255,255,255,.08);--ink:#eef1ec;--sub:#a4b0a6;--sub2:#c8d2c9;--goldT:#db9f75;--mut:#c9b7a4;--dim:#8d9a90;--dim2:#8d9790;--bdr:rgba(255,255,255,.24);--hov:rgba(255,255,255,.09);--av1:rgba(255,255,255,.12);--av2:rgba(255,255,255,.03);--navbg:rgba(18,35,36,.76);--accInk:#231b0e;--shadow:rgba(0,0,0,.8)' },
+    vars: '--bg:#0d1a1b;--ph:#122324;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.11);--line2:rgba(255,255,255,.08);--ink:#eef1ec;--sub:#a4b0a6;--sub2:#c8d2c9;--goldT:#db9f75;--mut:#c9b7a4;--dim:#8d9a90;--dim2:#8d9790;--bdr:rgba(255,255,255,.24);--hov:rgba(255,255,255,.09);--av1:rgba(255,255,255,.12);--av2:rgba(255,255,255,.03);--navbg:rgba(18,35,36,.76);--accInk:#231b0e;--shadow:rgba(0,0,0,.8);--ok:#6fbf8a;--bad:#e08a7a' },
   // Japandi — тёмные: эспрессо, орех, шалфей; акцент — овсяный/песочный, надпись тёмная.
   espresso: { label: 'Эспрессо', dark: true, acc: '#c8b39d', bg: '#2b2320', ph: '#3b2e2a', op: '.4',
     tint: 'linear-gradient(180deg,rgba(59,46,42,.58),rgba(43,35,32,.86))',
-    vars: '--bg:#2b2320;--ph:#3b2e2a;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.11);--line2:rgba(255,255,255,.08);--ink:#f1ebe3;--sub:#b6a89a;--sub2:#d6cabd;--goldT:#d3c2ab;--mut:#cdbfae;--dim:#b3a89d;--dim2:#b1a9a1;--bdr:rgba(255,255,255,.24);--hov:rgba(255,255,255,.09);--av1:rgba(255,255,255,.13);--av2:rgba(255,255,255,.04);--navbg:rgba(59,46,42,.78);--accInk:#2b2320;--shadow:rgba(0,0,0,.8)' },
+    vars: '--bg:#2b2320;--ph:#3b2e2a;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.11);--line2:rgba(255,255,255,.08);--ink:#f1ebe3;--sub:#b6a89a;--sub2:#d6cabd;--goldT:#d3c2ab;--mut:#cdbfae;--dim:#b3a89d;--dim2:#b1a9a1;--bdr:rgba(255,255,255,.24);--hov:rgba(255,255,255,.09);--av1:rgba(255,255,255,.13);--av2:rgba(255,255,255,.04);--navbg:rgba(59,46,42,.78);--accInk:#2b2320;--shadow:rgba(0,0,0,.8);--ok:#6fbf8a;--bad:#e59b8d' },
   walnut: { label: 'Орех', dark: true, acc: '#d3c2ab', bg: '#3f3024', ph: '#4f3b2c', op: '.42',
     tint: 'linear-gradient(180deg,rgba(79,59,44,.58),rgba(63,48,36,.86))',
-    vars: '--bg:#3f3024;--ph:#4f3b2c;--card:rgba(255,255,255,.08);--line:rgba(255,255,255,.13);--line2:rgba(255,255,255,.09);--ink:#f5efe6;--sub:#cebcaa;--sub2:#e6d8c8;--goldT:#e0cdb3;--mut:#dccbb7;--dim:#cbc0b2;--dim2:#c6beb3;--bdr:rgba(255,255,255,.26);--hov:rgba(139,107,79,.3);--av1:rgba(139,107,79,.4);--av2:rgba(139,107,79,.12);--navbg:rgba(79,59,44,.8);--accInk:#2b2320;--shadow:rgba(0,0,0,.8)' },
+    vars: '--bg:#3f3024;--ph:#4f3b2c;--card:rgba(255,255,255,.08);--line:rgba(255,255,255,.13);--line2:rgba(255,255,255,.09);--ink:#f5efe6;--sub:#cebcaa;--sub2:#e6d8c8;--goldT:#e0cdb3;--mut:#dccbb7;--dim:#cbc0b2;--dim2:#c6beb3;--bdr:rgba(255,255,255,.26);--hov:rgba(139,107,79,.3);--av1:rgba(139,107,79,.4);--av2:rgba(139,107,79,.12);--navbg:rgba(79,59,44,.8);--accInk:#2b2320;--shadow:rgba(0,0,0,.8);--ok:#b4e6c3;--bad:#ffc3b5' },
   sage: { label: 'Шалфей', dark: true, acc: '#c8b39d', bg: '#323529', ph: '#424635', op: '.38',
     tint: 'linear-gradient(180deg,rgba(66,70,53,.6),rgba(50,53,41,.86))',
-    vars: '--bg:#323529;--ph:#424635;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.12);--line2:rgba(255,255,255,.08);--ink:#eff0ea;--sub:#c2c7ba;--sub2:#d3d7cc;--goldT:#d3c2ab;--mut:#c9c3b4;--dim:#c3c6c0;--dim2:#c2c4bf;--bdr:rgba(255,255,255,.25);--hov:rgba(125,131,112,.28);--av1:rgba(125,131,112,.45);--av2:rgba(125,131,112,.15);--navbg:rgba(66,70,53,.8);--accInk:#2b2320;--shadow:rgba(0,0,0,.8)' },
+    vars: '--bg:#323529;--ph:#424635;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.12);--line2:rgba(255,255,255,.08);--ink:#eff0ea;--sub:#c2c7ba;--sub2:#d3d7cc;--goldT:#d3c2ab;--mut:#c9c3b4;--dim:#c3c6c0;--dim2:#c2c4bf;--bdr:rgba(255,255,255,.25);--hov:rgba(125,131,112,.28);--av1:rgba(125,131,112,.45);--av2:rgba(125,131,112,.15);--navbg:rgba(66,70,53,.8);--accInk:#2b2320;--shadow:rgba(0,0,0,.8);--ok:#b4e6c3;--bad:#ffc3b5' },
   // Japandi — светлые: грейдж (акцент эспрессо), песок и тёплый белый (акцент орех); надпись на кнопке светлая.
   greige: { label: 'Грейдж', dark: false, acc: '#3b2e2a', bg: '#aca397', ph: '#bbb3a8', op: '.45',
     tint: 'linear-gradient(180deg,rgba(187,179,168,.62),rgba(172,163,151,.84))',
-    vars: '--bg:#aca397;--ph:#bbb3a8;--card:rgba(255,255,255,.42);--line:rgba(43,35,32,.16);--line2:rgba(43,35,32,.12);--ink:#2b2320;--sub:#433933;--sub2:#362d28;--goldT:#4b3729;--mut:#413a34;--dim:#403a35;--dim2:#403a35;--bdr:rgba(43,35,32,.3);--hov:rgba(43,35,32,.12);--av1:rgba(255,255,255,.7);--av2:rgba(166,157,145,.6);--navbg:rgba(205,198,188,.78);--accInk:#f3ede6;--shadow:rgba(43,35,32,.35)' },
+    vars: '--bg:#aca397;--ph:#bbb3a8;--card:rgba(255,255,255,.42);--line:rgba(43,35,32,.16);--line2:rgba(43,35,32,.12);--ink:#2b2320;--sub:#433933;--sub2:#362d28;--goldT:#4b3729;--mut:#413a34;--dim:#403a35;--dim2:#403a35;--bdr:rgba(43,35,32,.3);--hov:rgba(43,35,32,.12);--av1:rgba(255,255,255,.7);--av2:rgba(166,157,145,.6);--navbg:rgba(205,198,188,.78);--accInk:#f3ede6;--shadow:rgba(43,35,32,.35);--ok:#104427;--bad:#6d2018' },
   sand: { label: 'Песок', dark: false, acc: '#8b6b4f', bg: '#d3c2ab', ph: '#e0d2be', op: '.5',
     tint: 'linear-gradient(180deg,rgba(224,210,190,.64),rgba(211,194,171,.86))',
-    vars: '--bg:#d3c2ab;--ph:#e0d2be;--card:rgba(255,255,255,.5);--line:rgba(43,35,32,.13);--line2:rgba(43,35,32,.1);--ink:#2b2320;--sub:#5e4f43;--sub2:#4a3c32;--goldT:#694c33;--mut:#5a4d42;--dim:#5b5045;--dim2:#595047;--bdr:rgba(43,35,32,.27);--hov:rgba(43,35,32,.06);--av1:rgba(255,255,255,.82);--av2:rgba(200,179,157,.55);--navbg:rgba(236,228,214,.76);--accInk:#ffffff;--shadow:rgba(43,35,32,.3)' },
+    vars: '--bg:#d3c2ab;--ph:#e0d2be;--card:rgba(255,255,255,.5);--line:rgba(43,35,32,.13);--line2:rgba(43,35,32,.1);--ink:#2b2320;--sub:#5e4f43;--sub2:#4a3c32;--goldT:#694c33;--mut:#5a4d42;--dim:#5b5045;--dim2:#595047;--bdr:rgba(43,35,32,.27);--hov:rgba(43,35,32,.06);--av1:rgba(255,255,255,.82);--av2:rgba(200,179,157,.55);--navbg:rgba(236,228,214,.76);--accInk:#ffffff;--shadow:rgba(43,35,32,.3);--ok:#205c37;--bad:#942f24' },
   warm: { label: 'Тёплый белый', dark: false, acc: '#8b6b4f', bg: '#ece7e0', ph: '#f5f2ec', op: '.55',
     tint: 'linear-gradient(180deg,rgba(245,242,236,.66),rgba(236,231,224,.86))',
-    vars: '--bg:#ece7e0;--ph:#f5f2ec;--card:rgba(255,255,255,.66);--line:rgba(43,35,32,.11);--line2:rgba(43,35,32,.08);--ink:#2b2320;--sub:#6d5e52;--sub2:#4a3d34;--goldT:#7a5a3f;--mut:#66584d;--dim:#796456;--dim2:#6d6760;--bdr:rgba(43,35,32,.24);--hov:rgba(43,35,32,.05);--av1:rgba(255,255,255,.9);--av2:rgba(200,179,157,.6);--navbg:rgba(250,248,244,.74);--accInk:#ffffff;--shadow:rgba(43,35,32,.22)' }
+    vars: '--bg:#ece7e0;--ph:#f5f2ec;--card:rgba(255,255,255,.66);--line:rgba(43,35,32,.11);--line2:rgba(43,35,32,.08);--ink:#2b2320;--sub:#6d5e52;--sub2:#4a3d34;--goldT:#7a5a3f;--mut:#66584d;--dim:#796456;--dim2:#6d6760;--bdr:rgba(43,35,32,.24);--hov:rgba(43,35,32,.05);--av1:rgba(255,255,255,.9);--av2:rgba(200,179,157,.6);--navbg:rgba(250,248,244,.74);--accInk:#ffffff;--shadow:rgba(43,35,32,.22);--ok:#277043;--bad:#a8362a' }
 };
 // Группы для выбора: основные, «атмосферные» по палитре заказчика, Japandi по мудборду.
 const THEME_GROUPS = [
@@ -570,17 +570,17 @@ function morphChildren(o, n) {
 
 // иконки
 const SVG = {
-  logoSmall: `<svg width="34" height="20" viewBox="0 0 86 44" fill="none" stroke="#c9974e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 40 L26 10 L38 26 L48 14 L62 32"></path><path d="M52 40 L66 20 L82 40"></path></svg>`,
-  heart: (fill, w, h) => `<svg width="${w}" height="${h}" viewBox="0 0 24 22" fill="${fill}" stroke="#c9974e" stroke-width="2"><path d="M12 20S3 14 3 7.8A4.8 4.8 0 0 1 12 5a4.8 4.8 0 0 1 9 2.8C21 14 12 20 12 20z"></path></svg>`,
+  logoSmall: `<svg width="34" height="20" viewBox="0 0 86 44" fill="none" style="stroke:var(--goldT)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 40 L26 10 L38 26 L48 14 L62 32"></path><path d="M52 40 L66 20 L82 40"></path></svg>`,
+  heart: (fill, w, h) => `<svg width="${w}" height="${h}" viewBox="0 0 24 22" style="fill:${fill};stroke:var(--goldT)" stroke-width="2"><path d="M12 20S3 14 3 7.8A4.8 4.8 0 0 1 12 5a4.8 4.8 0 0 1 9 2.8C21 14 12 20 12 20z"></path></svg>`,
   back: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>`,
   backSm: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>`,
   chev: `<svg width="7" height="12" viewBox="0 0 8 14" fill="none" stroke="var(--dim2)" stroke-width="2" stroke-linecap="round"><path d="M1.5 1.5L6.5 7l-5 5.5"></path></svg>`,
   bell: `<svg width="17" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"></path><path d="M10 19a2.2 2.2 0 0 0 4 0"></path></svg>`,
   clock: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg>`,
-  calendar: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="6" width="16" height="15" rx="2.5"></rect><path d="M4 10h16M8 3v4M16 3v4"></path></svg>`,
-  clockGold: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`,
-  phoneGold: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.8" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>`,
-  phoneBtn: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.9" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>`,
+  calendar: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="6" width="16" height="15" rx="2.5"></rect><path d="M4 10h16M8 3v4M16 3v4"></path></svg>`,
+  clockGold: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`,
+  phoneGold: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.8" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>`,
+  phoneBtn: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.9" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>`,
   pin: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="stroke:var(--accInk)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"></path><circle cx="12" cy="10" r="2.6"></circle></svg>`,
   cat: {
     coffee: `<path d="M4 9h12v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5V9z"></path><path d="M16 10h2.5a2.5 2.5 0 0 1 0 5H16"></path><path d="M8 5c0-1 .8-1.4.8-2.4M12 5c0-1 .8-1.4.8-2.4"></path>`,
@@ -607,14 +607,14 @@ const SVG = {
   }
 };
 const avatar = (mono, size, fs, alpha) => `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--av1),var(--av2));border:1px solid rgba(var(--accRGB),${alpha || '.5'});display:flex;align-items:center;justify-content:center;font:600 ${fs}px 'Cormorant Garamond',serif;color:var(--goldT)">${esc(mono)}</div>`;
-const onShift = fs => `<div style="display:flex;align-items:center;gap:5px;font:700 ${fs}px Manrope;color:#6fbf8a"><div style="width:7px;height:7px;border-radius:50%;background:#6fbf8a"></div>На смене</div>`;
+const onShift = fs => `<div style="display:flex;align-items:center;gap:5px;font:700 ${fs}px Manrope;color:var(--ok)"><div style="width:7px;height:7px;border-radius:50%;background:#6fbf8a"></div>На смене</div>`;
 
 // ===================== экран персонала =====================
 function renderStaff() {
   const wide = S.w >= 980;
   if (S.sview === 'admin' && !isAdmin()) S.sview = 'orders';
   const me = staff();
-  const TAGS = { new: ['Новый', 'background:rgba(var(--accRGB),.16);color:var(--goldT)'], work: ['В работе', 'background:var(--hov);color:var(--sub2)'], ready: ['Готов', 'background:rgba(111,191,138,.18);color:#6fbf8a'], done: ['Выполнен', 'background:var(--line2);color:var(--sub)'], cancel: ['Отменён', 'background:rgba(224,138,122,.14);color:#e08a7a'] };
+  const TAGS = { new: ['Новый', 'background:rgba(var(--accRGB),.16);color:var(--goldT)'], work: ['В работе', 'background:var(--hov);color:var(--sub2)'], ready: ['Готов', 'background:rgba(111,191,138,.18);color:var(--ok)'], done: ['Выполнен', 'background:var(--line2);color:var(--sub)'], cancel: ['Отменён', 'background:rgba(224,138,122,.14);color:var(--bad)'] };
   const cnt = st => S.orders.filter(o => o.st === st).length;
   const inTab = o => S.sTab === 'done' ? (o.st === 'done' || o.st === 'cancel') : o.st === S.sTab;
   // Очередь — по-честному: новые/в работе/готовые отдаются в порядке поступления
@@ -640,7 +640,7 @@ function renderStaff() {
     else if (o.st === 'done') { return t.done ? `<div style="display:flex;align-items:center;gap:4px">${SVG.clock}выдан в ${hhmm(t.done)}</div>` : ''; }
     else if (o.st === 'cancel') { return t.cancel ? `<div style="display:flex;align-items:center;gap:4px">отменён в ${hhmm(t.cancel)}</div>` : ''; }
     if (m == null) return '';
-    const col = warn === 2 ? 'color:#e08a7a;font-weight:800' : warn === 1 ? 'color:var(--goldT);font-weight:800' : '';
+    const col = warn === 2 ? 'color:var(--bad);font-weight:800' : warn === 1 ? 'color:var(--goldT);font-weight:800' : '';
     // состояние не только цветом — словом тоже (WCAG 1.4.1)
     return `<div style="display:flex;align-items:center;gap:4px;${col}">${SVG.clock}${label} ${m} мин${warn === 2 ? ' · срочно' : warn === 1 ? ' · долго' : ''}</div>`;
   };
@@ -654,7 +654,7 @@ function renderStaff() {
     const badge = k === 'notifx' && S.sunread > 0
       ? `<span style="margin-left:7px;background:${GG};color:var(--accInk);border-radius:99px;padding:1px 7px;font:800 10.5px Manrope">${S.sunread}</span>` : '';
     const shape = chip ? 'flex:none;white-space:nowrap;padding:9px 13px;border-radius:99px;font:700 12.5px Manrope;' : 'padding:11px 14px;border-radius:11px;font:700 13px Manrope;';
-    const look = active ? 'background:rgba(var(--accRGB),.14);color:var(--goldT);border:1px solid rgba(var(--accRGB),.45)' : chip ? 'background:var(--card);border:1px solid var(--line);color:var(--sub2)' : 'color:var(--sub)';
+    const look = active ? 'background:rgba(var(--accRGB),.14);color:var(--goldT);border:1px solid var(--goldT)' : chip ? 'background:var(--card);border:1px solid var(--line);color:var(--sub2)' : 'color:var(--sub)';
     return `<div data-c="${tap}" class="h-nav" style="${shape}cursor:pointer;transition:all .15s;${look}">${label}${badge}</div>`;
   };
   const stNav = SECTIONS.map(s => navItem(s, false)).join('');
@@ -725,8 +725,8 @@ function renderStaff() {
     const rows = sorted.slice(0, bLimit).map(b => {
       const expired = !b.ok && !b.no && b.at && b.at < Date.now();
       const mine = S.myBks.includes(b.id);
-      const tag = b.ok ? ['Подтверждена', 'background:rgba(111,191,138,.14);color:#6fbf8a']
-        : b.no ? ['Отклонена', 'background:rgba(224,138,122,.14);color:#e08a7a']
+      const tag = b.ok ? ['Подтверждена', 'background:rgba(111,191,138,.14);color:var(--ok)']
+        : b.no ? ['Отклонена', 'background:rgba(224,138,122,.14);color:var(--bad)']
         : expired ? ['Просрочена', 'background:var(--line2);color:var(--sub)']
         : ['Новая', 'background:rgba(var(--accRGB),.16);color:var(--goldT)'];
       const confirm = act(() => {
@@ -789,7 +789,7 @@ function renderStaff() {
           <div style="font:700 13px Manrope;${off ? 'opacity:.45;text-decoration:line-through' : ''}">${esc(m.n)}</div>
           <div style="font:600 11px Manrope;color:var(--sub)">${cat} · ${m.p} ₽</div>
         </div>
-        <div data-c="${act(() => { slog((off ? 'Позиция возвращена в меню: ' : 'Позиция скрыта: ') + m.n + ' · ' + staffName(), 'stock', true); set({ hidden: { ...S.hidden, [m.id]: !off } }); })}" style="padding:7px 11px;border-radius:9px;font:700 11px Manrope;cursor:pointer;user-select:none;${off ? 'background:var(--hov);color:var(--sub)' : 'background:rgba(111,191,138,.13);color:#6fbf8a'}">${off ? 'Скрыт' : 'В меню'}</div>
+        <div data-c="${act(() => { slog((off ? 'Позиция возвращена в меню: ' : 'Позиция скрыта: ') + m.n + ' · ' + staffName(), 'stock', true); set({ hidden: { ...S.hidden, [m.id]: !off } }); })}" style="padding:7px 11px;border-radius:9px;font:700 11px Manrope;cursor:pointer;user-select:none;${off ? 'background:var(--hov);color:var(--sub)' : 'background:rgba(111,191,138,.13);color:var(--ok)'}">${off ? 'Скрыт' : 'В меню'}</div>
         <div data-c="${act(() => setS({ edInfo: m.id, edInfoF: { ...itemInfo(m.id), allerg: [...(itemInfo(m.id).allerg || [])] } }))}" class="h-gold" title="Состав, калорийность, аллергены, 18+" style="padding:7px 10px;border-radius:9px;border:1px solid var(--line);font:700 11.5px Manrope;cursor:pointer;color:${itemInfo(m.id).ingr ? 'var(--sub2)' : 'var(--goldT)'}">Состав</div>
         ${S.custom.some(x => x.id === m.id) ? `<div data-c="${act(() => {
           // Вместе с товаром вычищаются все ссылки на него: избранное,
@@ -1114,7 +1114,7 @@ function renderStaff() {
           const k = KIND[n.kind] || KIND.order;
           const fresh = i < (S.sunread || 0);
           return `
-          <div style="display:flex;align-items:flex-start;gap:11px;background:var(--card);border:1px solid ${fresh ? 'rgba(var(--accRGB),.4)' : 'var(--line)'};border-radius:13px;padding:12px 14px;animation:fadeUp .3s ease both">
+          <div style="display:flex;align-items:flex-start;gap:11px;background:var(--card);border:1px solid ${fresh ? 'var(--goldT)' : 'var(--line)'};border-radius:13px;padding:12px 14px;animation:fadeUp .3s ease both">
             <div style="width:30px;height:30px;border-radius:9px;flex:none;background:${k[0]};color:${k[1]};display:flex;align-items:center;justify-content:center;font:800 12px Manrope">${k[2]}</div>
             <div style="flex:1;min-width:0"><div style="font:600 13px/1.45 Manrope">${esc(n.text)}</div>
             <div style="font:600 11px Manrope;color:var(--sub);margin-top:3px">${esc(n.time)}</div></div>
@@ -1153,7 +1153,7 @@ function renderStaff() {
           slog('Смена закрыта: ' + me.name, 'shift', true);
           set({ offShift: { ...S.offShift, [me.id]: today() }, screen: 'auth', sview: 'orders', cancelAsk: 0 });
           showToast('Смена закрыта. До встречи, ' + me.name + '!');
-        })}" class="h-redbg" style="text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:#d97666;font:700 13.5px Manrope;cursor:pointer">Завершить смену</div>
+        })}" class="h-redbg" style="text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13.5px Manrope;cursor:pointer">Завершить смену</div>
       </div>
     </div>`;
   } else {
@@ -1170,7 +1170,7 @@ function renderStaff() {
     const shown = S.sTab === 'done' ? list.slice(0, S.doneLimit || 50) : list;
     const more = shown.length < list.length ? `<div data-c="${act(() => setS({ doneLimit: (S.doneLimit || 50) + 100 }))}" class="h-gold" style="text-align:center;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);font:700 12.5px Manrope;cursor:pointer">Показать ещё · скрыто ${list.length - shown.length}</div>` : '';
     const cards = shown.map(o => `
-      <div data-key="o-${o.num}" data-c="${act(() => setS({ sel: o.num, cancelAsk: 0 }))}" class="h-goldb2" style="background:var(--card);border:1px solid ${sel && sel.num === o.num ? 'rgba(var(--accRGB),.65)' : 'var(--line)'};border-radius:15px;padding:15px 16px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both">
+      <div data-key="o-${o.num}" data-c="${act(() => setS({ sel: o.num, cancelAsk: 0 }))}" class="h-goldb2" style="background:var(--card);border:1px solid ${sel && sel.num === o.num ? 'var(--goldT)' : 'var(--line)'};border-radius:15px;padding:15px 16px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
           <div style="font:800 15px Manrope">№${o.num}</div>
           ${o.by ? `<div style="font:600 11px Manrope;color:var(--sub)">${esc(o.by)}</div>` : ''}
@@ -1179,7 +1179,7 @@ function renderStaff() {
         </div>
         <div style="font:600 13px/1.5 Manrope;color:var(--sub2);margin-bottom:7px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
         <div style="display:flex;align-items:center;gap:14px;font:600 11.5px Manrope;color:var(--sub);flex-wrap:wrap">
-          <div>Время: ${o.time}</div>${o.dueAt && o.st !== 'done' && o.st !== 'cancel' ? `<div style="font-weight:800;color:${o.dueAt - Date.now() < 10 * 60000 ? '#e08a7a' : 'var(--goldT)'}">к ${hhmm(o.dueAt)}${o.dueAt - Date.now() < 10 * 60000 ? ' · пора' : ''}</div>` : ''}${o.adult ? '<div style="font-weight:800;color:#e08a7a">18+ · проверьте документ</div>' : ''}
+          <div>Время: ${o.time}</div>${o.dueAt && o.st !== 'done' && o.st !== 'cancel' ? `<div style="font-weight:800;color:${o.dueAt - Date.now() < 10 * 60000 ? '#e08a7a' : 'var(--goldT)'}">к ${hhmm(o.dueAt)}${o.dueAt - Date.now() < 10 * 60000 ? ' · пора' : ''}</div>` : ''}${o.adult ? '<div style="font-weight:800;color:var(--bad)">18+ · проверьте документ</div>' : ''}
           ${timerChip(o)}
         </div>
       </div>`).join('');
@@ -1300,7 +1300,7 @@ function renderStaff() {
         ${onShift(10.5)}
       </div>
       <div style="display:grid;gap:4px;flex:1">${stNav}</div>
-      <div data-c="${logout}" class="h-redbg" style="padding:12px 14px;border-radius:11px;color:#d97666;font:700 13px Manrope;cursor:pointer">Выйти</div>
+      <div data-c="${logout}" class="h-redbg" style="padding:12px 14px;border-radius:11px;color:var(--bad);font:700 13px Manrope;cursor:pointer">Выйти</div>
     </div>` : `
     <div data-key="st-side" style="flex:none;border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) 14px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;align-items:center;gap:10px">
@@ -1310,7 +1310,7 @@ function renderStaff() {
           <div style="font:600 11px 'Cormorant Garamond',serif;color:var(--goldT);font-style:italic">Кофейня на высоте · панель</div>
         </div>
         ${onShift(10)}
-        <div data-c="${logout}" class="h-redbg" style="padding:8px 11px;border-radius:10px;color:#d97666;font:700 12px Manrope;cursor:pointer;flex:none">Выйти</div>
+        <div data-c="${logout}" class="h-redbg" style="padding:8px 11px;border-radius:10px;color:var(--bad);font:700 12px Manrope;cursor:pointer;flex:none">Выйти</div>
       </div>
       <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px 2px">${stNavChips}</div>
     </div>`;
@@ -1351,7 +1351,7 @@ function renderStaffPin() {
   const who = S.staff.find(x => x.id === S.sPinWho) || null;
   const press = d => act(() => staffPinInput(d));
   const chips = S.staff.map(m => `
-    <div data-c="${act(() => setS({ sPinWho: m.id, sPin: '' }))}" class="a97" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border-radius:16px;cursor:pointer;transition:all .15s;${S.sPinWho === m.id ? 'background:rgba(var(--accRGB),.16);border:1px solid rgba(var(--accRGB),.55)' : 'background:var(--card);border:1px solid var(--line)'}">
+    <div data-c="${act(() => setS({ sPinWho: m.id, sPin: '' }))}" class="a97" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border-radius:16px;cursor:pointer;transition:all .15s;${S.sPinWho === m.id ? 'background:rgba(var(--accRGB),.16);border:1px solid var(--goldT)' : 'background:var(--card);border:1px solid var(--line)'}">
       ${avatar(m.name.charAt(0), 44, 17, S.sPinWho === m.id ? '.8' : '.4')}
       <div style="text-align:center"><div style="font:700 13px Manrope">${esc(m.name)}</div><div style="font:600 10.5px Manrope;color:var(--sub);margin-top:1px">${esc(m.role)}</div>${S.cfg.showPins ? `<div style="font:800 12px Manrope;color:var(--goldT);margin-top:4px;letter-spacing:.14em">PIN ${esc(m.pin)}</div>` : ''}</div>
     </div>`).join('');
@@ -1369,7 +1369,7 @@ function renderStaffPin() {
         <div style="display:flex;gap:10px">${chips}</div>
         <div style="font:700 11px Manrope;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:18px 0 10px">${who ? 'PIN — ' + esc(who.name) : 'Личный PIN'}</div>
         <div style="display:flex;justify-content:center;gap:14px;padding:6px 0 16px">${dots}</div>
-        ${locked ? '<div style="text-align:center;font:700 12px Manrope;color:#e08a7a;margin-bottom:12px">Слишком много попыток — подождите 30 секунд</div>' : ''}
+        ${locked ? '<div style="text-align:center;font:700 12px Manrope;color:var(--bad);margin-bottom:12px">Слишком много попыток — подождите 30 секунд</div>' : ''}
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
           ${['1','2','3','4','5','6','7','8','9'].map(d => key(d, d)).join('')}
           <div></div>${key('0', '0')}${key('⌫', 'del')}
@@ -1621,7 +1621,7 @@ function renderApp() {
         <div style="font:700 11px Manrope;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:6px">Состав и пищевая ценность</div>
         ${info.ingr ? `<div style="font:500 12.5px/1.55 Manrope;color:var(--sub2)">${esc(info.ingr)}</div>` : ''}
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font:600 12px Manrope;color:var(--sub2)">${it.v ? `<div>Выход: ${esc(it.v)}</div>` : ''}${info.kcal !== '' ? `<div>${esc(String(info.kcal))} ккал</div>` : ''}</div>
-        ${info.allerg && info.allerg.length ? `<div style="font:600 12px/1.5 Manrope;color:#e08a7a;margin-top:6px">Аллергены: ${info.allerg.map(c => esc(ALLERGEN_LABEL[c] || c)).join(', ')}</div>` : ''}
+        ${info.allerg && info.allerg.length ? `<div style="font:600 12px/1.5 Manrope;color:var(--bad);margin-top:6px">Аллергены: ${info.allerg.map(c => esc(ALLERGEN_LABEL[c] || c)).join(', ')}</div>` : ''}
         ${info.adult ? `<div data-c="${act(() => setS({ adultOk: !S.adultOk }))}" style="display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer"><div style="width:19px;height:19px;border-radius:6px;flex:none;box-sizing:border-box;${S.adultOk ? `background:${GG};box-shadow:inset 0 0 0 4px var(--ph)` : 'border:2px solid var(--bdr)'}"></div><div style="font:700 12.5px Manrope">Мне есть 18 лет — тонизирующий напиток 18+</div></div>` : ''}
       </div>` : '';
     const adds = (it.cat === 'coffee' || it.cat === 'drinks') ? `
@@ -1642,7 +1642,7 @@ function renderApp() {
         <div style="position:absolute;left:50%;top:50%;width:268px;height:268px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid var(--line)"></div>
         <div style="position:absolute;left:50%;top:50%;width:214px;height:214px;border-radius:50%;background:url(&quot;${esc(it.img)}&quot;) center/cover no-repeat;box-shadow:0 34px 70px -24px rgba(0,0,0,.8),0 0 0 12px rgba(var(--accRGB),.08);animation:popc .55s cubic-bezier(.2,.8,.3,1) both"></div>
         <div data-c="${act(() => setS({ product: null }))}" class="a92" style="position:absolute;z-index:2;top:14px;left:16px;width:42px;height:42px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer">${SVG.back}</div>
-        <div data-c="${act(() => { const f = { ...S.favs }; f[it.id] ? delete f[it.id] : f[it.id] = 1; set({ favs: f }); })}" class="a92" style="position:absolute;z-index:2;top:14px;right:16px;width:42px;height:42px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer">${SVG.heart(S.favs[it.id] ? '#d9bc8c' : 'none', 18, 17)}</div>
+        <div data-c="${act(() => { const f = { ...S.favs }; f[it.id] ? delete f[it.id] : f[it.id] = 1; set({ favs: f }); })}" class="a92" style="position:absolute;z-index:2;top:14px;right:16px;width:42px;height:42px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer">${SVG.heart(S.favs[it.id] ? 'var(--goldT)' : 'none', 18, 17)}</div>
       </div>
       <div style="margin:0 12px 12px;padding:20px 18px 18px;border-radius:28px;background:var(--card);border:1px solid var(--line);box-shadow:0 -20px 50px -30px rgba(0,0,0,.8);animation:sheet .5s cubic-bezier(.2,.8,.3,1) both">
         <div style="font:600 25px 'Cormorant Garamond',serif;animation:fadeUp .4s .05s ease both">${esc(it.n)}</div>
@@ -1681,7 +1681,7 @@ function renderApp() {
     const greet = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер';
     const tiles = CATS.map(([k, label]) => `
       <div data-c="${act(() => setS({ tab: 'menu', cat: k }))}" class="h-gold a94" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 2px;border-radius:14px;background:var(--card);border:1px solid var(--line);cursor:pointer;transition:all .15s">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${SVG.cat[k]}</svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${SVG.cat[k]}</svg>
         <div style="font:600 10.5px Manrope;color:var(--sub2)">${label}</div>
       </div>`).join('');
     const popular = ['cap', 'cheese', 'ice'].map(id => item(id)).filter(it => it && !S.hidden[it.id]).map(it => {
@@ -1696,7 +1696,7 @@ function renderApp() {
           <div style="display:flex;align-items:center;margin-top:4px">
             <div style="font:800 13px Manrope;color:var(--goldT)">${it.p} ₽</div>
             <div style="flex:1"></div>
-            <div data-c="${favTap}" style="cursor:pointer;padding:2px">${SVG.heart(S.favs[id] ? '#c9974e' : 'none', 16, 15)}</div>
+            <div data-c="${favTap}" style="cursor:pointer;padding:2px">${SVG.heart(S.favs[id] ? 'var(--goldT)' : 'none', 16, 15)}</div>
           </div>
         </div>
       </div>`;
@@ -1714,7 +1714,7 @@ function renderApp() {
           <div style="font:600 21px/1.2 'Cormorant Garamond',serif">Кофейня</div>
           <div style="font:600 21px/1.2 'Cormorant Garamond',serif;color:var(--goldT)">на высоте</div>
         </div>
-        <div data-c="${act(() => setS({ themeOpen: !S.themeOpen, notifOpen: false }))}" class="h-gold" title="Тема оформления" style="width:40px;height:40px;border-radius:50%;border:1px solid ${S.themeOpen ? 'rgba(var(--accRGB),.6)' : 'var(--bdr)'};display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">
+        <div data-c="${act(() => setS({ themeOpen: !S.themeOpen, notifOpen: false }))}" class="h-gold" title="Тема оформления" style="width:40px;height:40px;border-radius:50%;border:1px solid ${S.themeOpen ? 'var(--goldT)' : 'var(--bdr)'};display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"></path></svg>
         </div>
         <div data-c="${act(() => set({ notifOpen: !S.notifOpen, themeOpen: false, unread: 0 }))}" class="h-gold" style="position:relative;width:40px;height:40px;border-radius:50%;border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer">
@@ -1767,7 +1767,7 @@ function renderApp() {
       <div data-c="${off ? act(() => showToast('Сегодня этой позиции нет')) : act(() => setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }))}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both;${off ? 'opacity:.55' : ''}">
         <div style="${circleImg(m.img, 58, '50%', ';border:2px solid var(--line)')}"></div>
         <div style="flex:1;min-width:0">
-          <div style="font:700 14px Manrope;display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(m.n)}${info.adult ? '<span style="font:800 10px Manrope;padding:1px 6px;border-radius:99px;border:1px solid #e08a7a;color:#e08a7a">18+</span>' : ''}${off ? '<span style="font:700 10px Manrope;padding:2px 7px;border-radius:99px;background:var(--hov);color:var(--sub)">Сегодня нет</span>' : ''}</div>
+          <div style="font:700 14px Manrope;display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(m.n)}${info.adult ? '<span style="font:800 10px Manrope;padding:1px 6px;border-radius:99px;border:1px solid #e08a7a;color:var(--bad)">18+</span>' : ''}${off ? '<span style="font:700 10px Manrope;padding:2px 7px;border-radius:99px;background:var(--hov);color:var(--sub)">Сегодня нет</span>' : ''}</div>
           <div style="font:600 11.5px Manrope;color:var(--sub);margin:2px 0 5px">${esc(m.v || '—')}${info.kcal !== '' ? ' · ' + esc(String(info.kcal)) + ' ккал' : ''}</div>
           <div style="font:800 14px Manrope;color:var(--goldT)">${m.p} ₽</div>
         </div>
@@ -1788,7 +1788,7 @@ function renderApp() {
     const STEPS = [['new','Принят'],['work','Готовится'],['ready','Готов'],['done','Выдан']];
     // Для отменённого заказа прогресс замирает на достигнутом шаге (по меткам).
     const idx = o => o.st === 'cancel' ? ((o.tss || {}).ready ? 2 : (o.tss || {}).work ? 1 : 0) : ({ new: 0, work: 1, ready: 2, done: 3 })[o.st];
-    const TAGS = { new: ['Принят', 'background:rgba(var(--accRGB),.16);color:var(--goldT)'], work: ['Готовится', 'background:rgba(var(--accRGB),.16);color:var(--goldT)'], ready: ['Готов', 'background:rgba(111,191,138,.14);color:#6fbf8a'], done: ['Выдан', 'background:var(--line2);color:var(--sub)'], cancel: ['Отменён', 'background:rgba(224,138,122,.14);color:#e08a7a'] };
+    const TAGS = { new: ['Принят', 'background:rgba(var(--accRGB),.16);color:var(--goldT)'], work: ['Готовится', 'background:rgba(var(--accRGB),.16);color:var(--goldT)'], ready: ['Готов', 'background:rgba(111,191,138,.14);color:var(--ok)'], done: ['Выдан', 'background:var(--line2);color:var(--sub)'], cancel: ['Отменён', 'background:rgba(224,138,122,.14);color:var(--bad)'] };
     const mineSet = new Set(S.myNums);
     const mine = S.orders.filter(o => mineSet.has(o.num));
     const active = mine.filter(o => (o.st !== 'done' && o.st !== 'cancel') || S.myNums[0] === o.num);
@@ -1825,8 +1825,8 @@ function renderApp() {
                     <div style="color:var(--dim)">${esc(at)}</div>
                   </div>`).join('')}
               </div>` : ''}
-            ${o.st === 'ready' ? '<div style="margin-top:12px;padding:11px;border-radius:11px;background:rgba(111,191,138,.12);color:#6fbf8a;font:700 12.5px Manrope;text-align:center;animation:pop .4s ease both">☕ Ваш заказ готов — подходите к стойке!</div>' : ''}
-            ${o.st === 'cancel' ? `<div style="margin-top:12px;padding:11px;border-radius:11px;background:rgba(224,138,122,.1);color:#e08a7a;font:700 12.5px Manrope;text-align:center">Заказ отменён кофейней${o.cancel && o.cancel.reason ? ': ' + esc(o.cancel.reason).toLowerCase() : ''}${o.pay !== 2 ? ' — оплата вернётся тем же способом' : ''}. Приносим извинения</div>` : ''}
+            ${o.st === 'ready' ? '<div style="margin-top:12px;padding:11px;border-radius:11px;background:rgba(111,191,138,.12);color:var(--ok);font:700 12.5px Manrope;text-align:center;animation:pop .4s ease both">☕ Ваш заказ готов — подходите к стойке!</div>' : ''}
+            ${o.st === 'cancel' ? `<div style="margin-top:12px;padding:11px;border-radius:11px;background:rgba(224,138,122,.1);color:var(--bad);font:700 12.5px Manrope;text-align:center">Заказ отменён кофейней${o.cancel && o.cancel.reason ? ': ' + esc(o.cancel.reason).toLowerCase() : ''}${o.pay !== 2 ? ' — оплата вернётся тем же способом' : ''}. Приносим извинения</div>` : ''}
           </div>`).join('')}
       </div>` : '';
 
@@ -1882,7 +1882,7 @@ function renderApp() {
           <div style="display:flex;align-items:center;gap:11px;background:var(--hov);border-radius:13px;padding:11px 13px">
             ${SVG.calendar}
             <div style="flex:1"><div style="font:700 13px Manrope">${esc(b.when)}</div><div style="font:600 11px Manrope;color:var(--sub)">Гостей: ${b.guests}</div></div>
-            <div style="padding:4px 10px;border-radius:99px;font:700 10.5px Manrope;${b.ok ? 'background:rgba(111,191,138,.14);color:#6fbf8a' : b.no ? 'background:rgba(224,138,122,.14);color:#e08a7a' : 'background:rgba(var(--accRGB),.16);color:var(--goldT)'}">${b.ok ? 'Подтверждена' : b.no ? 'Отклонена' : 'Ожидает'}</div>
+            <div style="padding:4px 10px;border-radius:99px;font:700 10.5px Manrope;${b.ok ? 'background:rgba(111,191,138,.14);color:var(--ok)' : b.no ? 'background:rgba(224,138,122,.14);color:var(--bad)' : 'background:rgba(var(--accRGB),.16);color:var(--goldT)'}">${b.ok ? 'Подтверждена' : b.no ? 'Отклонена' : 'Ожидает'}</div>
           </div>`).join('')}
       </div>` : '';
     const bookingCard = `
@@ -1957,7 +1957,7 @@ function renderApp() {
       const payOn = !!S.cfg.onlinePay;
       const payEff = payOn ? S.pay : 2;
       const payChips = [[0, mainCard ? (mainCard.brand + ' •••• ' + mainCard.last4) : 'Банковская карта', payOn], [1, 'Онлайн-оплата', payOn], [2, 'Оплата при получении', true]].map(([i, label, on]) => `<div data-c="${on ? act(() => setS({ pay: i })) : act(() => showToast('Онлайн-оплата появится после подключения платёжного провайдера'))}" style="padding:10px 14px;border-radius:11px;cursor:pointer;font:700 12.5px Manrope;transition:all .15s;${!on ? 'opacity:.5;background:var(--hov);color:var(--sub)' : payEff === i ? `background:${GG};color:var(--accInk)` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}${!on ? ' · скоро' : ''}</div>`).join('');
-      const otStyle = on => `flex:1;display:flex;align-items:center;gap:9px;padding:13px 14px;border-radius:13px;cursor:pointer;font:700 13.5px Manrope;transition:all .15s;${on ? 'background:var(--card);border:1px solid rgba(var(--accRGB),.6)' : 'background:var(--card);border:1px solid var(--line);color:var(--sub)'}`;
+      const otStyle = on => `flex:1;display:flex;align-items:center;gap:9px;padding:13px 14px;border-radius:13px;cursor:pointer;font:700 13.5px Manrope;transition:all .15s;${on ? 'background:var(--card);border:1px solid var(--goldT)' : 'background:var(--card);border:1px solid var(--line);color:var(--sub)'}`;
       const otDot = on => `width:16px;height:16px;border-radius:50%;box-sizing:border-box;${on ? 'border:5px solid var(--goldT)' : 'border:2px solid var(--bdr)'}`;
       cartBlock = `
       <div style="display:grid;gap:10px">${rows}</div>
@@ -2018,7 +2018,7 @@ function renderApp() {
       <div style="display:flex;align-items:center;margin-bottom:16px">
         <div style="font:600 24px 'Cormorant Garamond',serif">Мой заказ</div>
         <div style="flex:1"></div>
-        ${entries.length > 0 ? `<div data-c="${act(() => setS({ cart: {} }))}" class="h-red" style="font:600 12.5px Manrope;color:#c0564a;cursor:pointer">Очистить</div>` : ''}
+        ${entries.length > 0 ? `<div data-c="${act(() => setS({ cart: {} }))}" class="h-red" style="font:600 12.5px Manrope;color:var(--bad);cursor:pointer">Очистить</div>` : ''}
       </div>
       ${activeCards}
       ${bookingCard}
@@ -2036,14 +2036,14 @@ function renderApp() {
           <div style="font:800 24px Manrope;margin-top:4px">${S.bonus.toLocaleString('ru-RU')} <span style="font:600 14px Manrope;color:var(--mut)">баллов</span></div>
         </div>
         <div style="flex:1"></div>
-        <svg width="42" height="40" viewBox="0 0 24 23" fill="#c9974e"><path d="M12 0l3 7.4 8 .6-6.1 5.2L18.8 21 12 16.8 5.2 21l1.9-7.8L1 8l8-.6L12 0z"></path></svg>
+        <svg width="42" height="40" viewBox="0 0 24 23" style="fill:var(--goldT)"><path d="M12 0l3 7.4 8 .6-6.1 5.2L18.8 21 12 16.8 5.2 21l1.9-7.8L1 8l8-.6L12 0z"></path></svg>
       </div>
       <div style="font:600 18px 'Cormorant Garamond',serif;margin:22px 0 12px">История начислений</div>
       <div style="display:grid;gap:9px">
         ${S.bonusEv.map(([t, d, v]) => `
           <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;animation:fadeUp .35s ease both">
             <div style="flex:1"><div style="font:700 13.5px Manrope">${esc(t)}</div><div style="font:600 11.5px Manrope;color:var(--sub);margin-top:2px">${esc(d)}</div></div>
-            <div style="font:800 13px Manrope;${v > 0 ? 'color:#6fbf8a' : 'color:#d97666'}">${(v > 0 ? '+' : '') + v} баллов</div>
+            <div style="font:800 13px Manrope;${v > 0 ? 'color:var(--ok)' : 'color:var(--bad)'}">${(v > 0 ? '+' : '') + v} баллов</div>
           </div>`).join('')}
       </div>
     </div>`;
@@ -2078,7 +2078,7 @@ function renderApp() {
                 <div style="font:800 14px Manrope">Заказ №${o.num}</div>
                 <div style="font:600 11px Manrope;color:var(--sub)">${o.time}</div>
                 <div style="flex:1"></div>
-                <div style="padding:4px 10px;border-radius:99px;font:700 10.5px Manrope;${done ? 'background:rgba(111,191,138,.14);color:#6fbf8a' : o.st === 'cancel' ? 'background:rgba(224,138,122,.14);color:#e08a7a' : 'background:rgba(var(--accRGB),.16);color:var(--goldT)'}">${done ? 'Выполнен' : o.st === 'cancel' ? 'Отменён' : 'Активен'}</div>
+                <div style="padding:4px 10px;border-radius:99px;font:700 10.5px Manrope;${done ? 'background:rgba(111,191,138,.14);color:var(--ok)' : o.st === 'cancel' ? 'background:rgba(224,138,122,.14);color:var(--bad)' : 'background:rgba(var(--accRGB),.16);color:var(--goldT)'}">${done ? 'Выполнен' : o.st === 'cancel' ? 'Отменён' : 'Активен'}</div>
               </div>
               <div style="font:600 12.5px/1.5 Manrope;color:var(--sub2)">${esc(o.lines.map(l => l[0]).join(', '))}</div>
               <div style="display:flex;align-items:center;margin-top:10px">
@@ -2103,7 +2103,7 @@ function renderApp() {
             <div data-c="${act(() => setS({ product: it.id, pQty: 1, pSize: 0, pAdds: {}, psub: null }))}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:10px 12px;cursor:pointer;animation:fadeUp .35s ease both">
               <div style="width:50px;height:50px;border-radius:13px;flex:none;background:url(&quot;${esc(it.img)}&quot;) center/cover no-repeat"></div>
               <div style="flex:1;min-width:0"><div style="font:700 13.5px Manrope">${esc(it.n)}</div><div style="font:600 11px Manrope;color:var(--sub);margin-top:2px">${esc(it.v)} · ${it.p} ₽</div></div>
-              <div data-c="${act(() => { const f = { ...S.favs }; delete f[it.id]; set({ favs: f }); })}" style="padding:6px;cursor:pointer"><svg width="17" height="16" viewBox="0 0 24 22" fill="#c9974e" stroke="#c9974e" stroke-width="2"><path d="M12 20S3 14 3 7.8A4.8 4.8 0 0 1 12 5a4.8 4.8 0 0 1 9 2.8C21 14 12 20 12 20z"></path></svg></div>
+              <div data-c="${act(() => { const f = { ...S.favs }; delete f[it.id]; set({ favs: f }); })}" style="padding:6px;cursor:pointer"><svg width="17" height="16" viewBox="0 0 24 22" style="fill:var(--goldT);stroke:var(--goldT)" stroke-width="2"><path d="M12 20S3 14 3 7.8A4.8 4.8 0 0 1 12 5a4.8 4.8 0 0 1 9 2.8C21 14 12 20 12 20z"></path></svg></div>
               <div data-c="${act(() => { addCart(it.id, 0, {}, 1); showToast(it.n + ' — в заказе'); })}" class="a90" style="width:32px;height:32px;border-radius:10px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;font:800 17px Manrope;cursor:pointer">+</div>
             </div>`).join('')}
         </div>
@@ -2223,7 +2223,7 @@ function renderApp() {
           <div data-c="${act(() => { if (!S.fName.trim()) return; set({ user: { name: S.fName.trim(), phone: S.fPhone }, psub: null }); showToast('Данные сохранены'); })}" class="a98" style="height:50px;border-radius:13px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;font:800 14px Manrope;cursor:pointer">Сохранить</div>
           ${S.user ? `<div data-c="${act(() => { const c = { ...(S.user.consents || {}) }; const on = !(c.marketing && c.marketing.on); c.marketing = { on, at: Date.now() }; set({ user: { ...S.user, consents: c } }); showToast(on ? 'Будем присылать акции и новости' : 'Акции и новости отключены'); })}" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;cursor:pointer;margin-top:6px"><div style="flex:1;min-width:0"><div style="font:600 13px Manrope">Акции и новости</div><div style="font:600 11px Manrope;color:var(--sub);margin-top:1px">отдельное согласие — отключается в любой момент</div></div><div style="width:42px;height:24px;border-radius:99px;flex:none;position:relative;background:${S.user.consents && S.user.consents.marketing && S.user.consents.marketing.on ? GG : 'var(--bdr)'}"><div style="position:absolute;top:3px;${S.user.consents && S.user.consents.marketing && S.user.consents.marketing.on ? 'right:3px' : 'left:3px'};width:18px;height:18px;border-radius:50%;background:#fff"></div></div></div>
           <div data-c="${act(() => setS({ doc: 'policy' }))}" style="font:600 12px Manrope;color:var(--goldT);cursor:pointer;padding:6px 2px">Как мы обрабатываем данные →</div>
-          <div data-c="${act(() => { if (!S.delAsk) { setS({ delAsk: 1 }); return; } set({ user: null, myNums: [], myBks: [], favs: {}, cards: [], mainCard: 0, bonus: 0, bonusEv: [], notifs: [], unread: 0, alertSeen: {}, delAsk: 0, screen: 'auth', authMode: 'welcome', psub: null }); showToast('Ваши данные удалены с этого устройства'); })}" class="h-redbg" style="margin-top:8px;text-align:center;padding:13px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:#d97666;font:700 13px Manrope;cursor:pointer">${S.delAsk ? 'Точно удалить аккаунт, историю, избранное, карты и баллы?' : 'Удалить мои данные'}</div>` : ''}
+          <div data-c="${act(() => { if (!S.delAsk) { setS({ delAsk: 1 }); return; } set({ user: null, myNums: [], myBks: [], favs: {}, cards: [], mainCard: 0, bonus: 0, bonusEv: [], notifs: [], unread: 0, alertSeen: {}, delAsk: 0, screen: 'auth', authMode: 'welcome', psub: null }); showToast('Ваши данные удалены с этого устройства'); })}" class="h-redbg" style="margin-top:8px;text-align:center;padding:13px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13px Manrope;cursor:pointer">${S.delAsk ? 'Точно удалить аккаунт, историю, избранное, карты и баллы?' : 'Удалить мои данные'}</div>` : ''}
         </div>
       </div>`;
     } else {
@@ -2240,7 +2240,7 @@ function renderApp() {
         });
         return `
         <div data-c="${tap}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 15px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#c9974e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.prof[ic]}</svg>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.prof[ic]}</svg>
           <div style="flex:1;font:600 13.5px Manrope">${label}</div>
           ${SVG.chev}
         </div>`;
@@ -2256,7 +2256,7 @@ function renderApp() {
           <div><div style="font:700 17px Manrope">${esc(name)}</div><div style="font:600 12.5px Manrope;color:var(--sub);margin-top:2px">${esc(S.user && S.user.phone ? S.user.phone : 'Телефон не указан')}</div></div>
         </div>
         <div style="display:grid;gap:8px">${rows}</div>
-        <div data-c="${act(() => set({ screen: 'auth', authMode: 'welcome', user: null, psub: null }))}" class="h-redbg" style="margin-top:18px;text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:#d97666;font:700 13.5px Manrope;cursor:pointer">Выйти</div>
+        <div data-c="${act(() => set({ screen: 'auth', authMode: 'welcome', user: null, psub: null }))}" class="h-redbg" style="margin-top:18px;text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13.5px Manrope;cursor:pointer">Выйти</div>
       </div>`;
     }
     screen = `<div data-key="scr-profile" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">${sub}</div>`;
