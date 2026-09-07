@@ -21,6 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 def main():
     os.chdir(HERE)
     html = open(SRC, encoding='utf-8', newline='').read()
+    html = html.replace('\r\n', '\n')  # редактор мог сохранить CRLF, а якоря ниже ищут LF
 
     names = sorted(set(re.findall(r'assets/([A-Za-z0-9_\-]+\.[a-z]+)', html)))
     if not names:
