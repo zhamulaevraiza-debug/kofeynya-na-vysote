@@ -404,14 +404,18 @@ const DEFAULT_CFG = {
   cancelReasons: ['Гость передумал', 'Долгое ожидание', 'Ошибка бариста', 'Нет ингредиента', 'Дубль заказа'],
   // Музыка в зале: дорожки «из кофейни» лежат рядом с приложением и звучат у всех
   // гостей, добавленные администратором файлом — только на его устройстве.
-  player: { on: true, vol: 0.7, tracks: [], off: {} }
+  player: { on: true, vol: 0.7, tracks: [], off: {} },
+  // Цены, изменённые в панели: id позиции → число или список цен по порциям.
+  // Исходная цена из меню остаётся на месте, правка просто перекрывает её.
+  prices: {}
 };
 function mkCfg(c) {
   c = c || {}; const p = c.player || {};
   return {
     ...DEFAULT_CFG, ...c, legal: { ...DEFAULT_CFG.legal, ...(c.legal || {}) },
     cancelReasons: Array.isArray(c.cancelReasons) && c.cancelReasons.length ? c.cancelReasons : DEFAULT_CFG.cancelReasons,
-    player: { ...DEFAULT_CFG.player, ...p, tracks: (Array.isArray(p.tracks) ? p.tracks : []).map(t => normTrack(t)), off: p.off || {} }
+    player: { ...DEFAULT_CFG.player, ...p, tracks: (Array.isArray(p.tracks) ? p.tracks : []).map(t => normTrack(t)), off: p.off || {} },
+    prices: c.prices && typeof c.prices === 'object' ? c.prices : {}
   };
 }
 // Демо-заказы получают настоящие временные метки относительно первого запуска:
@@ -506,7 +510,7 @@ const S = {
   staff: Array.isArray(sv.staff) && sv.staff.length ? sv.staff : DEFAULT_STAFF,
   cfg: mkCfg(sv.cfg),
   itemInfo: sv.itemInfo || {}, alertSeen: sv.alertSeen || {},
-  edStaff: null, edF: null, resetAsk: 0, edInfo: null, edInfoF: null,
+  edStaff: null, edF: null, resetAsk: 0, edInfo: null, edInfoF: null, edPrice: null, edPriceF: null,
   // Плеер: что играет сейчас и в каком виде показан. В хранилище не уходит —
   // там живут только сами дорожки и громкость (внутри cfg.player).
   pl: { id: '', mode: 'disc', playing: false, t: 0, dur: 0, load: false, err: '' },
@@ -967,12 +971,22 @@ function catOf(lineName) {
   return found ? (CAT_LABEL[found.cat] || 'Прочее') : 'Прочее';
 }
 function item(id) { return [...M, ...S.custom].find(m => m.id === id); }
+// Цены по порциям с учётом правок администратора: [цена] или [цена1, цена2].
+function priceList(it) {
+  if (!it) return [0];
+  const ov = (S.cfg.prices || {})[it.id];
+  const base = it.pv ? it.pv.map(x => x[1]) : [it.p];
+  if (Array.isArray(ov)) return base.map((p, i) => (+ov[i] > 0 ? +ov[i] : (+ov[i] === 0 && ov[i] !== '' && ov[i] !== null ? 0 : p)));
+  if (ov != null && ov !== '') return base.map(() => +ov || 0);
+  return base;
+}
 function unitPrice(id, size, adds) {
   const it = item(id);
   if (!it) return 0;
+  const list = priceList(it);
   let p;
-  if (it.pv) p = (it.pv[Math.min(Math.max(+size || 0, 0), it.pv.length - 1)] || it.pv[0])[1];
-  else p = it.p + (it.sz ? (size === 1 ? 40 : size === 2 ? 80 : 0) : 0);
+  if (it.pv) p = list[Math.min(Math.max(+size || 0, 0), list.length - 1)] || list[0];
+  else p = list[0] + (it.sz ? (size === 1 ? 40 : size === 2 ? 80 : 0) : 0);
   p += Object.keys(adds || {}).filter(k => adds[k]).length * 50;
   return p;
 }
@@ -984,7 +998,7 @@ function sizeLabel(it, size) {
 }
 // Пирожное, печенье и орешки на доске без цены — их не заказать из приложения,
 // пока администратор не проставит цену; выдумывать её нельзя.
-function noPrice(it) { return !!it && !it.pv && !(+it.p > 0); }
+function noPrice(it) { return !!it && !priceList(it).some(p => +p > 0); }
 function addCart(id, size, adds, qty) {
   const key = id + '|' + size + '|' + Object.keys(adds || {}).filter(k => adds[k]).sort().join(',');
   const c = { ...S.cart };
@@ -1287,9 +1301,29 @@ function renderStaff() {
         </label>` : `<div style="width:40px;height:40px;border-radius:11px;flex:none;${m.img ? `background:url(&quot;${esc(m.img)}&quot;) center/cover no-repeat` : 'background:var(--hov);display:flex;align-items:center;justify-content:center'};${off ? 'opacity:.4' : ''}"></div>`}
         <div style="flex:1;min-width:0">
           <div style="font:700 13px Manrope;${off ? 'opacity:.45;text-decoration:line-through' : ''}">${esc(m.n)}</div>
-          <div style="font:600 11px Manrope;color:var(--sub)">${cat} · ${m.p} ₽</div>
+          <div style="font:600 11px Manrope;color:var(--sub)">${cat} · ${noPrice(m) ? 'цены нет' : priceList(m).filter(p => p > 0).join(' / ') + ' ₽'}${(S.cfg.prices || {})[m.id] != null ? ' · правлено' : ''}</div>
         </div>
+        ${S.edPrice === m.id ? `<div data-key="pr-${m.id}" style="flex:1 0 100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--line2)">
+          ${(m.pv ? m.pv.map(x => x[0]) : ['цена']).map((lbl, i) => `<label style="display:flex;align-items:center;gap:6px;font:600 11.5px Manrope;color:var(--sub)">${esc(lbl)}
+            <input id="pr-${m.id}-${i}" inputmode="numeric" maxlength="5" value="${esc(String((S.edPriceF || [])[i] != null ? (S.edPriceF || [])[i] : ''))}" placeholder="${priceList(m)[i] || 0}" aria-label="Цена: ${esc(lbl)}" data-i="${act(e => { const v = [...(S.edPriceF || [])]; v[i] = e.target.value.replace(/[^\d]/g, '').slice(0, 5); setS({ edPriceF: v }); })}" style="width:74px;box-sizing:border-box;height:36px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--hov);color:var(--ink);font:700 12.5px Manrope;outline:none">
+          </label>`).join('')}
+          <div data-c="${act(() => {
+            // Поля могли заполнить не все — собираем плотный список по числу порций,
+            // пустое поле означает «оставить как есть».
+            const raw = S.edPriceF || [], n = (m.pv ? m.pv.length : 1);
+            const val = Array.from({ length: n }, (_, i) => (raw[i] === '' || raw[i] == null ? null : +raw[i]));
+            const prices = { ...(S.cfg.prices || {}) };
+            if (val.every(x => x == null)) delete prices[m.id];
+            else prices[m.id] = val.map((x, i) => (x == null ? priceList(m)[i] : x));
+            slog('Цена изменена: ' + m.n + ' · ' + staffName(), 'stock', true);
+            set({ cfg: { ...S.cfg, prices }, edPrice: null, edPriceF: null });
+            showToast('Цена обновлена');
+          })}" class="a98" role="button" tabindex="0" style="padding:9px 14px;border-radius:10px;background:${GG};color:var(--accInk);font:800 12px Manrope;cursor:pointer">Сохранить</div>
+          ${(S.cfg.prices || {})[m.id] != null ? `<div data-c="${act(() => { const prices = { ...(S.cfg.prices || {}) }; delete prices[m.id]; set({ cfg: { ...S.cfg, prices }, edPrice: null, edPriceF: null }); showToast('Вернули цену из меню'); })}" class="h-gold" role="button" tabindex="0" style="padding:9px 14px;border-radius:10px;border:1px solid var(--line);font:700 12px Manrope;cursor:pointer;color:var(--sub)">Как было</div>` : ''}
+          <div data-c="${act(() => setS({ edPrice: null, edPriceF: null }))}" role="button" tabindex="0" style="padding:9px 12px;font:700 12px Manrope;color:var(--sub);cursor:pointer">Отмена</div>
+        </div>` : ''}
         <div data-c="${act(() => { slog((off ? 'Позиция возвращена в меню: ' : 'Позиция скрыта: ') + m.n + ' · ' + staffName(), 'stock', true); set({ hidden: { ...S.hidden, [m.id]: !off } }); })}" style="padding:7px 11px;border-radius:9px;font:700 11px Manrope;cursor:pointer;user-select:none;${off ? 'background:var(--hov);color:var(--sub)' : 'background:rgba(111,191,138,.13);color:var(--ok)'}">${off ? 'Скрыт' : 'В меню'}</div>
+        <div data-c="${act(() => setS({ edPrice: S.edPrice === m.id ? null : m.id, edPriceF: (S.cfg.prices || {})[m.id] != null ? [].concat((S.cfg.prices || {})[m.id]).map(String) : [] }))}" class="h-gold" role="button" tabindex="0" title="Изменить цену" aria-label="Изменить цену: ${esc(m.n)}" style="padding:8px 11px;border-radius:10px;border:1px solid ${S.edPrice === m.id ? 'var(--goldT)' : 'var(--line)'};font:700 11.5px Manrope;cursor:pointer;color:var(--sub);flex:none">Цена</div>
         <div data-c="${act(() => setS({ edInfo: m.id, edInfoF: { ...itemInfo(m.id), allerg: [...(itemInfo(m.id).allerg || [])] } }))}" class="h-gold" title="Состав, калорийность, аллергены, 18+" style="padding:7px 10px;border-radius:9px;border:1px solid var(--line);font:700 11.5px Manrope;cursor:pointer;color:${itemInfo(m.id).ingr ? 'var(--sub2)' : 'var(--goldT)'}">Состав</div>
         ${S.custom.some(x => x.id === m.id) ? `<div data-c="${act(() => {
           // Вместе с товаром вычищаются все ссылки на него: избранное,
@@ -2277,7 +2311,7 @@ function renderApp() {
     const sizes = opts ? `
       <div style="font:700 13px Manrope;margin:18px 0 9px;animation:fadeUp .4s .2s ease both">${it.pv ? 'Порция' : 'Объём'}</div>
       <div style="display:flex;gap:8px;animation:fadeUp .4s .22s ease both">
-        ${opts.map((label, i) => `<div data-c="${act(() => setS({ pSize: i }))}" class="a95" style="flex:1;padding:11px 0;text-align:center;border-radius:11px;cursor:pointer;font:700 13px Manrope;transition:all .15s;${S.pSize === i ? `background:${GG};color:var(--accInk)` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('')}
+        ${opts.map((label, i) => `<div data-c="${act(() => setS({ pSize: i }))}" class="a95" title="${it.pv ? priceList(it)[i] + ' ₽' : ''}" style="flex:1;padding:11px 0;text-align:center;border-radius:11px;cursor:pointer;font:700 13px Manrope;transition:all .15s;${S.pSize === i ? `background:${GG};color:var(--accInk)` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('')}
       </div>` : '';
     const info = itemInfo(it.id);
     const infoBlock = (info.ingr || info.kcal !== '' || (info.allerg && info.allerg.length) || info.adult) ? `
@@ -2315,7 +2349,7 @@ function renderApp() {
         ${sizes}
         ${adds}
         ${infoBlock}
-        ${noPrice(it) ? `<div style="margin-top:22px;padding:14px 16px;border-radius:14px;background:var(--hov);font:600 12.5px/1.6 Manrope;color:var(--sub2);animation:fadeUp .4s .32s ease both">Эту позицию пока не заказать из приложения: на доске у неё нет цены. Спросите у бариста — и администратор проставит её в панели.</div>` : `
+        ${noPrice(it) ? `<div style="margin-top:22px;padding:14px 16px;border-radius:14px;background:var(--hov);font:600 12.5px/1.6 Manrope;color:var(--sub2);animation:fadeUp .4s .32s ease both">Эту позицию пока не заказать из приложения: на доске у неё нет цены. Спросите у бариста — администратор проставит цену в панели, в разделе «Меню и остатки».</div>` : `
         <div style="display:flex;gap:12px;margin-top:22px;animation:fadeUp .4s .32s ease both">
           <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:4px 8px">
             <div data-c="${act(() => setS({ pQty: Math.max(1, S.pQty - 1) }))}" style="width:34px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:800 19px Manrope;color:var(--goldT);user-select:none">−</div>
@@ -2436,7 +2470,7 @@ function renderApp() {
         <div style="flex:1;min-width:0">
           <div style="font:700 14px Manrope;display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(m.n)}${info.adult ? '<span style="font:800 10px Manrope;padding:1px 6px;border-radius:99px;border:1px solid #e08a7a;color:var(--bad)">18+</span>' : ''}${off ? '<span style="font:700 10px Manrope;padding:2px 7px;border-radius:99px;background:var(--hov);color:var(--sub)">Сегодня нет</span>' : ''}</div>
           <div style="font:600 11.5px Manrope;color:var(--sub);margin:2px 0 5px">${esc(m.v || (m.pv ? m.pv.map(x => x[0]).join(' · ') : '') || '—')}${info.kcal !== '' ? ' · ' + esc(String(info.kcal)) + ' ккал' : ''}</div>
-          <div style="font:800 14px Manrope;color:var(--goldT)">${noPrice(m) ? '<span style="font:700 12px Manrope;color:var(--sub)">Цена у стойки</span>' : (m.pv ? 'от ' + m.pv[0][1] : m.p) + ' ₽'}</div>
+          <div style="font:800 14px Manrope;color:var(--goldT)">${noPrice(m) ? '<span style="font:700 12px Manrope;color:var(--sub)">Цена у стойки</span>' : (m.pv ? 'от ' + Math.min(...priceList(m).filter(p => p > 0)) : priceList(m)[0]) + ' ₽'}</div>
         </div>
         ${off || noPrice(m) ? '' : `<div data-c="${act(() => { if (info.adult) { setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }); showToast('Напиток 18+ — подтвердите возраст в карточке'); return; } addCart(m.id, 0, {}, 1); showToast(m.n + ' — в заказе'); })}" class="a90" aria-label="В заказ" style="width:34px;height:34px;border-radius:11px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;font:800 20px/1 Manrope">+</div>`}
       </div>`;
