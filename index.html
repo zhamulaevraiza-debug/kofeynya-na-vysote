@@ -96,23 +96,87 @@ input::placeholder{color:var(--dim);opacity:1}
 // ===================== данные =====================
 const U = id => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=600&q=70`;
 const M = [
-  {id:'esp',cat:'coffee',n:'Эспрессо',v:'30 мл',p:120,img:U('photo-1510707577719-ae7c14805e3a'),d:'Плотный шот на свежей обжарке'},
-  {id:'amer',cat:'coffee',n:'Американо',v:'200 мл',p:150,img:U('photo-1551030173-122aabc4489c'),d:'Классика на каждый день',sz:1},
-  {id:'cap',cat:'coffee',n:'Капучино',v:'200 мл',p:200,img:U('photo-1572442388796-11668a67e53d'),d:'Классический капучино на основе эспрессо с молочной пеной',sz:1},
-  {id:'lat',cat:'coffee',n:'Латте',v:'300 мл',p:200,img:U('photo-1541167760496-1628856ab772'),d:'Нежный, с шелковистой пеной',sz:1},
-  {id:'flat',cat:'coffee',n:'Флэт уайт',v:'200 мл',p:200,img:U('photo-1497935586351-b67a49e012bf'),d:'Двойной шот и бархатное молоко',sz:1},
-  {id:'raf',cat:'coffee',n:'Раф классический',v:'300 мл',p:220,img:U('photo-1512568400610-62da28bc8a13'),d:'Сливки, ваниль, двойной шот',sz:1},
-  {id:'ice',cat:'drinks',n:'Айс латте',v:'300 мл',p:220,img:U('photo-1517959105821-eaf2591984ca'),d:'Холодный латте со льдом',sz:1},
-  {id:'lemon',cat:'drinks',n:'Лимонад домашний',v:'400 мл',p:180,img:U('photo-1513558161293-cdaf765ed2fd'),d:'Цитрус, мята, лёд'},
-  {id:'tea',cat:'drinks',n:'Чай манго',v:'400 мл',p:250,img:U('photo-1576092768241-dec231879fc3'),d:'Согревающий, с кусочками манго'},
-  {id:'cheese',cat:'dessert',n:'Чизкейк',v:'280 г',p:250,img:U('photo-1524351199678-941a58a3df50'),d:'Нью-Йорк, ягодный соус'},
-  {id:'honey',cat:'dessert',n:'Медовик',v:'150 г',p:240,img:U('photo-1571115177098-24ec42ed204d'),d:'По домашнему рецепту'},
-  {id:'sand',cat:'food',n:'Сэндвич с курицей',v:'220 г',p:240,img:U('photo-1528735602780-2552fd46c7af'),d:'Курица су-вид, зерновой хлеб'},
-  {id:'shaw',cat:'food',n:'Шаурма классическая',v:'350 г',p:250,img:U('photo-1662116765994-1e4200c43589'),d:'Курица, овощи, фирменный соус'},
-  {id:'cro',cat:'bakery',n:'Круассан',v:'80 г',p:120,img:U('photo-1555507036-ab1f4038808a'),d:'Сливочное масло 82%'},
-  {id:'ecl',cat:'bakery',n:'Эклер',v:'90 г',p:160,img:'https://images.pexels.com/photos/30461317/pexels-photo-30461317.jpeg?auto=compress&cs=tinysrgb&w=600',d:'Заварной крем, шоколад'}
+  {id:'esp2',cat:'coffee',n:'Двойной эспрессо',v:'60 мл',p:150,img:U('photo-1610889556528-9a770e32642f'),d:'Двойной шот на свежей обжарке'},
+  {id:'amer',cat:'coffee',n:'Американо',v:'200 мл',p:150,img:U('photo-1669872484166-e11b9638b50e'),d:'Эспрессо с горячей водой'},
+  {id:'cap',cat:'coffee',n:'Капучино',v:'',p:200,pv:[['200 мл',200],['300 мл',250]],img:U('photo-1593443320739-77f74939d0da'),d:'Эспрессо и молочная пена'},
+  {id:'lat',cat:'coffee',n:'Латте',v:'300 мл',p:300,img:U('photo-1534687941688-651ccaafbff8'),d:'Мягкий, с шелковистой пеной'},
+  {id:'flat',cat:'coffee',n:'Флэт уайт',v:'200 мл',p:200,img:U('photo-1509042239860-f550ce710b93'),d:'Двойной шот и бархатное молоко'},
+  {id:'choc',cat:'coffee',n:'Горячий шоколад',v:'200 мл',p:200,img:U('photo-1637572815755-c4b80092dce1'),d:'Густой, на горячем молоке'},
+  {id:'rafcar',cat:'coffee',n:'Раф карамельный',v:'300 мл',p:300,img:U('photo-1785546776711-48aa40ec197c'),d:'Кофе на сливках с карамелью'},
+  {id:'rafvan',cat:'coffee',n:'Раф ванильный',v:'300 мл',p:300,img:U('photo-1506372023823-741c83b836fe'),d:'Кофе на сливках с ванилью'},
+  {id:'rafban',cat:'coffee',n:'Раф банановый',v:'300 мл',p:300,img:U('photo-1685967836529-b0e8d6938227'),d:'Кофе на сливках с бананом'},
+  {id:'rafcit',cat:'coffee',n:'Раф цитрусовый',v:'300 мл',p:300,img:U('photo-1593231362449-aed8e71f1c2b'),d:'Кофе на сливках с цитрусом'},
+  {id:'rafras',cat:'coffee',n:'Раф малина-кокос',v:'300 мл',p:300,img:U('photo-1645783916385-1c99860a2a42'),d:'Кофе на сливках, малина и кокос'},
+  {id:'rafice',cat:'coffee',n:'Раф с банановым мороженым и солёной карамелью',v:'300 мл',p:300,img:U('photo-1785493911522-eb195e3dbfc7'),d:'Кофе на сливках с мороженым'},
+  {id:'teacher',cat:'tea',n:'Дикая вишня',v:'',p:80,pv:[['стакан',80],['чайник',250]],img:U('photo-1746384907520-a5877d77e793'),d:'Чёрный чай с вишней'},
+  {id:'teafruit',cat:'tea',n:'Наглый фрукт',v:'',p:80,pv:[['стакан',80],['чайник',250]],img:U('photo-1758705206938-a196ac3ae3bb'),d:'Фруктовый купаж'},
+  {id:'teaorlov',cat:'tea',n:'Граф Орлов',v:'',p:80,pv:[['стакан',80],['чайник',250]],img:U('photo-1674707429029-9de78da14b6b'),d:'Классический чёрный чай'},
+  {id:'teataiga',cat:'tea',n:'Таёжный сбор',v:'',p:80,pv:[['стакан',80],['чайник',250]],img:U('photo-1514733670139-4d87a1941d55'),d:'Травяной сбор'},
+  {id:'tearasp',cat:'tea',n:'Малиновый бархат',v:'',p:80,pv:[['стакан',80],['чайник',250]],img:U('photo-1781458665343-e1dcbd9d9a42'),d:'Чай с малиной'},
+  {id:'teaassam',cat:'tea',n:'Асам',v:'',p:80,pv:[['стакан',80],['чайник',250]],img:U('photo-1498604636225-6b87a314baa0'),d:'Индийский чёрный чай'},
+  {id:'teaearl',cat:'tea',n:'Эрл-грей с бергамотом',v:'',p:80,pv:[['стакан',80],['чайник',250]],img:U('photo-1605618826115-fb9e775cfb40'),d:'Чёрный чай с бергамотом'},
+  {id:'teamango',cat:'tea',n:'Чай манго-маракуйя',v:'',p:150,pv:[['стакан',150],['чайник',450]],img:U('photo-1562547256-2c5ee93b60b7'),d:'Фруктовый чай с манго'},
+  {id:'teaberry',cat:'tea',n:'Чай ягодный',v:'',p:150,pv:[['стакан',150],['чайник',450]],img:U('photo-1647894111425-da74951dfe10'),d:'Фруктовый чай с ягодами'},
+  {id:'teasea',cat:'tea',n:'Облепиховый чай',v:'',p:200,pv:[['стакан',200],['чайник',500]],img:U('photo-1605724841466-4b59296daf23'),d:'Горячий, с облепихой'},
+  {id:'gluh',cat:'tea',n:'Глинтвейн',v:'',p:200,pv:[['стакан',200],['чайник',500]],img:U('photo-1713686988081-fb65ec5ae995'),d:'Безалкогольный, со специями'},
+  {id:'icelat',cat:'cold',n:'Айс латте',v:'300 мл',p:300,img:U('photo-1517701550927-30cf4ba1dba5'),d:'Холодный латте со льдом'},
+  {id:'fresho',cat:'cold',n:'Фреш апельсиновый',v:'300 мл',p:300,img:U('photo-1600271886742-f049cd451bba'),d:'Свежевыжатый'},
+  {id:'fresha',cat:'cold',n:'Фреш яблочный',v:'300 мл',p:300,img:U('photo-1716834092653-bf887f1f29d6'),d:'Свежевыжатый'},
+  {id:'freshp',cat:'cold',n:'Фреш ананасовый',v:'300 мл',p:450,img:U('photo-1596392301391-e8622b210bd4'),d:'Свежевыжатый'},
+  {id:'urbpist',cat:'cold',n:'Урбеч фисташковый',v:'300 мл',p:300,img:U('photo-1761315413626-147d53ae9d42'),d:'Напиток на урбече'},
+  {id:'urbalm',cat:'cold',n:'Урбеч миндальный',v:'300 мл',p:300,img:U('photo-1601436423474-51738541c1b1'),d:'Напиток на урбече'},
+  {id:'urbdub',cat:'cold',n:'Урбеч дубайский',v:'300 мл',p:450,img:U('photo-1482930172332-2293d7138235'),d:'Напиток на урбече, дубайский вкус'},
+  {id:'tongran',cat:'cold',n:'Тоник гранатовый',v:'300 мл',p:300,img:U('photo-1602860637860-fa3d04533a07'),d:'Тоник со льдом'},
+  {id:'toncher',cat:'cold',n:'Тоник вишнёвый',v:'300 мл',p:300,img:U('photo-1560526860-1f0e56046c85'),d:'Тоник со льдом'},
+  {id:'tonpine',cat:'cold',n:'Тоник ананасовый',v:'300 мл',p:300,img:U('photo-1534353473418-4cfa6c56fd38'),d:'Тоник со льдом'},
+  {id:'tonener',cat:'cold',n:'Тоник на энергетике',v:'300 мл',p:300,img:U('photo-1643528987617-792cdbb81995'),d:'Бодрящий, со льдом'},
+  {id:'tonesp',cat:'cold',n:'Тоник эспрессо',v:'300 мл',p:300,img:U('photo-1610889556528-9a770e32642f'),d:'Эспрессо с тоником и льдом'},
+  {id:'limmango',cat:'cold',n:'Лимонад манго-маракуйя',v:'300 мл',p:300,img:U('photo-1546173159-315724a31696'),d:'Домашний лимонад'},
+  {id:'limberry',cat:'cold',n:'Лимонад ягодный',v:'300 мл',p:300,img:U('photo-1566739732978-7aade5d19832'),d:'Домашний лимонад'},
+  {id:'laguna',cat:'cold',n:'Лагуна',v:'300 мл',p:300,img:U('photo-1587888637140-849b25d80ef9'),d:'Освежающий коктейль'},
+  {id:'mojito',cat:'cold',n:'Мохито классический',v:'300 мл',p:300,img:U('photo-1653542772393-71ffa417b1c4'),d:'Лайм, мята, лёд'},
+  {id:'mojstr',cat:'cold',n:'Мохито клубничный',v:'300 мл',p:300,img:U('photo-1560508180-03f285f67ded'),d:'Клубника, мята, лёд'},
+  {id:'mojmango',cat:'cold',n:'Мохито манго-маракуйя',v:'300 мл',p:300,img:U('photo-1764403713624-44a80917851b'),d:'Манго, мята, лёд'},
+  {id:'milkstr',cat:'cold',n:'Милкшейк клубничный',v:'300 мл',p:300,img:U('photo-1579954115545-a95591f28bfc'),d:'Молочный коктейль'},
+  {id:'milkban',cat:'cold',n:'Милкшейк банановый',v:'300 мл',p:300,img:U('photo-1707219811295-0f283760668b'),d:'Молочный коктейль'},
+  {id:'smmango',cat:'cold',n:'Смузи манго-маракуйя',v:'300 мл',p:300,img:U('photo-1623065422902-30a2d299bbe4'),d:'Густой фруктовый смузи'},
+  {id:'smapple',cat:'cold',n:'Смузи яблоко-киви',v:'300 мл',p:300,img:U('photo-1610970881699-44a5587cabec'),d:'Густой фруктовый смузи'},
+  {id:'smmix',cat:'cold',n:'Смузи фруктовый микс',v:'300 мл',p:300,img:U('photo-1570696516188-ade861b84a49'),d:'Густой фруктовый смузи'},
+  {id:'shaw',cat:'fast',n:'Шаурма',v:'',p:150,img:U('photo-1760888548893-bc2f7e09e972'),d:'Классическая'},
+  {id:'shawh',cat:'fast',n:'Шаурма острая',v:'',p:150,img:U('photo-1529006557810-274b9b2fc783'),d:'С острым соусом'},
+  {id:'shawk',cat:'fast',n:'Шаурма с корейской морковью',v:'',p:180,img:U('photo-1699728088614-7d1d4277414b'),d:'С корейской морковью'},
+  {id:'shawf',cat:'fast',n:'Шаурма с картошкой фри',v:'',p:180,img:U('photo-1681072530653-db8fe2538631'),d:'С картошкой фри внутри'},
+  {id:'fries',cat:'fast',n:'Картошка фри',v:'',p:100,img:U('photo-1630384060421-cb20d0e0649d'),d:'Хрустящая'},
+  {id:'wedges',cat:'fast',n:'Картошка по-деревенски',v:'',p:120,img:U('photo-1633959639799-6d3f66e05710'),d:'Дольками, со специями'},
+  {id:'nugg',cat:'fast',n:'Наггетсы',v:'6 шт',p:130,img:U('photo-1768204039907-77a974159ef0'),d:'Куриные'},
+  {id:'sandch',cat:'fast',n:'Сэндвич с курицей',v:'',p:250,img:U('photo-1700937244987-92488ab2ada5'),d:'Куриное филе и овощи'},
+  {id:'sandtu',cat:'fast',n:'Сэндвич с индейкой',v:'',p:250,img:U('photo-1553909489-cd47e0907980'),d:'Индейка и овощи'},
+  {id:'bites',cat:'fast',n:'Байтсы',v:'',p:300,img:U('photo-1586793783658-261cddf883ef'),d:'Куриные кусочки в панировке'},
+  {id:'bitess',cat:'fast',n:'Байтсы в соусе',v:'',p:340,img:U('photo-1567620832903-9fc6debc209f'),d:'Куриные кусочки в соусе'},
+  {id:'wings5',cat:'fast',n:'Крылышки',v:'5 шт',p:250,img:U('photo-1637273484026-11d51fb64024'),d:'Куриные крылышки'},
+  {id:'wings8',cat:'fast',n:'Крылышки',v:'8 шт',p:390,img:U('photo-1637273484026-11d51fb64024'),d:'Куриные крылышки'},
+  {id:'wings16',cat:'fast',n:'Крылышки',v:'16 шт',p:690,img:U('photo-1637273484026-11d51fb64024'),d:'Куриные крылышки'},
+  {id:'wingss5',cat:'fast',n:'Крылья в соусе',v:'5 шт',p:290,img:U('photo-1608039755401-742074f0548d'),d:'В фирменном соусе'},
+  {id:'wingss8',cat:'fast',n:'Крылья в соусе',v:'8 шт',p:430,img:U('photo-1608039755401-742074f0548d'),d:'В фирменном соусе'},
+  {id:'wingss16',cat:'fast',n:'Крылья в соусе',v:'16 шт',p:730,img:U('photo-1608039755401-742074f0548d'),d:'В фирменном соусе'},
+  {id:'strips2',cat:'fast',n:'Стрипсы',v:'2 шт',p:130,img:U('photo-1619019187211-adf2f6119afd'),d:'Куриные полоски в панировке'},
+  {id:'strips5',cat:'fast',n:'Стрипсы',v:'5 шт',p:280,img:U('photo-1619019187211-adf2f6119afd'),d:'Куриные полоски в панировке'},
+  {id:'strips7',cat:'fast',n:'Стрипсы',v:'7 шт',p:370,img:U('photo-1619019187211-adf2f6119afd'),d:'Куриные полоски в панировке'},
+  {id:'bowl',cat:'fast',n:'Ямми Боул',v:'',p:350,img:U('photo-1682566509568-ded8649b26bb'),d:'Боул с курицей'},
+  {id:'gyro',cat:'fast',n:'Гиро на тарелке',v:'со стрипсами',p:350,img:U('photo-1603360946369-dc9bb6258143'),d:'Подача на тарелке'},
+  {id:'combo',cat:'fast',n:'Комбо',v:'шаурма, фри, сок и соус',p:350,img:U('photo-1695427038693-7b055c1a63e3'),d:'Полный набор'},
+  {id:'caesar',cat:'fast',n:'Цезарь',v:'',p:250,img:U('photo-1607532941433-304659e8198a'),d:'Салат с курицей'},
+  {id:'salad',cat:'fast',n:'Свежий салат',v:'',p:200,img:U('photo-1540420773420-3366772f4999'),d:'Овощи и зелень'},
+  {id:'sauce',cat:'fast',n:'Соусы',v:'сырный, томатный, кисло-сладкий',p:35,img:U('photo-1563599175592-c58dc214deff'),d:'На выбор'},
+  {id:'snick',cat:'snack',n:'Сникерс',v:'',p:65,pv:[['обычный',65],['большой',75]],img:U('photo-1623660053975-cf75a8be0908'),d:'Шоколадный батончик'},
+  {id:'mars',cat:'snack',n:'Марс',v:'',p:60,pv:[['обычный',60],['большой',70]],img:U('photo-1627647227768-705244233b56'),d:'Шоколадный батончик'},
+  {id:'bounty',cat:'snack',n:'Баунти',v:'',p:70,pv:[['обычный',70],['большой',80]],img:U('photo-1622839144198-63bb83ab8722'),d:'Шоколадный батончик'},
+  {id:'twix',cat:'snack',n:'Твикс',v:'',p:65,pv:[['обычный',65],['большой',75]],img:U('photo-1772986229956-ea224a6b79de'),d:'Шоколадный батончик'},
+  {id:'cake',cat:'snack',n:'Пирожное',v:'',p:0,img:U('photo-1517427294546-5aa121f68e8a'),d:'Свежее, с витрины'},
+  {id:'cookie',cat:'snack',n:'Печенье злаковое',v:'',p:0,img:U('photo-1598839950984-034f6dc7b495'),d:'Злаковое печенье'},
+  {id:'nuts',cat:'snack',n:'Орешки',v:'',p:0,img:U('photo-1626697556426-8a55a8af4999'),d:'Орешки к чаю'},
 ];
-const CATS = [['coffee','Кофе'],['drinks','Напитки'],['dessert','Десерты'],['food','Еда'],['bakery','Выпечка']];
+const CATS = [['coffee','Кофе'],['tea','Чай'],['cold','Холодные'],['fast','Фастфуд'],['snack','К чаю']];
 const SIZES = ['200 мл','300 мл','400 мл'];
 const GALLERY = [
   {img:'assets/gal-tower.jpg',n:'Боевая башня',r:'Шатойский район',pos:'50% 50%',kb:'15s',delay:'.45s'},
@@ -364,22 +428,22 @@ const mk = (num, st, ago, lines, client, phone, pay, type, by) => {
   return { num, st, time: hhmm(ts), tss, hist, lines, client, phone, pay, type, by, total: lines.reduce((a, l) => a + l[2], 0) };
 };
 const DEMO_ORDERS = [
-  mk(1263,'new',1,[['Капучино','300 мл',240]],'Ахмед','+7 928 431-05-19',0,0),
-  mk(1262,'new',3,[['Раф классический','300 мл',220],['Эклер','90 г',160]],'Лиза','+7 963 720-88-41',1,0),
-  mk(1261,'new',5,[['Американо','200 мл',150],['Круассан','1 шт',120]],'Ислам','+7 938 114-62-07',2,1),
-  mk(1260,'new',7,[['Чай манго','400 мл',250]],'Мадина','+7 964 003-77-52',0,1),
-  mk(1259,'new',9,[['Латте','300 мл',200]],'Ахмед','+7 928 431-05-19',1,0),
-  mk(1258,'work',14,[['Капучино','300 мл',240],['Чизкейк','280 г',250]],'Тамара','+7 906 285-19-30',0,0,'Ахмад'),
-  mk(1257,'work',10,[['Латте','300 мл',200],['Круассан','1 шт',120],['Айс латте','300 мл',220]],'Ислам','+7 938 114-62-07',1,0,'Ахмад'),
+  mk(1263,'new',1,[['Капучино','300 мл',250]],'Ахмед','+7 928 431-05-19',0,0),
+  mk(1262,'new',3,[['Раф карамельный','300 мл',300],['Шаурма','',150]],'Лиза','+7 963 720-88-41',1,0),
+  mk(1261,'new',5,[['Американо','200 мл',150],['Картошка фри','',100]],'Ислам','+7 938 114-62-07',2,1),
+  mk(1260,'new',7,[['Чай манго-маракуйя','чайник',450]],'Мадина','+7 964 003-77-52',0,1),
+  mk(1259,'new',9,[['Латте','300 мл',300]],'Ахмед','+7 928 431-05-19',1,0),
+  mk(1258,'work',14,[['Капучино','300 мл',250],['Крылышки','8 шт',390]],'Тамара','+7 906 285-19-30',0,0,'Ахмад'),
+  mk(1257,'work',10,[['Латте','300 мл',300],['Шаурма с картошкой фри','',180],['Айс латте','300 мл',300]],'Ислам','+7 938 114-62-07',1,0,'Ахмад'),
   mk(1256,'work',7,[['Флэт уайт','200 мл',200]],'Зара','+7 967 540-21-88',2,1,'Муса'),
-  mk(1255,'ready',32,[['Медовик','150 г',240]],'Лиза','+7 963 720-88-41',0,0,'Ахмад'),
-  mk(1254,'done',48,[['Эспрессо','30 мл',120]],'Мадина','+7 964 003-77-52',1,1,'Муса')
+  mk(1255,'ready',32,[['Мохито классический','300 мл',300]],'Лиза','+7 963 720-88-41',0,0,'Ахмад'),
+  mk(1254,'done',48,[['Двойной эспрессо','60 мл',150]],'Мадина','+7 964 003-77-52',1,1,'Муса')
 ];
 // Лента событий панели: при первом запуске восполняется из демо-заказов
 const SEED_SNOTIFS = [
   ...DEMO_ORDERS.filter(o => o.st === 'new').map(o => ({ text: 'Новый заказ №' + o.num + ' · ' + o.client, time: o.time, kind: 'order' })),
   { text: 'Заказ №1255 готов — ожидает выдачи', time: '10:14', kind: 'ready' },
-  { text: 'Остаток «Медовик» ниже 5 порций', time: '09:50', kind: 'stock' },
+  { text: 'Остаток «Крылышки» ниже 5 порций', time: '09:50', kind: 'stock' },
   { text: 'Смена открыта: Ахмад, Муса', time: '09:00', kind: 'shift' }
 ];
 
@@ -436,7 +500,7 @@ const S = {
   cards: sv.cards || [], mainCard: sv.mainCard || 0, addingCard: false,
   ncNum: '', ncExp: '', ncCvc: '',
   bookings: (Array.isArray(sv.bookings) ? sv.bookings : []).map(normalizeBooking), bkOpen: false, bkDate: 0, bkTime: '', bkGuests: 2,
-  cart: {}, favs: sv.favs || { cheese: 1 }, toast: '', lastOrder: null, orderType: 0, sel: 1257, sTab: 'work',
+  cart: {}, favs: sv.favs || { cap: 1 }, toast: '', lastOrder: null, orderType: 0, sel: 1257, sTab: 'work',
   sview: 'orders', npName: '', npPrice: '', npCat: 'coffee', npImg: '', pay: 0,
   staffId: sv.staffId || null, offShift: sv.offShift || {},
   staff: Array.isArray(sv.staff) && sv.staff.length ? sv.staff : DEFAULT_STAFF,
@@ -906,10 +970,21 @@ function item(id) { return [...M, ...S.custom].find(m => m.id === id); }
 function unitPrice(id, size, adds) {
   const it = item(id);
   if (!it) return 0;
-  let p = it.p + (it.sz ? (size === 1 ? 40 : size === 2 ? 80 : 0) : 0);
+  let p;
+  if (it.pv) p = (it.pv[Math.min(Math.max(+size || 0, 0), it.pv.length - 1)] || it.pv[0])[1];
+  else p = it.p + (it.sz ? (size === 1 ? 40 : size === 2 ? 80 : 0) : 0);
   p += Object.keys(adds || {}).filter(k => adds[k]).length * 50;
   return p;
 }
+// Подпись порции в корзине, чеке и истории: вариант с доски, объём или «—».
+function sizeLabel(it, size) {
+  if (!it) return '';
+  if (it.pv) return (it.pv[Math.min(Math.max(+size || 0, 0), it.pv.length - 1)] || it.pv[0])[0];
+  return it.sz ? SIZES[size] : it.v;
+}
+// Пирожное, печенье и орешки на доске без цены — их не заказать из приложения,
+// пока администратор не проставит цену; выдумывать её нельзя.
+function noPrice(it) { return !!it && !it.pv && !(+it.p > 0); }
 function addCart(id, size, adds, qty) {
   const key = id + '|' + size + '|' + Object.keys(adds || {}).filter(k => adds[k]).sort().join(',');
   const c = { ...S.cart };
@@ -2198,10 +2273,11 @@ function renderApp() {
   if (S.product) {
     const it = item(S.product);
     const unit = unitPrice(it.id, S.pSize, S.pAdds);
-    const sizes = it.sz ? `
-      <div style="font:700 13px Manrope;margin:18px 0 9px;animation:fadeUp .4s .2s ease both">Объём</div>
+    const opts = it.pv ? it.pv.map(x => x[0]) : it.sz ? SIZES : null;
+    const sizes = opts ? `
+      <div style="font:700 13px Manrope;margin:18px 0 9px;animation:fadeUp .4s .2s ease both">${it.pv ? 'Порция' : 'Объём'}</div>
       <div style="display:flex;gap:8px;animation:fadeUp .4s .22s ease both">
-        ${SIZES.map((label, i) => `<div data-c="${act(() => setS({ pSize: i }))}" class="a95" style="flex:1;padding:11px 0;text-align:center;border-radius:11px;cursor:pointer;font:700 13px Manrope;transition:all .15s;${S.pSize === i ? `background:${GG};color:var(--accInk)` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('')}
+        ${opts.map((label, i) => `<div data-c="${act(() => setS({ pSize: i }))}" class="a95" style="flex:1;padding:11px 0;text-align:center;border-radius:11px;cursor:pointer;font:700 13px Manrope;transition:all .15s;${S.pSize === i ? `background:${GG};color:var(--accInk)` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('')}
       </div>` : '';
     const info = itemInfo(it.id);
     const infoBlock = (info.ingr || info.kcal !== '' || (info.allerg && info.allerg.length) || info.adult) ? `
@@ -2212,7 +2288,7 @@ function renderApp() {
         ${info.allerg && info.allerg.length ? `<div style="font:600 12px/1.5 Manrope;color:var(--bad);margin-top:6px">Аллергены: ${info.allerg.map(c => esc(ALLERGEN_LABEL[c] || c)).join(', ')}</div>` : ''}
         ${info.adult ? `<div data-c="${act(() => setS({ adultOk: !S.adultOk }))}" style="display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer"><div style="width:19px;height:19px;border-radius:6px;flex:none;box-sizing:border-box;${S.adultOk ? `background:${GG};box-shadow:inset 0 0 0 4px var(--ph)` : 'border:2px solid var(--bdr)'}"></div><div style="font:700 12.5px Manrope">Мне есть 18 лет — тонизирующий напиток 18+</div></div>` : ''}
       </div>` : '';
-    const adds = (it.cat === 'coffee' || it.cat === 'drinks') ? `
+    const adds = (it.cat === 'coffee' || it.cat === 'cold') ? `
       <div style="font:700 13px Manrope;margin:18px 0 9px;animation:fadeUp .4s .26s ease both">Добавки</div>
       <div style="display:grid;gap:8px;animation:fadeUp .4s .28s ease both">
         ${[['syr','Сироп'],['milk','Молоко без лактозы']].map(([k, nm]) => `
@@ -2234,11 +2310,12 @@ function renderApp() {
       </div>
       <div style="margin:0 12px 12px;padding:20px 18px 18px;border-radius:28px;background:var(--card);border:1px solid var(--line);box-shadow:0 -20px 50px -30px rgba(0,0,0,.8);animation:sheet .5s cubic-bezier(.2,.8,.3,1) both">
         <div style="font:600 25px 'Cormorant Garamond',serif;animation:fadeUp .4s .05s ease both">${esc(it.n)}</div>
-        <div style="font:800 19px Manrope;color:var(--goldT);margin:6px 0 8px;animation:fadeUp .4s .1s ease both">${unit} ₽</div>
+        <div style="font:800 19px Manrope;color:var(--goldT);margin:6px 0 8px;animation:fadeUp .4s .1s ease both">${noPrice(it) ? '<span style="font:700 14px Manrope;color:var(--sub)">Цену уточните у бариста</span>' : unit + ' ₽'}</div>
         <div style="font:500 13.5px/1.6 Manrope;color:var(--sub);animation:fadeUp .4s .15s ease both">${esc(it.d)}</div>
         ${sizes}
         ${adds}
         ${infoBlock}
+        ${noPrice(it) ? `<div style="margin-top:22px;padding:14px 16px;border-radius:14px;background:var(--hov);font:600 12.5px/1.6 Manrope;color:var(--sub2);animation:fadeUp .4s .32s ease both">Эту позицию пока не заказать из приложения: на доске у неё нет цены. Спросите у бариста — и администратор проставит её в панели.</div>` : `
         <div style="display:flex;gap:12px;margin-top:22px;animation:fadeUp .4s .32s ease both">
           <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:4px 8px">
             <div data-c="${act(() => setS({ pQty: Math.max(1, S.pQty - 1) }))}" style="width:34px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:800 19px Manrope;color:var(--goldT);user-select:none">−</div>
@@ -2249,7 +2326,7 @@ function renderApp() {
             if (!item(it.id) || S.hidden[it.id]) { showToast('Позиции временно нет в меню'); setS({ product: null }); return; }
             if (info.adult && !S.adultOk) { showToast('Подтвердите возраст — напиток 18+'); return; } addCart(it.id, S.pSize, S.pAdds, S.pQty); setS({ product: null, tab: 'order' }); showToast(it.n + ' — в заказе');
           })}" class="a98" style="flex:1;height:48px;border-radius:13px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;font:800 14.5px Manrope;cursor:pointer;box-shadow:0 14px 28px -14px rgba(var(--accRGB),.8)">В корзину · ${unit * S.pQty} ₽</div>
-        </div>
+        </div>`}
       </div>
     </div>`;
   } else if (S.tab === 'home') {
@@ -2272,7 +2349,7 @@ function renderApp() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${SVG.cat[k]}</svg>
         <div style="font:600 10.5px Manrope;color:var(--sub2)">${label}</div>
       </div>`).join('');
-    const popular = ['cap', 'cheese', 'ice'].map(id => item(id)).filter(it => it && !S.hidden[it.id]).map(it => {
+    const popular = ['cap', 'shaw', 'mojito'].map(id => item(id)).filter(it => it && !S.hidden[it.id]).map(it => {
       const id = it.id;
       const open = act(() => setS({ product: id, pQty: 1, pSize: 0, pAdds: {} }));
       const favTap = act(() => { const f = { ...S.favs }; f[id] ? delete f[id] : f[id] = 1; set({ favs: f }); });
@@ -2315,12 +2392,12 @@ function renderApp() {
       ${renderPlayerPanel()}
       ${notifPanel}
       <div style="font:600 15px Manrope;color:var(--sub2);margin:14px 0 14px">${S.user && S.user.name ? greet + ', ' + esc(S.user.name) + '! ☕' : greet + '! ☕'}</div>
-      <div data-c="${act(() => setS({ tab: 'menu', cat: 'bakery' }))}" style="position:relative;border-radius:20px;overflow:hidden;height:190px;cursor:pointer;animation:fadeUp .45s ease both;box-shadow:0 22px 44px -24px rgba(0,0,0,.55)">
-        <img src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=800&q=70" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kenburns 14s ease-in-out infinite alternate">
+      <div data-c="${act(() => setS({ tab: 'menu', cat: 'coffee' }))}" style="position:relative;border-radius:20px;overflow:hidden;height:190px;cursor:pointer;animation:fadeUp .45s ease both;box-shadow:0 22px 44px -24px rgba(0,0,0,.55)">
+        <img src="https://images.unsplash.com/photo-1534687941688-651ccaafbff8?auto=format&fit=crop&w=800&q=70" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kenburns 14s ease-in-out infinite alternate">
         <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(24,20,15,.94) 26%,rgba(24,20,15,.2))"></div>
         <div style="position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 20px;box-sizing:border-box">
           <div style="font:700 10px Manrope;letter-spacing:.22em;text-transform:uppercase;color:#e3c48b">Акция</div>
-          <div style="font:800 20px/1.25 Manrope;max-width:240px;color:#f2ecdf">${S.cfg.disc > 0 ? '−' + S.cfg.disc + '% на каждый заказ в приложении' : 'Свежая выпечка каждое утро'}</div>
+          <div style="font:800 20px/1.25 Manrope;max-width:240px;color:#f2ecdf">${S.cfg.disc > 0 ? '−' + S.cfg.disc + '% на каждый заказ в приложении' : 'Кофе, чай и фастфуд с видом на горы'}</div>
           <div style="font:600 13px Manrope;color:#b8ad9c">Скидка видна в корзине</div>
           <div style="margin-top:9px;display:inline-flex;align-self:flex-start;padding:10px 18px;border-radius:11px;background:${GG};color:var(--accInk);font:800 13px Manrope;box-shadow:0 10px 22px -10px rgba(var(--accRGB),.7)">Подробнее</div>
         </div>
@@ -2358,10 +2435,10 @@ function renderApp() {
         <div style="${circleImg(m.img, 58, '50%', ';border:2px solid var(--line)')}"></div>
         <div style="flex:1;min-width:0">
           <div style="font:700 14px Manrope;display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(m.n)}${info.adult ? '<span style="font:800 10px Manrope;padding:1px 6px;border-radius:99px;border:1px solid #e08a7a;color:var(--bad)">18+</span>' : ''}${off ? '<span style="font:700 10px Manrope;padding:2px 7px;border-radius:99px;background:var(--hov);color:var(--sub)">Сегодня нет</span>' : ''}</div>
-          <div style="font:600 11.5px Manrope;color:var(--sub);margin:2px 0 5px">${esc(m.v || '—')}${info.kcal !== '' ? ' · ' + esc(String(info.kcal)) + ' ккал' : ''}</div>
-          <div style="font:800 14px Manrope;color:var(--goldT)">${m.p} ₽</div>
+          <div style="font:600 11.5px Manrope;color:var(--sub);margin:2px 0 5px">${esc(m.v || (m.pv ? m.pv.map(x => x[0]).join(' · ') : '') || '—')}${info.kcal !== '' ? ' · ' + esc(String(info.kcal)) + ' ккал' : ''}</div>
+          <div style="font:800 14px Manrope;color:var(--goldT)">${noPrice(m) ? '<span style="font:700 12px Manrope;color:var(--sub)">Цена у стойки</span>' : (m.pv ? 'от ' + m.pv[0][1] : m.p) + ' ₽'}</div>
         </div>
-        ${off ? '' : `<div data-c="${act(() => { if (info.adult) { setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }); showToast('Напиток 18+ — подтвердите возраст в карточке'); return; } addCart(m.id, 0, {}, 1); showToast(m.n + ' — в заказе'); })}" class="a90" aria-label="В заказ" style="width:34px;height:34px;border-radius:11px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;font:800 20px/1 Manrope">+</div>`}
+        ${off || noPrice(m) ? '' : `<div data-c="${act(() => { if (info.adult) { setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }); showToast('Напиток 18+ — подтвердите возраст в карточке'); return; } addCart(m.id, 0, {}, 1); showToast(m.n + ' — в заказе'); })}" class="a90" aria-label="В заказ" style="width:34px;height:34px;border-radius:11px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;font:800 20px/1 Manrope">+</div>`}
       </div>`;
     }).join('');
     screen = `
@@ -2524,7 +2601,7 @@ function renderApp() {
         const it = item(x.id);
         const up = unitPrice(x.id, x.size, x.adds);
         const addsArr = Object.keys(x.adds || {}).filter(k => x.adds[k]);
-        const v = (it.sz ? SIZES[x.size] : it.v) + (addsArr.length ? ' · ' + addsArr.map(a => a === 'syr' ? 'сироп' : 'б/лактозы').join(', ') : '');
+        const v = (sizeLabel(it, x.size) || '') + (addsArr.length ? ' · ' + addsArr.map(a => a === 'syr' ? 'сироп' : 'б/лактозы').join(', ') : '');
         return `
         <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:11px 12px;animation:fadeUp .35s ease both">
           <div style="width:52px;height:52px;border-radius:13px;flex:none;background:url(&quot;${esc(it.img)}&quot;) center/cover no-repeat"></div>
@@ -2590,7 +2667,7 @@ function renderApp() {
         if (S.cfg.onlinePay && S.pay === 0 && S.cards.length === 0) { showToast('Добавьте карту в профиле или выберите другой способ оплаты'); return; }
         const num = allocOrderNum();
         const clientName = S.user && S.user.name ? S.user.name : 'Гость';
-        const lines = es.map(([, x]) => { const it = item(x.id); return [it.n + (x.qty > 1 ? ' ×' + x.qty : ''), it.sz ? SIZES[x.size] : it.v, unitPrice(x.id, x.size, x.adds) * x.qty]; });
+        const lines = es.map(([, x]) => { const it = item(x.id); return [it.n + (x.qty > 1 ? ' ×' + x.qty : ''), sizeLabel(it, x.size), unitPrice(x.id, x.size, x.adds) * x.qty]; });
         const ids = es.map(([, x]) => ({ id: x.id, size: x.size, adds: x.adds, qty: x.qty }));
         const s2 = es.reduce((a, [, x]) => a + unitPrice(x.id, x.size, x.adds) * x.qty, 0);
         set({
