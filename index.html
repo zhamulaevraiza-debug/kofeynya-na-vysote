@@ -698,7 +698,7 @@ function trackSrc(t) {
   if (!t.file) return Promise.reject(new Error('нет ссылки'));
   return audioBlob(t.id).then(b => {
     if (!b) throw new Error('файла нет на этом устройстве');
-    audioUrls[t.id] = URL.createObjectURL(b);
+    if (!audioUrls[t.id]) audioUrls[t.id] = URL.createObjectURL(b);
     return audioUrls[t.id];
   });
 }
@@ -711,10 +711,26 @@ function ensurePlayable() {
   const l = playlist(), gone = !l.some(t => t.id === S.pl.id);
   if ((gone || (S.screen !== 'staff' && !playerOn())) && !audioEl.paused) stopAudio();
   if (gone && S.pl.id) Object.assign(S.pl, { id: '', t: 0, dur: 0 });
+  dropStaleAudioUrls();
 }
+const audioPending = {};
 function prefetchAudio() {
   playlist().forEach(t => {
-    if (t.file && !audioUrls[t.id]) audioBlob(t.id).then(b => { if (b) audioUrls[t.id] = URL.createObjectURL(b); }).catch(() => {});
+    if (!t.file || audioUrls[t.id] || audioPending[t.id]) return;
+    audioPending[t.id] = 1;
+    audioBlob(t.id)
+      .then(b => { if (b && !audioUrls[t.id]) audioUrls[t.id] = URL.createObjectURL(b); })
+      .catch(() => {})
+      .then(() => { delete audioPending[t.id]; });
+  });
+}
+// Дорожку могли удалить в соседней вкладке — тогда ссылка на её файл здесь уже
+// никому не нужна и держит память до перезагрузки.
+function dropStaleAudioUrls() {
+  const live = {};
+  playlist().forEach(t => { live[t.id] = 1; });
+  Object.keys(audioUrls).forEach(id => {
+    if (!live[id]) { URL.revokeObjectURL(audioUrls[id]); delete audioUrls[id]; }
   });
 }
 function startSrc(src, go, restart) {
