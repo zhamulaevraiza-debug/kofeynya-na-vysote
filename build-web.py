@@ -158,8 +158,16 @@ def main():
 
     left = re.findall(r'https://images\.(?:unsplash|pexels)\.com/[^"\'`)\s]*', html)
     left = [x for x in left if '${' not in x]
-    if left or 'assets/' in html:
-        sys.exit('остались внешние ссылки: %s' % set(left + (['assets/'] if 'assets/' in html else [])))
+    # Музыку не вшиваем: дорожки весят мегабайты, и одним файлом их не раздать.
+    # Копия открывается без плейлиста кофейни — плеер покажет пустой список.
+    # Считаем только настоящие ссылки — в кавычках или в url(); упоминания пути
+    # в подсказках и комментариях к сборке отношения не имеют.
+    KNOWN = {"'assets/audio/playlist.json"}   # плейлист остаётся ссылкой (кавычка входит в совпадение)
+    rest = set(re.findall(r'''["'(]assets/[\w./-]+''', html)) - KNOWN
+    if left or rest:
+        sys.exit('остались внешние ссылки: %s' % (set(left) | rest))
+    if 'assets/audio/playlist.json' in html:
+        print('  музыка не вшита: в этой копии плейлист кофейни недоступен')
 
     anchor = "'use strict';\n"
     html = html.replace(anchor, anchor + table, 1)

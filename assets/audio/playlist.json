@@ -1,0 +1,10 @@
+[
+ {
+  "id": "knv-morning",
+  "title": "Утро на высоте",
+  "artist": "Кофейня на высоте",
+  "url": "assets/audio/morning.mp3",
+  "cover": "assets/audio/cover-morning.jpg",
+  "dur": 80
+ }
+]

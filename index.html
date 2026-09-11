@@ -38,6 +38,16 @@ input::placeholder{color:var(--dim);opacity:1}
 @keyframes popc{0%{transform:translate(-50%,-50%) scale(.7);opacity:0}70%{transform:translate(-50%,-50%) scale(1.05)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
 @keyframes sheet{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
 @keyframes zoomIn{from{transform:scale(1.1)}to{transform:scale(1)}}
+/* Пластинка крутится, пока идёт дорожка. Пауза останавливает её на месте: смена
+   класса не перезапускает анимацию, в отличие от смены inline-стиля. */
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.knv-disc{animation:spin 16s linear infinite}
+.knv-disc.pz{animation-play-state:paused}
+.knv-vol{-webkit-appearance:none;appearance:none;height:20px;background:transparent;cursor:pointer}
+.knv-vol::-webkit-slider-runnable-track{height:4px;border-radius:99px;background:var(--line)}
+.knv-vol::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;margin-top:-5.5px;border:0;border-radius:50%;background:var(--acc)}
+.knv-vol::-moz-range-track{height:4px;border-radius:99px;background:var(--line)}
+.knv-vol::-moz-range-thumb{width:15px;height:15px;border:0;border-radius:50%;background:var(--acc)}
 
 /* Стеклянные поверхности: панели задают фон через var(--card), поэтому размытие
    подложки навешивается одним правилом, а не правкой каждого инлайнового стиля. */
@@ -194,6 +204,122 @@ function renderThemePanel() {
   </div>`;
 }
 
+// ---------- плеер: кнопка в шапке, пластинка и карточка на два режима ----------
+const PL_ICO = {
+  play: '<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 4.6l12 7.4-12 7.4z"></path></svg>',
+  pause: '<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 4.6h4.2v14.8H6.6zM13.2 4.6h4.2v14.8h-4.2z"></path></svg>',
+  prev: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2.5v14H6zM19 5v14l-9.5-7z"></path></svg>',
+  next: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.5 5H18v14h-2.5zM5 5l9.5 7L5 19z"></path></svg>',
+  note: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 17V5l10-2v12"></path><circle cx="6.4" cy="17.4" r="2.6"></circle><circle cx="16.4" cy="15.4" r="2.6"></circle></svg>',
+  disc: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="2.6"></circle></svg>',
+  list: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>',
+  vol: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9.5h3L12 6v12l-4-3.5H5z"></path><path d="M15.6 9.6a3.6 3.6 0 0 1 0 4.8"></path></svg>'
+};
+// Круг дорожки: обложка, а без неё — тёплый градиент на цвете темы.
+function trackFace(t, size) {
+  return t && t.cover ? circleImg(t.cover, size, '50%')
+    : 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;flex:none;background:radial-gradient(circle at 32% 28%,rgba(var(--accRGB),.42),var(--hov) 62%)';
+}
+// Пластинка: обложка под бороздками, этикетка и отверстие по центру. Крутится,
+// пока идёт дорожка, — этим же кружком отмечена кнопка в шапке.
+function vinyl(t, size) {
+  const label = Math.round(size * 0.34), hole = Math.max(5, Math.round(size * 0.06));
+  const big = size >= 90;
+  return `<div data-key="pl-disc-${size}" class="knv-disc${S.pl.playing ? '' : ' pz'}" style="${trackFace(t, size)};position:relative;box-shadow:0 16px 34px -18px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.14)">
+    <div style="position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgba(0,0,0,.22) 0 1px,rgba(255,255,255,.05) 1px 3px);opacity:.45"></div>
+    <div style="position:absolute;left:50%;top:50%;width:${label}px;height:${label}px;margin:${-label / 2}px 0 0 ${-label / 2}px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--goldT)">
+      <div style="width:${hole}px;height:${hole}px;border-radius:50%;background:var(--ph);border:1px solid var(--line)"></div>
+      ${big && !(t && t.cover) ? `<div style="position:absolute;bottom:-34px;color:var(--dim)">${PL_ICO.note}</div>` : ''}
+    </div>
+  </div>`;
+}
+// Кнопка рядом с выбором темы: тот же кружок пластинки, и он крутится, пока играет.
+function playerBtn() {
+  if (!playerOn()) return '';
+  const t = curTrack();
+  return `<div data-c="${act(() => setS({ plOpen: !S.plOpen, themeOpen: false, notifOpen: false }))}" class="h-gold" tabindex="0" role="button" title="Музыка кофейни" aria-label="Музыка кофейни" aria-expanded="${!!S.plOpen}" style="width:40px;height:40px;border-radius:50%;border:1px solid ${S.plOpen ? 'var(--goldT)' : 'var(--bdr)'};display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">${vinyl(t, 24)}</div>`;
+}
+// Шапка карточки: подпись и переключатель режимов «Пластинка» / «Список».
+function playerHead() {
+  const seg = (mode, icon, label) => {
+    const on = S.pl.mode === mode;
+    return `<div data-c="${act(() => setPl({ mode }))}" class="h-gold" role="tab" tabindex="0" aria-selected="${on}" title="${label}" aria-label="Режим: ${label}" style="width:31px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid ${on ? 'var(--goldT)' : 'var(--line)'};background:${on ? 'var(--hov)' : 'transparent'};color:${on ? 'var(--goldT)' : 'var(--sub)'}">${icon}</div>`;
+  };
+  return `<div style="display:flex;align-items:center;gap:8px;margin:2px 2px 11px">
+    <div style="flex:1;min-width:0;font:700 11px Manrope;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)">Музыка кофейни</div>
+    <div role="tablist" aria-label="Вид плеера" style="display:flex;gap:5px;flex:none">${seg('disc', PL_ICO.disc, 'Пластинка')}${seg('list', PL_ICO.list, 'Список')}</div>
+  </div>`;
+}
+function playerCard() {
+  const list = playlist();
+  if (!list.length) return `<div style="font:600 12px/1.6 Manrope;color:var(--sub);padding:6px 4px 4px">Дорожек пока нет. Их добавляет администратор в панели, раздел «Музыка».</div>`;
+  const t = curTrack();
+  const d = S.pl.dur || t.dur || 0;
+  const pos = Math.min(S.pl.t || 0, d || S.pl.t || 0);
+  const ctl = (icon, label, tap, big) => `<div data-c="${tap}" class="a90" role="button" tabindex="0" title="${label}" aria-label="${label}" style="width:${big ? 52 : 40}px;height:${big ? 52 : 40}px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;${big ? 'background:var(--acc);color:var(--accInk);box-shadow:0 12px 26px -14px rgba(0,0,0,.55)' : 'border:1px solid var(--line);background:var(--card);color:var(--ink)'}">${icon}</div>`;
+  // Полоса перемотки: щелчок по ней — переход в эту точку, стрелки — по пять секунд.
+  const bar = `<div data-key="pl-bar" data-c="${act(e => {
+    if (!e || !e.clientX) return;
+    const el = e.target.closest('[data-key="pl-bar"]');
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    seekPl((e.clientX - r.left) / (r.width || 1));
+  })}" role="slider" tabindex="0" aria-label="Перемотка дорожки" aria-valuemin="0" aria-valuemax="${Math.round(d)}" aria-valuenow="${Math.round(pos)}" aria-valuetext="${saySec(pos)}${d ? ', вся дорожка — ' + saySec(d) : ', длительность неизвестна'}" style="width:100%;padding:9px 0;cursor:pointer;box-sizing:border-box">
+    <div style="height:4px;border-radius:99px;background:var(--line);overflow:hidden">
+      <div data-key="pl-fill" style="height:100%;width:${d ? Math.min(100, pos / d * 100) : 0}%;border-radius:99px;background:var(--acc)"></div>
+    </div>
+  </div>`;
+  const time = `<div data-key="pl-time" style="font:700 12px Manrope;color:var(--sub);font-variant-numeric:tabular-nums">${mmss(pos)} / ${d ? mmss(d) : '—:—'}</div>`;
+  const buttons = `${ctl(PL_ICO.prev, 'Предыдущая дорожка', act(() => stepTrack(-1)))}${ctl(S.pl.load ? PL_ICO.play : (S.pl.playing ? PL_ICO.pause : PL_ICO.play), S.pl.playing ? 'Пауза' : 'Слушать', act(() => togglePlay()), true)}${ctl(PL_ICO.next, 'Следующая дорожка', act(() => stepTrack(1)))}`;
+  const vol = `<div style="display:flex;align-items:center;gap:9px;width:100%;margin-top:9px;color:var(--dim)">${PL_ICO.vol}<input id="pl-vol" class="knv-vol" type="range" min="0" max="100" step="1" value="${Math.round(plVol() * 100)}" aria-label="Громкость" data-i="${act(e => {
+    const v = Math.min(1, Math.max(0, (+e.target.value || 0) / 100));
+    audioEl.volume = v;
+    S.cfg = { ...S.cfg, player: { ...plCfg(), vol: v } };
+    saveSoon();
+  })}" style="flex:1;min-width:0"></div>`;
+  const err = S.pl.err ? `<div role="status" style="font:700 11.5px/1.4 Manrope;color:var(--bad);margin-top:8px;text-align:center">${esc(S.pl.err)}</div>` : '';
+  if (S.pl.mode === 'list') {
+    // Список — те же карточки, что в каталоге: круглая обложка, название, время.
+    const rows = list.map(x => {
+      const on = x.id === t.id;
+      return `<div data-key="pl-row-${x.id}" data-c="${act(() => (on ? togglePlay() : playTrack(x.id, true)))}" class="h-gold" role="button" tabindex="0" aria-label="${esc(x.title)}${x.artist ? ' — ' + esc(x.artist) : ''}" style="display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid ${on ? 'var(--goldT)' : 'var(--line)'};border-radius:15px;padding:9px 11px;cursor:pointer;transition:border-color .15s">
+        <div style="${trackFace(x, 46)};position:relative;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.45)"></div>
+          <div style="position:relative;display:flex;color:#fff">${on && S.pl.playing ? PL_ICO.pause : PL_ICO.play}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px Manrope;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.title)}</div>
+          <div style="font:600 11.5px Manrope;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.artist || 'Кофейня на высоте')}</div>
+        </div>
+        <div style="font:700 11.5px Manrope;color:var(--dim);font-variant-numeric:tabular-nums;flex:none">${x.dur ? mmss(x.dur) : ''}</div>
+      </div>`;
+    }).join('');
+    return `<div style="display:grid;gap:7px;max-height:250px;overflow-y:auto;overscroll-behavior:contain">${rows}</div>
+      <div style="display:flex;align-items:center;gap:11px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line2)">
+        ${vinyl(t, 44)}
+        <div style="flex:1;min-width:0">
+          <div style="font:700 12.5px Manrope;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.title)}</div>
+          <div style="margin-top:2px">${time}</div>
+        </div>
+        ${buttons}
+      </div>${bar}${vol}${err}`;
+  }
+  // Режим «Пластинка»
+  return `<div style="display:flex;flex-direction:column;align-items:center;padding:2px 2px 0">
+    ${vinyl(t, 166)}
+    <div style="font:700 10.5px Manrope;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-top:18px;text-align:center">${esc(t.artist || 'Кофейня на высоте')}</div>
+    <div style="font:800 15.5px/1.3 Manrope;margin-top:6px;text-align:center">${esc(t.title)}</div>
+    ${bar}${time}
+    <div style="display:flex;align-items:center;justify-content:center;gap:15px;margin-top:12px">${buttons}</div>
+    ${vol}${err}
+  </div>`;
+}
+// Карточка под шапкой главной — как список тем, только про музыку.
+function renderPlayerPanel() {
+  if (!S.plOpen || !playerOn()) return '';
+  return `<div data-key="player-panel" style="margin-top:12px;border-radius:18px;background:var(--card);border:1px solid var(--line);padding:11px 12px 13px;animation:fadeUp .3s ease both">${playerHead()}${playerCard()}</div>`;
+}
+
 // Персонал: вход в панель — по личному PIN (демо-коды в README).
 // Хранится только id вошедшего, сам PIN в localStorage не пишется.
 // Список сотрудников живёт в состоянии (S.staff) и правится администратором в
@@ -211,9 +337,19 @@ const DEFAULT_CFG = {
   onlinePay: false, acceptOrders: true, open: '09:00', close: '21:00', prepMin: 10, tipsUrl: '',
   // сведения о продавце — обязательны по закону о защите прав потребителей
   legal: { name: 'Кофейня на высоте', form: 'ИП', inn: '', ogrn: '', regBody: '', address: 'Трасса Грозный — Шатой, смотровая площадка', phone: '', email: '', lat: '', lng: '' },
-  cancelReasons: ['Гость передумал', 'Долгое ожидание', 'Ошибка бариста', 'Нет ингредиента', 'Дубль заказа']
+  cancelReasons: ['Гость передумал', 'Долгое ожидание', 'Ошибка бариста', 'Нет ингредиента', 'Дубль заказа'],
+  // Музыка в зале: дорожки «из кофейни» лежат рядом с приложением и звучат у всех
+  // гостей, добавленные администратором файлом — только на его устройстве.
+  player: { on: true, vol: 0.7, tracks: [], off: {} }
 };
-function mkCfg(c) { c = c || {}; return { ...DEFAULT_CFG, ...c, legal: { ...DEFAULT_CFG.legal, ...(c.legal || {}) }, cancelReasons: Array.isArray(c.cancelReasons) && c.cancelReasons.length ? c.cancelReasons : DEFAULT_CFG.cancelReasons }; }
+function mkCfg(c) {
+  c = c || {}; const p = c.player || {};
+  return {
+    ...DEFAULT_CFG, ...c, legal: { ...DEFAULT_CFG.legal, ...(c.legal || {}) },
+    cancelReasons: Array.isArray(c.cancelReasons) && c.cancelReasons.length ? c.cancelReasons : DEFAULT_CFG.cancelReasons,
+    player: { ...DEFAULT_CFG.player, ...p, tracks: (Array.isArray(p.tracks) ? p.tracks : []).map(t => normTrack(t)), off: p.off || {} }
+  };
+}
 // Демо-заказы получают настоящие временные метки относительно первого запуска:
 // «ждёт N мин» и «готовится N мин» считаются от них, а не берутся из констант.
 const hhmm = ts => { const d = new Date(ts); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); };
@@ -307,6 +443,10 @@ const S = {
   cfg: mkCfg(sv.cfg),
   itemInfo: sv.itemInfo || {}, alertSeen: sv.alertSeen || {},
   edStaff: null, edF: null, resetAsk: 0, edInfo: null, edInfoF: null,
+  // Плеер: что играет сейчас и в каком виде показан. В хранилище не уходит —
+  // там живут только сами дорожки и громкость (внутри cfg.player).
+  pl: { id: '', mode: 'disc', playing: false, t: 0, dur: 0, load: false, err: '' },
+  plOpen: false, edTr: null, edTrF: null,
   receiptTo: '', pickAsap: true, pickAt: 0, adultOk: false, cancelReason: '', cancelNote: '', agreeMkt: false, doc: null,
   online: navigator.onLine !== false,
   // Брони, сделанные до появления myBks, принадлежат этому же устройству.
@@ -429,11 +569,11 @@ function allProducts() { return [...M, ...S.custom].filter(m => m); }
 const SVG_CAMERA = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>';
 // Снимок с телефона весит мегабайты — в хранилище уходит квадрат 640×640 в JPEG
 // (~60–90 КБ): центр кадра обрезается так же, как его показывают карточки и круг товара.
-function readPhoto(file, cb) {
+function readPhoto(file, cb, max) {
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
-    const side = Math.min(img.width, img.height), out = Math.min(640, side);
+    const side = Math.min(img.width, img.height), out = Math.min(max || 640, side);
     const sx = Math.round((img.width - side) / 2), sy = Math.round((img.height - side) / 2);
     const c = document.createElement('canvas'); c.width = out; c.height = out;
     c.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, out, out);
@@ -446,6 +586,235 @@ function readPhoto(file, cb) {
   img.onerror = () => { URL.revokeObjectURL(url); showToast('Не удалось прочитать фото'); };
   img.src = url;
 }
+// ===================== музыка =====================
+// Плеер один на всё приложение: <audio> живёт вне разметки, поэтому перерисовка
+// (морфинг дерева) не прерывает звук — гость ходит по экранам, дорожка играет.
+// Дорожки двух родов. «Из кофейни» — выложенные вместе с приложением, список берётся
+// из assets/audio/playlist.json: они одинаковы у всех гостей. Добавленные
+// администратором файлом — только на его устройстве; файл уходит в IndexedDB, потому
+// что мегабайты звука в localStorage не помещаются, а квоты IndexedDB хватает.
+const AUDIO_DB = 'knv-audio';
+function audioTx(mode, fn) {
+  return new Promise((res, rej) => {
+    if (!window.indexedDB) { rej(new Error('IndexedDB недоступен')); return; }
+    const guard = setTimeout(() => rej(new Error('хранилище не отвечает')), 8000);
+    const done = (fn2, v) => { clearTimeout(guard); fn2(v); };
+    const rq = indexedDB.open(AUDIO_DB, 1);
+    rq.onupgradeneeded = () => { const db = rq.result; if (!db.objectStoreNames.contains('files')) db.createObjectStore('files'); };
+    rq.onerror = () => done(rej, rq.error);
+    rq.onblocked = () => done(rej, new Error('хранилище занято другой вкладкой'));
+    rq.onsuccess = () => {
+      const db = rq.result;
+      try {
+        const tx = db.transaction('files', mode);
+        const q = fn(tx.objectStore('files'));
+        tx.oncomplete = () => { db.close(); done(res, q ? q.result : undefined); };
+        tx.onerror = () => { db.close(); done(rej, tx.error); };
+        tx.onabort = () => { db.close(); done(rej, tx.error); };
+      } catch (e) { db.close(); done(rej, e); }
+    };
+  });
+}
+// В базу кладутся байты и тип: File и Blob в IndexedDB у Safari исторически
+// ненадёжны, а из байтов Blob собирается обратно за один вызов.
+const audioPut = (id, rec) => audioTx('readwrite', st => st.put(rec, id));
+const audioGet = id => audioTx('readonly', st => st.get(id));
+const audioDel = id => audioTx('readwrite', st => st.delete(id));
+function audioBlob(id) {
+  return audioGet(id).then(r => {
+    if (!r) return null;
+    if (r instanceof Blob) return r;                       // записи первых версий
+    return r.buf ? new Blob([r.buf], { type: r.type || 'audio/mpeg' }) : null;
+  });
+}
+
+// Запись дорожки приводится к одной форме: из файла плейлиста, из хранилища и из
+// формы администратора приходят разные объекты, а дальше по коду нужен один вид.
+function normTrack(t, shared) {
+  t = t || {};
+  const id = String(t.id || '').replace(/[^A-Za-z0-9_-]/g, '') || ('tr' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+  return {
+    id: id.slice(0, 40), title: String(t.title || 'Без названия').slice(0, 70),
+    artist: String(t.artist || '').slice(0, 70), url: String(t.url || '').slice(0, 600),
+    file: !!t.file, cover: String(t.cover || ''), dur: +t.dur > 0 ? +t.dur : 0, sh: !!shared
+  };
+}
+let sharedTracks = [];      // дорожки кофейни из playlist.json
+const audioUrls = {};       // id дорожки → objectURL её файла из IndexedDB
+let pendingAudio = null;    // файл, выбранный в форме, но ещё не сохранённый
+const audioEl = new Audio();
+audioEl.preload = 'metadata';
+let audioSeq = 0, saveT = 0;
+function saveSoon() { clearTimeout(saveT); saveT = setTimeout(() => save(), 600); }
+function plCfg() { return S.cfg.player || DEFAULT_CFG.player; }
+function playlist() {
+  const off = plCfg().off || {};
+  return [...sharedTracks.filter(t => !off[t.id]), ...(plCfg().tracks || [])];
+}
+function playerOn() { return plCfg().on !== false && playlist().length > 0; }
+function curTrack() { const l = playlist(); return l.find(t => t.id === S.pl.id) || l[0] || null; }
+function plVol() { const v = +plCfg().vol; return isNaN(v) ? 0.7 : Math.min(1, Math.max(0, v)); }
+function setPl(patch) { Object.assign(S.pl, patch); render(); }
+const mmss = s => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); };
+// Для экранного диктора время нужно словами: «2 минуты 43 секунды», а не «2:43».
+function saySec(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  const m = Math.floor(s / 60), r = s % 60;
+  const word = (n, one, few, many) => (n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many);
+  const mm = m ? m + ' ' + word(m, 'минута', 'минуты', 'минут') : '';
+  const ss = r || !m ? r + ' ' + word(r, 'секунда', 'секунды', 'секунд') : '';
+  return (mm + ' ' + ss).trim();
+}
+
+// Ссылка на звук. Для файлов из IndexedDB objectURL готовится заранее: браузер
+// разрешает включить звук только «по касанию», и лишний асинхронный шаг между
+// касанием и play() эту привилегию теряет.
+function trackSrcNow(t) { return t ? (t.file ? (audioUrls[t.id] || '') : t.url) : ''; }
+function trackSrc(t) {
+  const now = trackSrcNow(t);
+  if (now) return Promise.resolve(now);
+  if (!t.file) return Promise.reject(new Error('нет ссылки'));
+  return audioBlob(t.id).then(b => {
+    if (!b) throw new Error('файла нет на этом устройстве');
+    audioUrls[t.id] = URL.createObjectURL(b);
+    return audioUrls[t.id];
+  });
+}
+function prefetchAudio() {
+  playlist().forEach(t => {
+    if (t.file && !audioUrls[t.id]) audioBlob(t.id).then(b => { if (b) audioUrls[t.id] = URL.createObjectURL(b); }).catch(() => {});
+  });
+}
+function startSrc(src, go, restart) {
+  let abs = src;
+  try { abs = new URL(src, location.href).href; } catch (e) {}
+  if (audioEl.src !== abs) audioEl.src = abs;
+  else if (restart) { try { audioEl.currentTime = 0; } catch (e) {} }
+  audioEl.volume = plVol();
+  if (go === false) return;
+  const p = audioEl.play();
+  // AbortError — обычное дело при быстром переключении дорожек: прежний play()
+  // отменяется следующим. Ошибкой это не является и гостю не показывается.
+  if (p && p.catch) p.catch(err => {
+    if (err && err.name === 'AbortError') return;
+    S.pl.playing = false;
+    S.pl.err = err && err.name === 'NotAllowedError' ? 'Браузер ждёт касания — нажмите ещё раз' : 'Дорожка не открылась';
+    render();
+  });
+}
+// Первое касание по приложению «размораживает» звук: браузеры разрешают играть
+// только элементу, которого коснулись при участии гостя, и разрешение остаётся
+// за ним до конца сессии. Дальше дорожку можно включать хоть из другого экрана.
+let audioPrimed = false;
+function primeAudio() {
+  if (audioPrimed) return;
+  audioPrimed = true;
+  try { audioEl.load(); } catch (e) {}
+}
+function playTrack(id, go) {
+  const l = playlist(), t = l.find(x => x.id === id) || l[0];
+  if (!t) return;
+  Object.assign(S.pl, { id: t.id, err: '', t: 0, dur: t.dur || 0, load: false });
+  const seq = ++audioSeq, now = trackSrcNow(t);
+  if (now) { startSrc(now, go, true); render(); return; }
+  S.pl.load = true; render();
+  trackSrc(t)
+    .then(u => { if (seq !== audioSeq) return; S.pl.load = false; startSrc(u, go, true); render(); })
+    .catch(() => {
+      if (seq !== audioSeq) return;
+      S.pl.load = false;
+      S.pl.err = t.file ? 'Файл дорожки не найден на этом устройстве' : 'Ссылка на дорожку не открывается';
+      render();
+    });
+}
+function togglePlay() {
+  const t = curTrack();
+  if (!t) { showToast('Дорожек пока нет'); return; }
+  if (S.pl.id !== t.id || !audioEl.src) { playTrack(t.id, true); return; }
+  if (audioEl.paused) startSrc(audioEl.src, true); else audioEl.pause();
+}
+// «Назад» в начале дорожки уводит на предыдущую, а после третьей секунды —
+// отматывает текущую в начало: так ведут себя все плееры.
+function stepTrack(d) {
+  const l = playlist();
+  if (!l.length) return;
+  if (d < 0 && audioEl.currentTime > 3) { audioEl.currentTime = 0; S.pl.t = 0; syncPl(); return; }
+  let i = l.findIndex(t => t.id === S.pl.id);
+  if (i < 0) i = 0;
+  playTrack(l[(i + d + l.length) % l.length].id, true);
+}
+function seekPl(r) {
+  const d = audioEl.duration;
+  if (!d || !isFinite(d)) return;
+  audioEl.currentTime = Math.max(0, Math.min(d - 0.2, d * r));
+  S.pl.t = audioEl.currentTime; syncPl();
+}
+// Полоса и время правятся напрямую четыре раза в секунду — это дешевле полной
+// перерисовки; следующий обычный рендер даст ровно те же значения.
+function syncPl() {
+  const d = S.pl.dur || 0, t = Math.min(S.pl.t || 0, d || S.pl.t || 0);
+  const fill = document.querySelector('[data-key="pl-fill"]');
+  if (fill) fill.style.width = (d ? Math.min(100, t / d * 100) : 0) + '%';
+  const tm = document.querySelector('[data-key="pl-time"]');
+  if (tm) { const str = mmss(t) + ' / ' + (d ? mmss(d) : '—:—'); if (tm.textContent !== str) tm.textContent = str; }
+  const bar = document.querySelector('[data-key="pl-bar"]');
+  // Пока полоса под фокусом, подпись не трогаем: экранный диктор зачитывал бы
+  // её при каждом тике вместо того, чтобы молчать.
+  if (bar && document.activeElement !== bar) {
+    bar.setAttribute('aria-valuenow', Math.round(t));
+    bar.setAttribute('aria-valuetext', saySec(t) + (d ? ', вся дорожка — ' + saySec(d) : ', длительность неизвестна'));
+  }
+}
+// Название на экране блокировки и кнопки на гарнитуре.
+function mediaMeta() {
+  if (!('mediaSession' in navigator)) return;
+  const t = curTrack();
+  if (!t) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: t.title, artist: t.artist || 'Кофейня на высоте', album: 'Кофейня на высоте',
+      artwork: [{ src: new URL(t.cover || 'icons/icon-512.png', location.href).href, sizes: t.cover ? '320x320' : '512x512', type: t.cover ? 'image/jpeg' : 'image/png' }]
+    });
+  } catch (e) {}
+}
+audioEl.addEventListener('play', () => { S.pl.playing = true; S.pl.err = ''; mediaMeta(); render(); });
+audioEl.addEventListener('pause', () => { S.pl.playing = false; render(); });
+audioEl.addEventListener('ended', () => {
+  const l = playlist();
+  if (l.length < 2) { audioEl.currentTime = 0; startSrc(audioEl.src, true); } else stepTrack(1);
+});
+audioEl.addEventListener('timeupdate', () => { S.pl.t = audioEl.currentTime || 0; syncPl(); });
+audioEl.addEventListener('loadedmetadata', () => {
+  const d = audioEl.duration;
+  if (!d || !isFinite(d)) return;
+  S.pl.dur = d; syncPl();
+  // длительность запоминается в дорожке, чтобы список показывал её сразу
+  const t = curTrack();
+  if (t && !t.sh && Math.abs((t.dur || 0) - d) > 1) {
+    S.cfg = { ...S.cfg, player: { ...plCfg(), tracks: (plCfg().tracks || []).map(x => x.id === t.id ? { ...x, dur: Math.round(d) } : x) } };
+    saveSoon();
+  }
+});
+audioEl.addEventListener('error', () => {
+  if (!audioEl.src) return;
+  S.pl.playing = false; S.pl.load = false;
+  S.pl.err = 'Дорожка не проигрывается — проверьте ссылку или файл';
+  render();
+});
+if ('mediaSession' in navigator) {
+  const H = { play: () => togglePlay(), pause: () => audioEl.pause(), previoustrack: () => stepTrack(-1), nexttrack: () => stepTrack(1) };
+  Object.keys(H).forEach(k => { try { navigator.mediaSession.setActionHandler(k, H[k]); } catch (e) {} });
+}
+// Плейлист кофейни лежит рядом с приложением, поэтому одинаков у всех гостей.
+fetch('assets/audio/playlist.json', { cache: 'no-store' })
+  .then(r => (r.ok ? r.json() : null))
+  .then(list => {
+    if (!Array.isArray(list) || !list.length) return;
+    sharedTracks = list.slice(0, 60).map(t => normTrack(t, true));
+    prefetchAudio(); render();
+  })
+  .catch(() => {});
+
 // Событие в ленту панели. Меняет состояние напрямую — вызывать до set()/setS().
 // own=true — действие сделал сам сотрудник из панели: в ленту попадает,
 // но счётчик «непрочитанного» не накручивает.
@@ -645,7 +1014,7 @@ function renderStaff() {
     return `<div style="display:flex;align-items:center;gap:4px;${col}">${SVG.clock}${label} ${m} мин${warn === 2 ? ' · срочно' : warn === 1 ? ' · долго' : ''}</div>`;
   };
 
-  const SECTIONS = [['dash','Главная'],['orders','Реестр заказов'],['books','Брони'],['menu','Меню и остатки'],['shifts','Смены'],['clients','Клиенты'],['fin','Финансы'],['notifx','Уведомления'],['profx','Профиль'], ...(isAdmin() ? [['admin','Администрирование']] : [])];
+  const SECTIONS = [['dash','Главная'],['orders','Реестр заказов'],['books','Брони'],['menu','Меню и остатки'],['shifts','Смены'],['clients','Клиенты'],['fin','Финансы'],['notifx','Уведомления'],['music','Музыка'],['profx','Профиль'], ...(isAdmin() ? [['admin','Администрирование']] : [])];
   // Один и тот же пункт меню в двух видах: строка бокового меню (широкий экран)
   // и «чип» горизонтальной ленты вкладок (телефон).
   const navItem = ([k, label], chip) => {
@@ -949,6 +1318,147 @@ function renderStaff() {
             ${S.resetAsk ? `<div data-c="${act(() => setS({ resetAsk: 0 }))}" style="padding:10px 14px;font:700 12.5px Manrope;color:var(--sub);cursor:pointer">Оставить</div>` : ''}
           </div>
           <div style="font:600 11px/1.5 Manrope;color:var(--dim)">Данные живут в этом браузере. Копия — файл JSON: заказы, клиенты, меню, сотрудники и правила. Сброс возвращает демонстрационное состояние.</div>
+        </div>
+      </div>
+    </div>`;
+  } else if (S.sview === 'music') {
+    // Музыка в зале. Дорожки «из кофейни» лежат рядом с приложением — их слышат все
+    // гости; добавленная здесь файлом живёт только на этом устройстве, пока файл не
+    // выложен вместе с сайтом (кнопки «Скачать» ниже собирают для этого всё нужное).
+    const adm = isAdmin(), F = S.edTrF || {}, mine = plCfg().tracks || [], off = plCfg().off || {};
+    const trInp = (id, key, ph, extra) => `<input id="${id}" ${extra || ''} data-i="${act(e => setS({ edTrF: { ...S.edTrF, [key]: e.target.value } }))}" value="${esc(F[key] || '')}" placeholder="${ph}" aria-label="${ph}" style="width:100%;box-sizing:border-box;height:40px;padding:0 12px;border-radius:11px;border:1px solid var(--line);background:var(--hov);color:var(--ink);font:600 12.5px Manrope;outline:none">`;
+    const saveTrack = act(() => {
+      const title = (F.title || '').trim(), artist = (F.artist || '').trim(), url = (F.url || '').trim();
+      const prev = mine.find(x => x.id === S.edTr);
+      if (!title) { showToast('Введите название дорожки'); return; }
+      if (url && !/^https?:\/\//i.test(url)) { showToast('Ссылка должна начинаться с https://'); return; }
+      const useFile = !!pendingAudio || (!url && !!(prev && prev.file));
+      if (!url && !useFile) { showToast('Нужна ссылка на mp3 или файл с устройства'); return; }
+      const id = prev ? prev.id : normTrack({}).id;
+      const rec = normTrack({
+        id, title, artist, url: useFile ? '' : url, file: useFile,
+        cover: F.cover || (prev ? prev.cover : ''), dur: prev && !pendingAudio ? prev.dur : 0
+      });
+      const finish = () => {
+        slog((prev ? 'Изменена дорожка: ' : 'Добавлена дорожка: ') + title + ' · ' + staffName(), 'shift', true);
+        pendingAudio = null;
+        set({ cfg: { ...S.cfg, player: { ...plCfg(), tracks: prev ? mine.map(x => x.id === id ? rec : x) : [...mine, rec] } }, edTr: null, edTrF: null });
+        prefetchAudio();
+        showToast(prev ? 'Дорожка изменена' : 'Дорожка добавлена');
+      };
+      if (pendingAudio) {
+        const f = pendingAudio;
+        // Просим браузер не вычищать хранилище: иначе Safari сносит всё через
+        // неделю без захода, а вместе с музыкой ушли бы заказы и бонусы.
+        try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+        f.arrayBuffer()
+          .then(buf => audioPut(id, { buf, type: f.type || 'audio/mpeg', name: f.name }))
+          .then(() => {
+            if (audioUrls[id]) { URL.revokeObjectURL(audioUrls[id]); delete audioUrls[id]; }
+            finish();
+          })
+          .catch(err => showToast(err && err.name === 'QuotaExceededError' ? 'В браузере не осталось места — возьмите дорожку покороче' : 'Не удалось сохранить файл в браузере'));
+      } else finish();
+    });
+    const editor = S.edTr ? `
+      <div data-key="tr-editor" style="background:var(--card);border:1px solid var(--goldT);border-radius:14px;padding:14px;display:grid;gap:9px">
+        <div style="font:700 13px Manrope">${S.edTr === 'new' ? 'Новая дорожка' : 'Изменить дорожку'}</div>
+        <div style="display:flex;gap:11px;align-items:center">
+          <label class="h-gold" title="Обложка дорожки" style="${trackFace(F, 58)};position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:inset 0 0 0 1px var(--line);color:var(--goldT)">
+            <input type="file" accept="image/*" data-p="trcover" style="display:none" aria-label="Обложка дорожки">${F.cover ? '' : SVG_CAMERA}
+          </label>
+          <div style="flex:1;min-width:0;display:grid;gap:9px">
+            ${trInp('tr-title', 'title', 'Название дорожки', 'maxlength="70"')}
+            ${trInp('tr-artist', 'artist', 'Исполнитель', 'maxlength="70"')}
+          </div>
+        </div>
+        ${trInp('tr-url', 'url', 'Ссылка на mp3 — её слышат все гости', 'inputmode="url" maxlength="600"')}
+        <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+          <label class="h-gold" style="padding:10px 13px;border-radius:11px;border:1px solid var(--line);background:var(--card);font:700 12.5px Manrope;cursor:pointer">
+            <input type="file" accept="audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/wav,.mp3,.m4a,.aac,.ogg,.wav" data-p="trfile" style="display:none" aria-label="Файл дорожки">${F.fileName ? 'Файл: ' + esc(F.fileName) : 'Выбрать файл с устройства'}
+          </label>
+          ${F.fileName ? `<div data-c="${act(() => { pendingAudio = null; setS({ edTrF: { ...S.edTrF, fileName: '' } }); })}" class="h-del" style="font:700 12px Manrope;color:var(--dim);cursor:pointer">убрать файл</div>` : ''}
+        </div>
+        <div style="font:600 11px/1.5 Manrope;color:var(--dim)">Ссылка — дорожку слышат все гости. Файл с устройства остаётся в этом браузере: он для своей точки и для проверки, гостям не раздаётся.</div>
+        <div style="display:flex;gap:8px">
+          <div data-c="${saveTrack}" class="a98" style="flex:1;height:42px;border-radius:11px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;font:800 13px Manrope;cursor:pointer">Сохранить</div>
+          <div data-c="${act(() => { pendingAudio = null; setS({ edTr: null, edTrF: null }); })}" style="height:42px;padding:0 16px;border-radius:11px;border:1px solid var(--line);display:flex;align-items:center;font:700 13px Manrope;cursor:pointer;color:var(--sub)">Отмена</div>
+        </div>
+      </div>` : '';
+    const badge = (text, dim) => `<span style="font:700 10px Manrope;color:${dim ? 'var(--dim)' : 'var(--goldT)'};border:1px solid ${dim ? 'var(--line)' : 'rgba(var(--accRGB),.45)'};border-radius:99px;padding:1px 7px;vertical-align:middle;white-space:nowrap">${text}</span>`;
+    const trRow = (x, hidden) => {
+      const on = x.id === S.pl.id;
+      return `<div data-key="tr-${x.id}" style="display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid ${on ? 'var(--goldT)' : 'var(--line)'};border-radius:14px;padding:10px 12px;flex-wrap:wrap;${hidden ? 'opacity:.55' : ''}">
+        <div data-c="${act(() => (hidden ? showToast('Дорожка убрана из плейлиста — верните её') : on ? togglePlay() : playTrack(x.id, true)))}" class="a90" role="button" tabindex="0" aria-label="${hidden ? 'Дорожка убрана' : on && S.pl.playing ? 'Пауза' : 'Слушать'}: ${esc(x.title)}" style="${trackFace(x, 42)};position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <div style="position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.45)"></div>
+          <div style="position:relative;display:flex;color:#fff">${on && S.pl.playing ? PL_ICO.pause : PL_ICO.play}</div>
+        </div>
+        <div style="flex:1;min-width:140px">
+          <div style="font:700 13px Manrope">${esc(x.title)} ${x.sh ? badge('для всех гостей') : badge(x.file ? 'файл здесь' : 'по ссылке', true)}</div>
+          <div style="font:600 11.5px Manrope;color:var(--sub);margin-top:3px">${esc(x.artist || 'Кофейня на высоте')}${x.dur ? ' · ' + mmss(x.dur) : ''}</div>
+        </div>
+        ${x.sh ? `<div data-c="${act(() => {
+          const nx = { ...off };
+          if (hidden) delete nx[x.id]; else nx[x.id] = 1;
+          if (!hidden && S.pl.id === x.id) { audioEl.pause(); Object.assign(S.pl, { id: '', t: 0, dur: 0 }); }
+          set({ cfg: { ...S.cfg, player: { ...plCfg(), off: nx } } });
+          showToast(hidden ? 'Дорожка вернулась в плейлист' : 'Дорожка убрана из плейлиста');
+        })}" class="h-gold" style="padding:8px 12px;border-radius:10px;border:1px solid var(--line);font:700 12px Manrope;cursor:pointer;color:var(--sub)">${hidden ? 'Вернуть' : 'Убрать'}</div>` : ''}
+        ${adm && !x.sh ? `<div data-c="${act(() => { pendingAudio = null; setS({ edTr: x.id, edTrF: { title: x.title, artist: x.artist, url: x.url, cover: x.cover, fileName: x.file ? 'сохранён в браузере' : '' } }); })}" class="h-gold" style="padding:8px 12px;border-radius:10px;border:1px solid var(--line);font:700 12px Manrope;cursor:pointer;color:var(--sub)">Изменить</div>` : ''}
+        ${adm && x.file ? `<div data-c="${act(() => {
+          audioBlob(x.id).then(b => {
+            if (!b) { showToast('Файла нет в этом браузере'); return; }
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(b); a.download = x.title.replace(/[^\wа-яА-ЯёЁ .-]/g, '') + '.mp3';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+            showToast('Файл дорожки сохранён на устройство');
+          }).catch(() => showToast('Файл не открылся'));
+        })}" class="h-gold" style="padding:8px 12px;border-radius:10px;border:1px solid var(--line);font:700 12px Manrope;cursor:pointer;color:var(--sub)">Скачать</div>` : ''}
+        ${adm && !x.sh ? `<div data-c="${act(() => {
+          if (S.pl.id === x.id) { audioEl.pause(); Object.assign(S.pl, { id: '', t: 0, dur: 0 }); }
+          if (audioUrls[x.id]) { URL.revokeObjectURL(audioUrls[x.id]); delete audioUrls[x.id]; }
+          if (x.file) audioDel(x.id).catch(() => {});
+          slog('Удалена дорожка: ' + x.title + ' · ' + staffName(), 'shift', true);
+          set({ cfg: { ...S.cfg, player: { ...plCfg(), tracks: mine.filter(y => y.id !== x.id) } }, edTr: S.edTr === x.id ? null : S.edTr });
+          showToast('Дорожка удалена');
+        })}" class="h-del" style="width:32px;height:32px;border-radius:9px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim)" role="button" tabindex="0" aria-label="Удалить дорожку ${esc(x.title)}">✕</div>` : ''}
+      </div>`;
+    };
+    const plOn = plCfg().on !== false;
+    const plToggle = `<div data-c="${act(() => set({ cfg: { ...S.cfg, player: { ...plCfg(), on: !plOn } } }))}" role="switch" tabindex="0" aria-checked="${plOn}" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;cursor:pointer"><div style="flex:1;min-width:0"><div style="font:600 13px Manrope">Плеер в приложении гостя</div><div style="font:600 11px Manrope;color:var(--sub);margin-top:1px">выключите, если музыку слушают только в зале</div></div><div style="width:42px;height:24px;border-radius:99px;flex:none;position:relative;transition:background .2s;background:${plOn ? GG : 'var(--bdr)'}"><div style="position:absolute;top:3px;${plOn ? 'right:3px' : 'left:3px'};width:18px;height:18px;border-radius:50%;background:#fff"></div></div></div>`;
+    const exportPlaylist = act(() => {
+      const arr = [...sharedTracks, ...mine].filter(x => x.url).map(x => ({ id: x.id, title: x.title, artist: x.artist, url: x.url, cover: x.cover, dur: Math.round(x.dur || 0) }));
+      if (!arr.length) { showToast('Нет дорожек со ссылкой — файл с устройства раздать нельзя'); return; }
+      const blob = new Blob([JSON.stringify(arr, null, 1)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'playlist.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      showToast('playlist.json сохранён — положите его в assets/audio');
+    });
+    content = `<div data-key="sv-music">
+      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Музыка</div>
+      <div style="display:grid;gap:16px;${wide ? 'grid-template-columns:minmax(0,360px) minmax(0,1fr)' : ''};align-items:start">
+        <div style="display:grid;gap:10px">
+          <div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:11px 12px 13px">${playerHead()}${playerCard()}</div>
+          <div style="font:600 11px/1.6 Manrope;color:var(--dim)">Звук идёт из этого устройства — включите его на колонках зала. У гостя в приложении тот же плеер: кнопка с пластинкой в шапке главной.</div>
+          ${plToggle}
+        </div>
+        <div style="display:grid;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font:600 17px 'Cormorant Garamond',serif">Дорожки</div><div style="flex:1"></div>
+            ${adm && !S.edTr ? `<div data-c="${act(() => { pendingAudio = null; setS({ edTr: 'new', edTrF: {} }); })}" class="a98" style="padding:9px 14px;border-radius:11px;background:${GG};color:var(--accInk);font:800 12.5px Manrope;cursor:pointer">Добавить</div>` : ''}
+          </div>
+          ${editor}
+          ${sharedTracks.map(x => trRow(x, !!off[x.id])).join('')}
+          ${mine.map(x => trRow(x, false)).join('')}
+          ${!sharedTracks.length && !mine.length ? '<div style="font:600 12px/1.6 Manrope;color:var(--sub)">Дорожек пока нет. Добавьте первую — ссылкой на mp3 или файлом с устройства.</div>' : ''}
+          ${adm ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+            <div data-c="${exportPlaylist}" class="h-gold" style="padding:10px 14px;border-radius:11px;border:1px solid var(--line);background:var(--card);font:700 12.5px Manrope;cursor:pointer">Скачать playlist.json</div>
+          </div>
+          <div style="font:600 11px/1.6 Manrope;color:var(--dim)">Чтобы дорожку слышали все гости, она должна лежать рядом с сайтом: положите mp3 в папку assets/audio, а рядом — playlist.json из этой кнопки, и выложите сайт. Дорожки по ссылке на чужой сайт работают так же, если у сайта открыт доступ.</div>
+          <div style="font:600 11px/1.6 Manrope;color:var(--dim)">Музыка в зале — вопрос прав: за публичное воспроизведение чужих записей отвечает кофейня (РАО и ВОИС). Берите дорожки, на которые у вас есть права, или музыку по лицензии для заведений.</div>` : ''}
         </div>
       </div>
     </div>`;
@@ -1714,15 +2224,17 @@ function renderApp() {
           <div style="font:600 21px/1.2 'Cormorant Garamond',serif">Кофейня</div>
           <div style="font:600 21px/1.2 'Cormorant Garamond',serif;color:var(--goldT)">на высоте</div>
         </div>
-        <div data-c="${act(() => setS({ themeOpen: !S.themeOpen, notifOpen: false }))}" class="h-gold" title="Тема оформления" style="width:40px;height:40px;border-radius:50%;border:1px solid ${S.themeOpen ? 'var(--goldT)' : 'var(--bdr)'};display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">
+        ${playerBtn()}
+        <div data-c="${act(() => setS({ themeOpen: !S.themeOpen, notifOpen: false, plOpen: false }))}" class="h-gold" title="Тема оформления" style="width:40px;height:40px;border-radius:50%;border:1px solid ${S.themeOpen ? 'var(--goldT)' : 'var(--bdr)'};display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"></path></svg>
         </div>
-        <div data-c="${act(() => set({ notifOpen: !S.notifOpen, themeOpen: false, unread: 0 }))}" class="h-gold" style="position:relative;width:40px;height:40px;border-radius:50%;border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <div data-c="${act(() => set({ notifOpen: !S.notifOpen, themeOpen: false, plOpen: false, unread: 0 }))}" class="h-gold" style="position:relative;width:40px;height:40px;border-radius:50%;border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer">
           ${SVG.bell}
           ${S.unread > 0 ? `<div style="position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 3px;border-radius:99px;background:#c0564a;color:#fff;font:800 9.5px/16px Manrope;text-align:center;border:2px solid var(--ph);box-sizing:content-box;animation:pop .3s ease both">${S.unread}</div>` : ''}
         </div>
       </div>
       ${renderThemePanel()}
+      ${renderPlayerPanel()}
       ${notifPanel}
       <div style="font:600 15px Manrope;color:var(--sub2);margin:14px 0 14px">${S.user && S.user.name ? greet + ', ' + esc(S.user.name) + '! ☕' : greet + '! ☕'}</div>
       <div data-c="${act(() => setS({ tab: 'menu', cat: 'bakery' }))}" style="position:relative;border-radius:20px;overflow:hidden;height:190px;cursor:pointer;animation:fadeUp .45s ease both;box-shadow:0 22px 44px -24px rgba(0,0,0,.55)">
@@ -2336,6 +2848,7 @@ function render() {
 
 // ===================== события =====================
 app.addEventListener('click', e => {
+  primeAudio();
   const el = e.target.closest('[data-c]');
   if (el && app.contains(el)) { const fn = actions[+el.dataset.c]; if (fn) fn(e); }
 });
@@ -2359,6 +2872,15 @@ app.addEventListener('change', e => {
       } catch (err) { showToast('Это не файл данных кофейни'); }
     };
     rd.readAsText(f);
+    return;
+  }
+  if (target === 'trcover') { readPhoto(f, data => setS({ edTrF: { ...S.edTrF, cover: data } }), 360); el.value = ''; return; }
+  if (target === 'trfile') {
+    el.value = '';
+    if (!/^audio\//.test(f.type) && !/\.(mp3|m4a|aac|ogg|oga|wav)$/i.test(f.name)) { showToast('Нужен аудиофайл: mp3, m4a, ogg или wav'); return; }
+    if (f.size > 30 * 1024 * 1024) { showToast('Файл больше 30 МБ — возьмите покороче или добавьте ссылкой'); return; }
+    pendingAudio = f;
+    setS({ edTrF: { ...S.edTrF, fileName: f.name.slice(0, 40), url: '' } });
     return;
   }
   readPhoto(f, data => {
@@ -2417,6 +2939,17 @@ setInterval(() => {
 document.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[data-c][tabindex]')) { e.preventDefault(); e.target.click(); }
 });
+// Полоса перемотки с клавиатуры: стрелки по пять секунд, Home/End — края.
+document.addEventListener('keydown', e => {
+  const el = e.target;
+  if (!el || !el.getAttribute || el.getAttribute('data-key') !== 'pl-bar') return;
+  const d = audioEl.duration;
+  if (!d || !isFinite(d)) return;
+  const step = e.key === 'ArrowLeft' ? -5 : e.key === 'ArrowRight' ? 5 : 0;
+  if (step) { e.preventDefault(); seekPl(Math.min(1, Math.max(0, (audioEl.currentTime + step) / d))); }
+  else if (e.key === 'Home') { e.preventDefault(); seekPl(0); }
+  else if (e.key === 'End') { e.preventDefault(); seekPl(0.995); }
+});
 document.addEventListener('keydown', e => {
   if (S.screen !== 'spin') return;
   if (/^[0-9]$/.test(e.key)) staffPinInput(e.key);
@@ -2452,6 +2985,12 @@ if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
   }).catch(() => {});
 }
 
+// Доступ к внутренностям для проверок: только когда в адресе есть ?debug.
+// Ничего не включает и не меняет — просто даёт консоли позвать те же функции,
+// что и кнопки, чтобы сценарии можно было прогонять без рук.
+if (location.search.indexOf('debug') >= 0) {
+  window.KNV = { S, render, audioEl, playTrack, togglePlay, stepTrack, seekPl, syncPl, playlist, curTrack, plCfg, audioGet, audioPut, audioDel, normTrack, prefetchAudio, save, snapshot };
+}
 })();
 </script>
 </body>
