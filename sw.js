@@ -3,12 +3,13 @@
    приложение открывается без сети. index.html берётся из сети в первую очередь
    (так обновления доходят сразу), из кэша — только если сети нет. Снимки
    напитков с фотостока и шрифты кэшируются по мере обращения. */
-const VERSION = 'knv-2026-09-11-2';
+const VERSION = 'knv-2026-09-11-4';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
   'assets/interior.jpg', 'assets/splash.jpg', 'assets/auth.jpg', 'assets/facade.jpg',
-  'assets/bonus-band.jpg', 'assets/gal-gorge.jpg', 'assets/gal-sharoy.jpg', 'assets/gal-tower.jpg'
+  'assets/bonus-band.jpg', 'assets/gal-gorge.jpg', 'assets/gal-sharoy.jpg', 'assets/gal-tower.jpg',
+  'assets/audio/morning.mp3', 'assets/audio/cover-morning.jpg', 'assets/audio/playlist.json'
 ];
 
 self.addEventListener('install', e => {
@@ -19,6 +20,49 @@ self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
+const AUDIO_RE = /\.(mp3|m4a|aac|ogg|oga|wav)$/i;
+
+// Кусок файла по заголовку Range: статус 206 и Content-Range, иначе браузер
+// считает ответ негодным и молча отказывается играть.
+async function partial(res, range) {
+  const buf = await res.arrayBuffer();
+  const m = /bytes=(\d*)-(\d*)/.exec(range || '');
+  if (!m) return new Response(buf, { status: 200, headers: res.headers });
+  const total = buf.byteLength;
+  let start = m[1] ? +m[1] : 0;
+  let end = m[2] ? +m[2] : total - 1;
+  if (!m[1] && m[2]) { start = Math.max(0, total - +m[2]); end = total - 1; }   // bytes=-N — хвост файла
+  if (start >= total || start > end) return new Response(null, { status: 416, headers: { 'Content-Range': 'bytes */' + total } });
+  end = Math.min(end, total - 1);
+  return new Response(buf.slice(start, end + 1), {
+    status: 206,
+    headers: {
+      'Content-Type': res.headers.get('content-type') || 'audio/mpeg',
+      'Content-Length': String(end - start + 1),
+      'Content-Range': 'bytes ' + start + '-' + end + '/' + total,
+      'Accept-Ranges': 'bytes'
+    }
+  });
+}
+// Дорожка берётся из кэша, а чего нет — скачивается целиком и кладётся туда же:
+// после первого прослушивания музыка играет и без сети.
+async function audio(req, url) {
+  const cache = await caches.open(VERSION);
+  let res = await cache.match(url.pathname);
+  if (!res) {
+    try {
+      const net = await fetch(url.pathname, { cache: 'no-store' });
+      if (!net || !net.ok) return net || new Response(null, { status: 504 });
+      await cache.put(url.pathname, net.clone());
+      res = net;
+    } catch (err) {
+      return new Response(null, { status: 504 });
+    }
+  }
+  const range = req.headers.get('range');
+  return range ? partial(res.clone(), range) : res.clone();
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -26,11 +70,24 @@ self.addEventListener('fetch', e => {
   const sameOrigin = url.origin === self.location.origin;
   const isPage = req.mode === 'navigate' || (sameOrigin && /\/(index\.html)?$/.test(url.pathname));
 
-  // Звук мимо кэша. Браузер просит дорожку кусками (заголовок Range), а из кэша
-  // вернулся бы целый ответ — в Safari дорожка не заиграла бы и не перематывалась.
-  // Плейлист тоже мимо: новая дорожка должна доходить до гостей сразу.
-  if (req.destination === 'audio' || req.headers.has('range')
-      || /\.(mp3|m4a|aac|ogg|oga|wav)$/i.test(url.pathname) || /playlist\.json$/i.test(url.pathname)) return;
+  // Плейлист — сеть вперёд, кэш про запас: новая дорожка доходит до гостей сразу,
+  // а без сети играет тот список, что был в прошлый раз.
+  if (/playlist\.json$/i.test(url.pathname)) {
+    e.respondWith(fetch(req, { cache: 'no-store' })
+      .then(res => { if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(url.pathname, copy)); } return res; })
+      .catch(() => caches.match(url.pathname).then(hit => hit || new Response('[]', { headers: { 'Content-Type': 'application/json' } }))));
+    return;
+  }
+
+  // Звук — отдельная дорога. Браузер просит дорожку кусками (заголовок Range), а
+  // обычный ответ из кэша целиком Safari не принимает: дорожка не заиграет и не
+  // будет перематываться. Поэтому свои дорожки отдаём сами и режем на куски
+  // руками, а чужие домены не трогаем вовсе.
+  if (req.destination === 'audio' || AUDIO_RE.test(url.pathname)) {
+    if (!sameOrigin) return;
+    e.respondWith(audio(req, url));
+    return;
+  }
 
   if (isPage) {
     // сеть → кэш: свежая версия при связи, рабочая — без неё
