@@ -1100,12 +1100,15 @@ const SVG = {
   phoneGold: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.8" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>`,
   phoneBtn: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.9" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>`,
   pin: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="stroke:var(--accInk)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"></path><circle cx="12" cy="10" r="2.6"></circle></svg>`,
+  // Значки разделов меню — по ключам CATS. Раздел без своего значка получает
+  // запасной, чтобы плитка не оставалась пустой.
   cat: {
     coffee: `<path d="M4 9h12v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5V9z"></path><path d="M16 10h2.5a2.5 2.5 0 0 1 0 5H16"></path><path d="M8 5c0-1 .8-1.4.8-2.4M12 5c0-1 .8-1.4.8-2.4"></path>`,
-    drinks: `<path d="M7 3h10l-1.5 17a2 2 0 0 1-2 1.8h-3A2 2 0 0 1 8.5 20L7 3z"></path><path d="M7.6 9h8.8"></path>`,
-    dessert: `<path d="M4 13h16v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-4z"></path><path d="M5 13c0-3 3-5 7-5s7 2 7 5"></path><path d="M12 8V5.5"></path><circle cx="12" cy="4.4" r="1.1"></circle>`,
-    food: `<circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="4.5"></circle>`,
-    bakery: `<path d="M12 4c5 0 9 3.4 9 7.5S17 19 12 19 3 15.6 3 11.5 7 4 12 4z"></path><path d="M8 7.5c-1 1-1.6 2.4-1.6 4M16 7.5c1 1 1.6 2.4 1.6 4"></path>`
+    tea: `<path d="M5 9.5h11V15a4.5 4.5 0 0 1-4.5 4.5h-2A4.5 4.5 0 0 1 5 15z"></path><path d="M16 11h1.8a2.2 2.2 0 0 1 0 4.4H16"></path><path d="M11.5 9.5V5.5"></path><path d="M9.8 3h3.4v2.5H9.8z"></path>`,
+    cold: `<path d="M6.5 4h11l-1.3 15a2 2 0 0 1-2 1.8H9.8a2 2 0 0 1-2-1.8z"></path><path d="M7.4 10.5h9.2"></path><path d="M13.5 4.5l4-2.5"></path>`,
+    fast: `<path d="M4 10c0-3.6 3.6-6 8-6s8 2.4 8 6z"></path><path d="M4 13.2h16"></path><path d="M5 16.5h14v1.2a2.3 2.3 0 0 1-2.3 2.3H7.3A2.3 2.3 0 0 1 5 17.7z"></path>`,
+    snack: `<circle cx="12" cy="12" r="8.2"></circle><path d="M9 9.8h.01M14.2 8.8h.01M10.4 14.6h.01M14.8 13.6h.01M12.2 11.8h.01" stroke-width="2.6"></path>`,
+    other: `<circle cx="6" cy="12" r="1.2"></circle><circle cx="12" cy="12" r="1.2"></circle><circle cx="18" cy="12" r="1.2"></circle>`
   },
   nav: {
     home: `<path d="M4 11l8-7 8 7"></path><path d="M6 9.5V20h12V9.5"></path>`,
@@ -1299,10 +1302,10 @@ function renderStaff() {
       const off = !!S.hidden[m.id];
       const cat = (CATS.find(c => c[0] === m.cat) || ['', '—'])[1];
       return `<div style="display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 12px;animation:fadeUp .3s ease both">
-        ${S.custom.some(x => x.id === m.id) ? `<label title="Сменить фото" style="position:relative;width:40px;height:40px;border-radius:11px;flex:none;cursor:pointer;${m.img ? `background:url(&quot;${esc(m.img)}&quot;) center/cover no-repeat` : 'background:var(--hov);display:flex;align-items:center;justify-content:center;color:var(--goldT)'};${off ? 'opacity:.4' : ''}">
+        ${S.custom.some(x => x.id === m.id) ? `<label title="Сменить фото" style="position:relative;width:40px;height:40px;border-radius:11px;flex:none;cursor:pointer;${m.img ? `background:url(&quot;${esc(imgW(m.img, 120))}&quot;) center/cover no-repeat` : 'background:var(--hov);display:flex;align-items:center;justify-content:center;color:var(--goldT)'};${off ? 'opacity:.4' : ''}">
           <input type="file" accept="image/*" data-p="${m.id}" style="display:none">${m.img ? '' : SVG_CAMERA}
           <div style="position:absolute;right:-5px;bottom:-5px;width:18px;height:18px;border-radius:50%;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;font:800 11px Manrope;border:2px solid var(--ph)">+</div>
-        </label>` : `<div style="width:40px;height:40px;border-radius:11px;flex:none;${m.img ? `background:url(&quot;${esc(m.img)}&quot;) center/cover no-repeat` : 'background:var(--hov);display:flex;align-items:center;justify-content:center'};${off ? 'opacity:.4' : ''}"></div>`}
+        </label>` : `<div style="width:40px;height:40px;border-radius:11px;flex:none;${m.img ? `background:url(&quot;${esc(imgW(m.img, 120))}&quot;) center/cover no-repeat` : 'background:var(--hov);display:flex;align-items:center;justify-content:center'};${off ? 'opacity:.4' : ''}"></div>`}
         <div style="flex:1;min-width:0">
           <div style="font:700 13px Manrope;${off ? 'opacity:.45;text-decoration:line-through' : ''}">${esc(m.n)}</div>
           <div style="font:600 11px Manrope;color:var(--sub)">${cat} · ${noPrice(m) ? 'цены нет' : priceList(m).filter(p => p > 0).join(' / ') + ' ₽'}${(S.cfg.prices || {})[m.id] != null ? ' · правлено' : ''}</div>
@@ -2180,7 +2183,12 @@ function renderAuth() {
 }
 
 // ===================== клиентское приложение =====================
+// Снимок с фотостока запрашивается под размер, в котором его покажут: строке
+// списка хватает 180 пикселей, 600 нужны только большой карточке. Для раздела
+// из 26 позиций это разница между парой сотен килобайт и двумя мегабайтами.
+function imgW(u, w) { return typeof u === 'string' && u.indexOf('images.unsplash.com') > 0 ? u.replace(/([?&])w=\d+/, '$1w=' + w) : u; }
 function circleImg(img, size, radius, extra) {
+  img = imgW(img, size <= 64 ? 180 : 600);
   return `width:${size}px;height:${size}px;border-radius:${radius};flex:none;${img ? `background:url(&quot;${esc(img)}&quot;) center/cover no-repeat` : 'background:var(--hov)'}${extra || ''}`;
 }
 
@@ -2384,7 +2392,7 @@ function renderApp() {
     const greet = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер';
     const tiles = CATS.map(([k, label]) => `
       <div data-c="${act(() => setS({ tab: 'menu', cat: k }))}" class="h-gold a94" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 2px;border-radius:14px;background:var(--card);border:1px solid var(--line);cursor:pointer;transition:all .15s">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${SVG.cat[k]}</svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${SVG.cat[k] || SVG.cat.other}</svg>
         <div style="font:600 10.5px Manrope;color:var(--sub2)">${label}</div>
       </div>`).join('');
     const popular = ['cap', 'shaw', 'mojito'].map(id => item(id)).filter(it => it && !S.hidden[it.id]).map(it => {
@@ -2393,7 +2401,7 @@ function renderApp() {
       const favTap = act(() => { const f = { ...S.favs }; f[id] ? delete f[id] : f[id] = 1; set({ favs: f }); });
       return `
       <div data-c="${open}" class="h-gold" style="flex:none;width:124px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;animation:fadeUp .45s ease both">
-        <div style="height:86px;background:url(&quot;${esc(it.img)}&quot;) center/cover no-repeat;animation:kenburns 13s ease-in-out infinite alternate"></div>
+        <div style="height:86px;background:url(&quot;${esc(imgW(it.img, 360))}&quot;) center/cover no-repeat;animation:kenburns 13s ease-in-out infinite alternate"></div>
         <div style="padding:9px 11px 11px">
           <div style="font:700 12.5px Manrope;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.n)}</div>
           <div style="display:flex;align-items:center;margin-top:4px">
@@ -2642,7 +2650,7 @@ function renderApp() {
         const v = (sizeLabel(it, x.size) || '') + (addsArr.length ? ' · ' + addsArr.map(a => a === 'syr' ? 'сироп' : 'б/лактозы').join(', ') : '');
         return `
         <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:11px 12px;animation:fadeUp .35s ease both">
-          <div style="width:52px;height:52px;border-radius:13px;flex:none;background:url(&quot;${esc(it.img)}&quot;) center/cover no-repeat"></div>
+          <div style="width:52px;height:52px;border-radius:13px;flex:none;background:url(&quot;${esc(imgW(it.img, 160))}&quot;) center/cover no-repeat"></div>
           <div style="flex:1;min-width:0">
             <div style="font:700 13.5px Manrope;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.n)}</div>
             <div style="font:600 11px Manrope;color:var(--sub);margin:2px 0 4px">${esc(v)}</div>
@@ -2806,7 +2814,7 @@ function renderApp() {
         <div style="display:grid;gap:10px">
           ${favIds.map(it => `
             <div data-c="${act(() => setS({ product: it.id, pQty: 1, pSize: 0, pAdds: {}, psub: null }))}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:10px 12px;cursor:pointer;animation:fadeUp .35s ease both">
-              <div style="width:50px;height:50px;border-radius:13px;flex:none;background:url(&quot;${esc(it.img)}&quot;) center/cover no-repeat"></div>
+              <div style="width:50px;height:50px;border-radius:13px;flex:none;background:url(&quot;${esc(imgW(it.img, 160))}&quot;) center/cover no-repeat"></div>
               <div style="flex:1;min-width:0"><div style="font:700 13.5px Manrope">${esc(it.n)}</div><div style="font:600 11px Manrope;color:var(--sub);margin-top:2px">${esc(it.v || (it.pv ? it.pv.map(x => x[0]).join(' · ') : ''))}${it.v || it.pv ? ' · ' : ''}${it.p} ₽</div></div>
               <div data-c="${act(() => { const f = { ...S.favs }; delete f[it.id]; set({ favs: f }); })}" style="padding:6px;cursor:pointer"><svg width="17" height="16" viewBox="0 0 24 22" style="fill:var(--goldT);stroke:var(--goldT)" stroke-width="2"><path d="M12 20S3 14 3 7.8A4.8 4.8 0 0 1 12 5a4.8 4.8 0 0 1 9 2.8C21 14 12 20 12 20z"></path></svg></div>
               <div data-c="${act(() => { addCart(it.id, 0, {}, 1); showToast(it.n + ' — в заказе'); })}" class="a90" style="width:32px;height:32px;border-radius:10px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;font:800 17px Manrope;cursor:pointer">+</div>
