@@ -156,6 +156,17 @@ def main():
         sys.exit('не найдены анимации kenburns — проверьте index.html')
     print('  бесконечных анимаций обезврежено: %d' % n)
 
+    # Шрифты вшиваются вместе с картинками: копия одним файлом должна выглядеть
+    # как сайт, а не падать на системный шрифт.
+    fcss = open(os.path.join('assets', 'fonts', 'fonts.css'), encoding='utf-8').read()
+    def font_uri(m):
+        fp = os.path.join('assets', 'fonts', m.group(1))
+        return 'url(data:font/woff2;base64,' + base64.b64encode(open(fp, 'rb').read()).decode('ascii') + ')'
+    fcss = re.sub(r'url\(assets/fonts/([\w.-]+\.woff2)\)', font_uri, fcss)
+    html = html.replace('<link rel="stylesheet" href="assets/fonts/fonts.css">', '<style>' + fcss + '</style>', 1)
+    if 'assets/fonts/' in html:
+        sys.exit('ссылка на шрифты не вшита')
+
     left = re.findall(r'https://images\.(?:unsplash|pexels)\.com/[^"\'`)\s]*', html)
     left = [x for x in left if '${' not in x]
     # Музыку не вшиваем: дорожки весят мегабайты, и одним файлом их не раздать.

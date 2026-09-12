@@ -3,13 +3,21 @@
    приложение открывается без сети. index.html берётся из сети в первую очередь
    (так обновления доходят сразу), из кэша — только если сети нет. Снимки
    напитков с фотостока и шрифты кэшируются по мере обращения. */
-const VERSION = 'knv-2026-09-11-4';
+const VERSION = 'knv-2026-09-12-1';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
   'assets/interior.jpg', 'assets/splash.jpg', 'assets/auth.jpg', 'assets/facade.jpg',
   'assets/bonus-band.jpg', 'assets/gal-gorge.jpg', 'assets/gal-sharoy.jpg', 'assets/gal-tower.jpg',
-  'assets/audio/morning.mp3', 'assets/audio/cover-morning.jpg', 'assets/audio/playlist.json'
+  'assets/audio/morning.mp3', 'assets/audio/cover-morning.jpg', 'assets/audio/playlist.json',
+  'assets/fonts/fonts.css',
+  'assets/fonts/Manrope-400-cyrillic.woff2', 'assets/fonts/Manrope-400-latin.woff2',
+  'assets/fonts/Manrope-500-cyrillic.woff2', 'assets/fonts/Manrope-500-latin.woff2',
+  'assets/fonts/Manrope-600-cyrillic.woff2', 'assets/fonts/Manrope-600-latin.woff2',
+  'assets/fonts/Manrope-700-cyrillic.woff2', 'assets/fonts/Manrope-700-latin.woff2',
+  'assets/fonts/Manrope-800-cyrillic.woff2', 'assets/fonts/Manrope-800-latin.woff2',
+  'assets/fonts/CormorantGaramond-500-cyrillic.woff2', 'assets/fonts/CormorantGaramond-500-latin.woff2',
+  'assets/fonts/CormorantGaramond-600-cyrillic.woff2', 'assets/fonts/CormorantGaramond-600-latin.woff2'
 ];
 
 self.addEventListener('install', e => {
@@ -90,9 +98,17 @@ self.addEventListener('fetch', e => {
   }
 
   if (isPage) {
-    // сеть → кэш: свежая версия при связи, рабочая — без неё
-    e.respondWith(fetch(req).then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put('index.html', copy)); return res; })
-      .catch(() => caches.match('index.html')));
+    // Сеть → кэш: свежая версия при связи, рабочая — без неё. Ждём сеть не дольше
+    // трёх секунд: на «подключённом», но мёртвом Wi-Fi приложение иначе не открылось
+    // бы вовсе. В кэш попадает только настоящая страница со своего домена — не
+    // ошибка 404 при выкладке и не страница входа в Wi-Fi кафе.
+    const net = fetch(req).then(res => {
+      const html = /text\/html/.test(res.headers.get('content-type') || '');
+      if (res.ok && !res.redirected && res.type === 'basic' && html) { const copy = res.clone(); caches.open(VERSION).then(c => c.put('index.html', copy)); return res; }
+      return caches.match('index.html').then(hit => hit || res);
+    });
+    const slow = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000));
+    e.respondWith(Promise.race([net, slow]).catch(() => caches.match('index.html').then(hit => hit || net)));
     return;
   }
   // всё остальное — кэш → сеть с докладыванием в кэш (фото, шрифты, иконки)

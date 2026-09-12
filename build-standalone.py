@@ -49,6 +49,17 @@ def main():
     if left:
         sys.exit('остались необработанные ссылки: %s' % set(left))
 
+    # Шрифты вшиваются вместе с картинками: копия одним файлом должна выглядеть
+    # как сайт, а не падать на системный шрифт.
+    fcss = open(os.path.join('assets', 'fonts', 'fonts.css'), encoding='utf-8').read()
+    def font_uri(m):
+        fp = os.path.join('assets', 'fonts', m.group(1))
+        return 'url(data:font/woff2;base64,' + base64.b64encode(open(fp, 'rb').read()).decode('ascii') + ')'
+    fcss = re.sub(r'url\(assets/fonts/([\w.-]+\.woff2)\)', font_uri, fcss)
+    html = html.replace('<link rel="stylesheet" href="assets/fonts/fonts.css">', '<style>' + fcss + '</style>', 1)
+    if 'assets/fonts/' in html:
+        sys.exit('ссылка на шрифты не вшита')
+
     anchor = "'use strict';\n"
     if anchor not in html:
         sys.exit('не найдено место для таблицы изображений')
