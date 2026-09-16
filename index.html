@@ -1906,7 +1906,7 @@ function renderStaff() {
         </div>
         <div data-c="${act(() => {
           slog('Смена закрыта: ' + me.name, 'shift', true);
-          set({ offShift: { ...S.offShift, [me.id]: today() }, screen: 'auth', sview: 'orders', cancelAsk: 0 });
+          set({ offShift: { ...S.offShift, [me.id]: today() }, screen: 'app', tab: 'home', sview: 'orders', cancelAsk: 0 });
           showToast('Смена закрыта. До встречи, ' + me.name + '!');
         })}" class="h-redbg" style="text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13.5px Manrope,system-ui,sans-serif;cursor:pointer">Завершить смену</div>
       </div>
@@ -2043,7 +2043,7 @@ function renderStaff() {
     </div>`;
   }
 
-  const logout = act(() => { slog('Выход из панели: ' + me.name, 'shift', true); set({ screen: 'auth', sview: 'orders', cancelAsk: 0 }); });
+  const logout = act(() => { slog('Выход из панели: ' + me.name, 'shift', true); set({ screen: 'app', tab: 'home', sview: 'orders', cancelAsk: 0 }); });
   // Широкий экран — боковое меню. Телефон — компактная шапка: одна строка с логотипом,
   // сотрудником и выходом плюс горизонтальная лента вкладок; список не занимает экран.
   const side = wide ? `
@@ -2118,7 +2118,7 @@ function renderStaffPin() {
   return `
   <div data-key="scr-spin" style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;animation:fadeIn .3s ease both">
     <div style="padding:16px 20px 0;display:flex;align-items:center;gap:10px">
-      <div data-c="${act(() => setS({ screen: 'auth', sPin: '', sPinErr: 0 }))}" class="a92" style="width:40px;height:40px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></div>
+      <div data-c="${act(() => setS({ screen: 'app', tab: 'profile', psub: null, sPin: '', sPinErr: 0 }))}" class="a92" style="width:40px;height:40px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></div>
       <div style="font:600 21px 'Cormorant Garamond',serif">Вход для персонала</div>
     </div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:14px 22px 26px;box-sizing:border-box">
@@ -2151,7 +2151,7 @@ function renderSplash() {
         <div style="font:600 40px/1.02 'Cormorant Garamond',serif;margin-top:16px;color:#f3ede4">Кофейня<br>на высоте</div>
         <div style="font:600 17px 'Cormorant Garamond',serif;color:#d9bc8c;margin-top:12px;letter-spacing:.03em">Кофе с видом на горы</div>
         <div style="font:500 13.5px/1.65 Manrope,system-ui,sans-serif;color:#dcd3c6;margin-top:16px">Ароматный кофе.<br>Тёплая атмосфера.<br>Горы за окном.</div>
-        <div data-c="${act(() => setS({ screen: 'auth' }))}" class="a97" style="margin:30px auto 0;height:54px;border-radius:99px;background:#d9bc8c;color:#2a2016;display:flex;align-items:center;justify-content:center;gap:14px;font:700 15px Manrope,system-ui,sans-serif;cursor:pointer;box-shadow:0 16px 34px -14px rgba(217,188,140,.85);transition:transform .15s">Начать<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
+        <div data-c="${act(() => setS({ screen: 'app', tab: 'home' }))}" class="a97" style="margin:30px auto 0;height:54px;border-radius:99px;background:#d9bc8c;color:#2a2016;display:flex;align-items:center;justify-content:center;gap:14px;font:700 15px Manrope,system-ui,sans-serif;cursor:pointer;box-shadow:0 16px 34px -14px rgba(217,188,140,.85);transition:transform .15s">Начать<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
       </div>
     </div>
     <div style="position:absolute;left:0;right:0;bottom:28px;display:flex;justify-content:center;gap:8px">
@@ -2172,8 +2172,7 @@ function renderAuth() {
     mode = `<div data-key="am-welcome" style="display:grid;gap:12px">
       <div data-c="${act(() => setS({ authMode: 'login', fPhone: S.user ? S.user.phone : '', fPass: '', agree: false }))}" class="a98" style="height:52px;border-radius:14px;background:#d9bc8c;color:#231b0e;display:flex;align-items:center;justify-content:center;font:800 15px Manrope,system-ui,sans-serif;cursor:pointer;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)">Войти</div>
       <div data-c="${act(() => setS({ authMode: 'reg', fName: '', fPhone: '', fPass: '', agree: false, agreeMkt: false }))}" class="h-goldbg a98" style="height:52px;border-radius:14px;border:1px solid rgba(201,151,78,.55);color:#e3c48b;display:flex;align-items:center;justify-content:center;font:700 15px Manrope,system-ui,sans-serif;cursor:pointer">Зарегистрироваться</div>
-      <div data-c="${act(() => setS({ screen: 'app', tab: 'home' }))}" class="h-cream" style="padding:10px;text-align:center;color:#b8ad9c;font:600 13px Manrope,system-ui,sans-serif;cursor:pointer">Пропустить</div>
-      <div data-c="${act(() => setS({ screen: 'spin', sPin: '', sPinErr: 0, sPinWho: S.staffId || S.staff[0].id }))}" class="h-goldc" style="padding:2px;text-align:center;color:#8d8471;font:600 11px Manrope,system-ui,sans-serif;letter-spacing:.08em;cursor:pointer;text-transform:uppercase">Вход для персонала</div>
+      <div data-c="${act(() => setS({ screen: 'app', tab: 'home' }))}" class="h-cream" style="padding:10px;text-align:center;color:#b8ad9c;font:600 13px Manrope,system-ui,sans-serif;cursor:pointer">Продолжить без входа</div>
       <div data-c="${act(() => setS({ doc: 'about' }))}" class="h-cream" style="padding:4px;text-align:center;color:#8d8471;font:600 11px Manrope,system-ui,sans-serif;cursor:pointer">О кофейне · реквизиты · документы</div>
     </div>`;
   } else if (S.authMode === 'login') {
@@ -3010,7 +3009,7 @@ function renderApp() {
           <div data-c="${act(() => { if (!S.fName.trim()) return; set({ user: { ...S.user, name: S.fName.trim(), phone: S.fPhone }, psub: null }); showToast('Данные сохранены'); })}" class="a98" style="height:50px;border-radius:13px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;font:800 14px Manrope,system-ui,sans-serif;cursor:pointer">Сохранить</div>
           ${S.user ? `<div data-c="${act(() => { const c = { ...(S.user.consents || {}) }; const on = !(c.marketing && c.marketing.on); c.marketing = { on, at: Date.now() }; set({ user: { ...S.user, consents: c } }); showToast(on ? 'Будем присылать акции и новости' : 'Акции и новости отключены'); })}" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;cursor:pointer;margin-top:6px"><div style="flex:1;min-width:0"><div style="font:600 13px Manrope,system-ui,sans-serif">Акции и новости</div><div style="font:600 11px Manrope,system-ui,sans-serif;color:var(--sub);margin-top:1px">отдельное согласие — отключается в любой момент</div></div><div style="width:42px;height:24px;border-radius:99px;flex:none;position:relative;background:${S.user.consents && S.user.consents.marketing && S.user.consents.marketing.on ? GG : 'var(--bdr)'}"><div style="position:absolute;top:3px;${S.user.consents && S.user.consents.marketing && S.user.consents.marketing.on ? 'right:3px' : 'left:3px'};width:18px;height:18px;border-radius:50%;background:#fff"></div></div></div>
           <div data-c="${act(() => setS({ doc: 'policy' }))}" style="font:600 12px Manrope,system-ui,sans-serif;color:var(--goldT);cursor:pointer;padding:6px 2px">Как мы обрабатываем данные →</div>
-          <div data-c="${act(() => { if (!S.delAsk) { setS({ delAsk: 1 }); return; } set({ user: null, myNums: [], myBks: [], favs: {}, cards: [], mainCard: 0, bonus: 0, bonusEv: [], notifs: [], unread: 0, alertSeen: {}, delAsk: 0, screen: 'auth', authMode: 'welcome', psub: null }); showToast('Ваши данные удалены с этого устройства'); })}" class="h-redbg" style="margin-top:8px;text-align:center;padding:13px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13px Manrope,system-ui,sans-serif;cursor:pointer">${S.delAsk ? 'Точно удалить аккаунт, историю, избранное, карты и баллы?' : 'Удалить мои данные'}</div>` : ''}
+          <div data-c="${act(() => { if (!S.delAsk) { setS({ delAsk: 1 }); return; } set({ user: null, myNums: [], myBks: [], favs: {}, cards: [], mainCard: 0, bonus: 0, bonusEv: [], notifs: [], unread: 0, alertSeen: {}, delAsk: 0, screen: 'app', tab: 'home', authMode: 'welcome', psub: null }); showToast('Ваши данные удалены с этого устройства'); })}" class="h-redbg" style="margin-top:8px;text-align:center;padding:13px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13px Manrope,system-ui,sans-serif;cursor:pointer">${S.delAsk ? 'Точно удалить аккаунт, историю, избранное, карты и баллы?' : 'Удалить мои данные'}</div>` : ''}
         </div>
       </div>`;
     } else {
@@ -3043,7 +3042,16 @@ function renderApp() {
           <div><div style="font:700 17px Manrope,system-ui,sans-serif">${esc(name)}</div><div style="font:600 12.5px Manrope,system-ui,sans-serif;color:var(--sub);margin-top:2px">${esc(S.user && S.user.phone ? S.user.phone : 'Телефон не указан')}</div></div>
         </div>
         <div style="display:grid;gap:8px">${rows}</div>
-        <div data-c="${act(() => set({ screen: 'auth', authMode: 'welcome', user: null, psub: null }))}" class="h-redbg" style="margin-top:18px;text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13.5px Manrope,system-ui,sans-serif;cursor:pointer">Выйти</div>
+        ${S.user ? `<div data-c="${act(() => set({ screen: 'app', tab: 'home', authMode: 'welcome', user: null, psub: null }))}" class="h-redbg" style="margin-top:18px;text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13.5px Manrope,system-ui,sans-serif;cursor:pointer">Выйти</div>` : `
+        <div style="margin-top:18px;padding:16px;border-radius:16px;background:var(--card);border:1px solid var(--line);animation:fadeUp .4s ease both">
+          <div style="font:700 13.5px Manrope,system-ui,sans-serif">Войдите в аккаунт</div>
+          <div style="font:600 12px/1.55 Manrope,system-ui,sans-serif;color:var(--sub);margin-top:5px">Баллы за каждый заказ, история и повтор одним касанием.${S.cfg.regBonus > 0 ? ' За регистрацию — ' + S.cfg.regBonus + ' баллов.' : ''}</div>
+          <div style="display:flex;gap:9px;margin-top:13px">
+            <div data-c="${act(() => setS({ screen: 'auth', authMode: 'reg', fName: '', fPhone: '', fPass: '', agree: false, agreeMkt: false }))}" class="a98" style="flex:1;height:46px;border-radius:12px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;font:800 13px Manrope,system-ui,sans-serif;cursor:pointer">Регистрация</div>
+            <div data-c="${act(() => setS({ screen: 'auth', authMode: 'login', fPhone: '', fPass: '', agree: false }))}" class="h-gold" style="flex:1;height:46px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 13px Manrope,system-ui,sans-serif;cursor:pointer">Войти</div>
+          </div>
+        </div>`}
+        <div data-c="${act(() => setS({ screen: 'spin', sPin: '', sPinErr: 0, sPinWho: S.staffId || S.staff[0].id }))}" class="h-goldc" style="margin-top:16px;text-align:center;padding:8px;color:var(--dim);font:600 11px Manrope,system-ui,sans-serif;letter-spacing:.08em;cursor:pointer;text-transform:uppercase">Вход для персонала</div>
       </div>`;
     }
     screen = `<div data-key="scr-profile" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">${sub}</div>`;
@@ -3265,7 +3273,7 @@ document.addEventListener('keydown', e => {
   if (S.screen !== 'spin') return;
   if (/^[0-9]$/.test(e.key)) staffPinInput(e.key);
   else if (e.key === 'Backspace') { e.preventDefault(); staffPinInput('del'); }
-  else if (e.key === 'Escape') setS({ screen: 'auth', sPin: '', sPinErr: 0 });
+  else if (e.key === 'Escape') setS({ screen: 'app', tab: 'profile', psub: null, sPin: '', sPinErr: 0 });
 });
 if (window.matchMedia) {
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
