@@ -581,7 +581,7 @@ const S = {
   cards: sv.cards || [], mainCard: sv.mainCard || 0, addingCard: false,
   ncNum: '', ncExp: '', ncCvc: '',
   bookings: (Array.isArray(sv.bookings) ? sv.bookings : []).map(normalizeBooking), bkOpen: false, bkDate: 0, bkTime: '', bkGuests: 2, bkName: '', bkPhone: '',
-  q: '', sort: '', navOpen: false, filterOpen: false, cart: {}, favs: sv.favs || (DEMO ? { cap: 1 } : {}), toast: '', lastOrder: null, orderType: 0, sel: DEMO ? 1257 : null, sTab: 'work',
+  q: '', sort: '', heroI: 0, navOpen: false, filterOpen: false, cart: {}, favs: sv.favs || (DEMO ? { cap: 1 } : {}), toast: '', lastOrder: null, orderType: 0, sel: DEMO ? 1257 : null, sTab: 'work',
   sview: 'orders', npName: '', npPrice: '', npCat: 'coffee', npImg: '', pay: 0,
   staffId: sv.staffId || null, offShift: sv.offShift || {},
   staff: Array.isArray(sv.staff) && sv.staff.length ? sv.staff.map(normStaff) : DEFAULT_STAFF,
@@ -2552,7 +2552,7 @@ function renderApp() {
         </div>`).join('')}
       </div>
       <div id="hero-dots" data-key="hero-dots" style="display:flex;justify-content:center;gap:6px;margin-top:11px">
-        ${HERO.map((_, i) => `<div data-dot="${i}" style="width:${i === 0 ? '18px' : '7px'};height:7px;border-radius:99px;background:${i === 0 ? 'var(--acc)' : 'var(--bdr)'};transition:all .25s"></div>`).join('')}
+        ${HERO.map((_, i) => `<div data-dot="${i}" style="width:${i === (S.heroI || 0) ? '18px' : '7px'};height:7px;border-radius:99px;background:${i === (S.heroI || 0) ? 'var(--acc)' : 'var(--bdr)'};transition:all .25s"></div>`).join('')}
       </div>`;
     // Поиск по меню — настоящий: найденное показывается тут же, вместо витрины.
     const qq = (S.q || '').trim().toLowerCase();
@@ -3176,7 +3176,7 @@ function renderApp() {
     if (key === 'order') {
       // Центральная кнопка выступает над полосой — на неё же садится счётчик корзины.
       return `
-      <div data-c="${tap}" class="a94" role="button" aria-label="Мой заказ" aria-current="${active}" style="position:relative;width:64px;flex:none;display:flex;justify-content:center;cursor:pointer">
+      <div data-c="${tap}" class="a94" role="button" aria-label="Мой заказ" aria-current="${active}" style="position:relative;width:64px;height:62px;box-sizing:border-box;flex:none;display:flex;justify-content:center;cursor:pointer">
         <div style="position:absolute;top:-26px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 14px 28px -10px rgba(0,0,0,.55);border:4px solid var(--ph);box-sizing:border-box;transition:transform .15s">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav.order}</svg>
           ${cartCount > 0 ? `<div style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--bad);color:#fff;font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph);animation:pop .3s ease both">${cartCount}</div>` : ''}
@@ -3292,6 +3292,7 @@ app.addEventListener('scroll', e => {
   const dots = document.getElementById('hero-dots');
   if (!dots) return;
   const w = t.clientWidth || 1, i = Math.round(t.scrollLeft / w);
+  S.heroI = i;   // чтобы следующая перерисовка нарисовала ту же точку
   [...dots.children].forEach((d, j) => {
     d.style.width = j === i ? '18px' : '7px';
     d.style.background = j === i ? 'var(--acc)' : 'var(--bdr)';
