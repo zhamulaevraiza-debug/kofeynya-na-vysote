@@ -41,6 +41,13 @@ input::placeholder{color:var(--dim);opacity:1}
 /* Пластинка крутится, пока идёт дорожка. Пауза останавливает её на месте: смена
    класса не перезапускает анимацию, в отличие от смены inline-стиля. */
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+/* Значок на кнопке заказа меняется каждые три секунды: пять значков разделов
+   лежат друг на друге, каждому свой сдвиг старта. Всё на CSS — таймер сбивал бы
+   ход при перерисовке, а перерисовка каждые три секунды ради значка не нужна. */
+@keyframes navcyc{0%{opacity:0;transform:scale(.55) rotate(-20deg)}3%{opacity:1;transform:none}18%{opacity:1;transform:none}21%{opacity:0;transform:scale(.55) rotate(20deg)}100%{opacity:0;transform:scale(.55) rotate(-20deg)}}
+.knv-cyc{position:relative;width:24px;height:24px;flex:none}
+.knv-cyc>svg{position:absolute;left:0;top:0;opacity:0;animation:navcyc 15s linear infinite}
+@media (prefers-reduced-motion:reduce){.knv-cyc>svg{animation:none!important;opacity:0!important}.knv-cyc>svg:first-child{opacity:1!important}}
 @keyframes shine{from{background-position:130% 0}to{background-position:-30% 0}}
 .knv-shine{color:rgba(243,237,228,.82)}
 @media (prefers-reduced-motion:no-preference){
@@ -3178,7 +3185,7 @@ function renderApp() {
       return `
       <div data-c="${tap}" class="a94" role="button" aria-label="Мой заказ" aria-current="${active}" style="position:relative;width:64px;height:62px;box-sizing:border-box;flex:none;display:flex;justify-content:center;cursor:pointer">
         <div style="position:absolute;top:-36px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 14px 28px -10px rgba(0,0,0,.55);border:4px solid var(--ph);box-sizing:border-box;transition:transform .15s">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav.order}</svg>
+          <div class="knv-cyc" aria-hidden="true">${CATS.map(([k], i) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="animation-delay:${i * 3}s">${SVG.cat[k] || SVG.cat.other}</svg>`).join('')}</div>
           ${cartCount > 0 ? `<div style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--bad);color:#fff;font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph);animation:pop .3s ease both">${cartCount}</div>` : ''}
         </div>
         <div style="position:absolute;bottom:11px;font:600 10px Manrope,system-ui,sans-serif;color:${active ? 'var(--goldT)' : 'var(--dim2)'};white-space:nowrap">${label}</div>
