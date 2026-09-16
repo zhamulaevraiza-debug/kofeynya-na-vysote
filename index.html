@@ -2654,21 +2654,6 @@ function renderApp() {
         <div data-c="${act(() => setS({ tab: 'menu' }))}" role="button" style="display:flex;align-items:center;gap:6px;font:600 12px Manrope,system-ui,sans-serif;color:var(--goldT);cursor:pointer">Смотреть все${arrow}</div>
       </div>
       <div style="display:flex;gap:11px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${popular}</div>
-      ${S.cfg.disc > 0 ? `
-      <div data-c="${act(() => setS({ tab: 'menu', cat: 'coffee' }))}" class="a98" style="position:relative;margin-top:22px;border-radius:20px;overflow:hidden;background:var(--hov);border:1px solid var(--line);min-height:122px;display:flex;cursor:pointer">
-        <div style="flex:1;min-width:0;padding:15px 16px;position:relative;z-index:1">
-          <div style="font:700 8.5px Manrope,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--goldT)">Скидка в приложении</div>
-          <div style="font:800 27px/1.05 Manrope,system-ui,sans-serif;margin-top:6px">−${S.cfg.disc}%</div>
-          <div style="font:600 11.5px Manrope,system-ui,sans-serif;color:var(--sub);margin-top:3px">на каждый заказ</div>
-          <div style="margin-top:11px;display:inline-flex;align-items:center;gap:8px;padding:7px 7px 7px 14px;border-radius:99px;background:var(--acc);color:var(--accInk);font:800 10.5px Manrope,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase">Заказать<span style="width:19px;height:19px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;flex:none">${arrow}</span></div>
-        </div>
-        <div style="position:absolute;right:0;top:0;bottom:0;width:52%;background:url(&quot;${esc(imgW((item('icelat') || {}).img || 'assets/interior.jpg', 360))}&quot;) center/cover no-repeat"></div>
-        <div style="position:absolute;right:0;top:0;bottom:0;width:52%;background:linear-gradient(90deg,var(--hov),rgba(0,0,0,0) 62%)"></div>
-        <div style="position:absolute;right:14px;top:50%;transform:translateY(-50%);width:58px;height:58px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;box-shadow:0 12px 24px -12px rgba(0,0,0,.6)">
-          <div style="font:800 15px Manrope,system-ui,sans-serif">${S.cfg.disc}%</div>
-          <div style="font:700 7.5px Manrope,system-ui,sans-serif;letter-spacing:.1em;margin-top:2px">СКИДКА</div>
-        </div>
-      </div>` : ''}
       <div style="display:flex;align-items:baseline;margin:22px 0 12px">
         <div style="font:600 19px 'Cormorant Garamond',serif">Атмосфера гор</div>
         <div style="flex:1"></div>
