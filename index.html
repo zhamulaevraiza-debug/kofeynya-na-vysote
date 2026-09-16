@@ -3177,11 +3177,11 @@ function renderApp() {
       // Центральная кнопка выступает над полосой — на неё же садится счётчик корзины.
       return `
       <div data-c="${tap}" class="a94" role="button" aria-label="Мой заказ" aria-current="${active}" style="position:relative;width:64px;height:62px;box-sizing:border-box;flex:none;display:flex;justify-content:center;cursor:pointer">
-        <div style="position:absolute;top:-26px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 14px 28px -10px rgba(0,0,0,.55);border:4px solid var(--ph);box-sizing:border-box;transition:transform .15s">
+        <div style="position:absolute;top:-36px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 14px 28px -10px rgba(0,0,0,.55);border:4px solid var(--ph);box-sizing:border-box;transition:transform .15s">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav.order}</svg>
           ${cartCount > 0 ? `<div style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--bad);color:#fff;font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph);animation:pop .3s ease both">${cartCount}</div>` : ''}
         </div>
-        <div style="position:absolute;bottom:9px;font:700 9.5px Manrope,system-ui,sans-serif;color:${active ? 'var(--goldT)' : 'var(--dim2)'};white-space:nowrap">${label}</div>
+        <div style="position:absolute;bottom:11px;font:600 10px Manrope,system-ui,sans-serif;color:${active ? 'var(--goldT)' : 'var(--dim2)'};white-space:nowrap">${label}</div>
       </div>`;
     }
     return `
