@@ -224,6 +224,12 @@ const THEMES = {
   sage: { label: 'Шалфей', dark: true, acc: '#c8b39d', bg: '#323529', ph: '#424635', op: '.38',
     tint: 'linear-gradient(180deg,rgba(66,70,53,.6),rgba(50,53,41,.86))',
     vars: '--bg:#323529;--ph:#424635;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.12);--line2:rgba(255,255,255,.08);--ink:#eff0ea;--sub:#c2c7ba;--sub2:#d3d7cc;--goldT:#d3c2ab;--mut:#c9c3b4;--dim:#c3c6c0;--dim2:#c2c4bf;--bdr:rgba(255,255,255,.25);--hov:rgba(125,131,112,.28);--av1:rgba(125,131,112,.45);--av2:rgba(125,131,112,.15);--navbg:rgba(66,70,53,.8);--accInk:#2b2320;--shadow:rgba(0,0,0,.8);--ok:#b4e6c3;--bad:#ffc3b5' },
+  // «Крем» — по макету заведения: ровный кремовый фон без подложки, белые карточки,
+  // кофейно-коричневый акцент. Фотография интерьера скрыта (op 0), поэтому экран
+  // читается как печатное меню, а не как стекло поверх снимка.
+  cream: { label: 'Крем', dark: false, acc: '#6f4a2f', bg: '#f1e9dd', ph: '#faf6f0', op: '0',
+    tint: 'linear-gradient(180deg,#faf6f0,#f6efe4)',
+    vars: '--bg:#f1e9dd;--ph:#faf6f0;--card:#ffffff;--line:rgba(47,34,24,.11);--line2:rgba(47,34,24,.07);--ink:#2b2018;--sub:#6b5a4c;--sub2:#4a3a2c;--goldT:#8a5426;--mut:#5f5044;--dim:#6f5e50;--dim2:#6b5a4c;--bdr:rgba(47,34,24,.24);--hov:#f3ebdf;--av1:#ffffff;--av2:#efe4d4;--navbg:rgba(255,255,255,.96);--accInk:#fff8f0;--ok:#1f6b3a;--bad:#a8362a' },
   // Japandi — светлые: грейдж (акцент эспрессо), песок и тёплый белый (акцент орех); надпись на кнопке светлая.
   greige: { label: 'Грейдж', dark: false, acc: '#3b2e2a', bg: '#aca397', ph: '#bbb3a8', op: '.45',
     tint: 'linear-gradient(180deg,rgba(187,179,168,.62),rgba(172,163,151,.84))',
@@ -237,7 +243,7 @@ const THEMES = {
 };
 // Группы для выбора: основные, «атмосферные» по палитре заказчика, Japandi по мудборду.
 const THEME_GROUPS = [
-  ['Основные', ['dark', 'light', 'system']],
+  ['Основные', ['cream', 'light', 'dark', 'system']],
   ['Атмосферные', ['caramel', 'mocha', 'pine']],
   ['Japandi', ['espresso', 'walnut', 'sage', 'greige', 'sand', 'warm']]
 ];
@@ -271,6 +277,41 @@ function renderThemePanel() {
     <div style="font:700 11px Manrope,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:10px 4px 0">Тема оформления</div>
     ${themeGrid(k => set({ theme: k, themeOpen: false }))}
   </div>`;
+}
+
+// ---------- главная: популярное, бейджи, слайды промо ----------
+// «Популярное» — не список из головы, а то, что действительно заказывают:
+// позиции считаются по архиву заказов. Пока заказов нет, показываются первые
+// позиции разделов, чтобы витрина не пустовала.
+function popularItems(n) {
+  const cnt = {};
+  S.orders.forEach(o => (o.ids || []).forEach(x => { cnt[x.id] = (cnt[x.id] || 0) + (+x.qty || 1); }));
+  const all = allProducts().filter(m => !S.hidden[m.id] && !noPrice(m));
+  const ranked = all.filter(m => cnt[m.id]).sort((a, b) => cnt[b.id] - cnt[a.id]);
+  const rest = CATS.map(([k]) => all.find(m => m.cat === k && !ranked.includes(m))).filter(Boolean);
+  return [...ranked, ...rest].slice(0, n || 6);
+}
+// Бейдж на карточке берётся из фактов: что чаще всего заказывают и что бариста
+// добавил в меню сам. Выдуманных «выбор шефа» здесь нет.
+function itemBadge(it) {
+  const cnt = {};
+  S.orders.forEach(o => (o.ids || []).forEach(x => { cnt[x.id] = (cnt[x.id] || 0) + (+x.qty || 1); }));
+  const top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
+  if (top === it.id && cnt[top] >= 3) return 'Хит продаж';
+  if (S.custom.some(x => x.id === it.id)) return 'Новинка';
+  if (S.favs[it.id]) return 'Любимое';
+  return '';
+}
+// Кнопка «+» на карточке ведёт себя как в меню: без цены не добавляет,
+// 18+ отправляет в карточку подтвердить возраст.
+function addTap(it) {
+  return act(() => {
+    if (noPrice(it)) { showToast('У этой позиции пока нет цены — спросите у бариста'); return; }
+    if (itemInfo(it.id).adult) { setS({ product: it.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }); showToast('Напиток 18+ — подтвердите возраст в карточке'); return; }
+    const i0 = it.pv ? priceList(it).findIndex(p => p > 0) : 0;
+    addCart(it.id, i0 < 0 ? 0 : i0, {}, 1);
+    showToast(it.n + ' — в заказе');
+  });
 }
 
 // ---------- плеер: кнопка в шапке, пластинка и карточка на два режима ----------
@@ -532,7 +573,7 @@ const DEMO = new URLSearchParams(location.search).has('demo');
 const S = {
   screen: sv.user ? 'app' : 'splash', tab: 'home', cat: 'coffee', product: null, pQty: 1, pSize: 0, pAdds: {},
   authMode: 'welcome', fName: '', fPhone: '', fPass: '', agree: false,
-  theme: sv.theme || 'dark',
+  theme: sv.theme || 'cream',
   sysDark: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches),
   user: sv.user || null, myNums: sv.myNums || [], psub: null,
   notifs: sv.notifs || [], unread: sv.unread || 0, notifOpen: false,
@@ -540,7 +581,7 @@ const S = {
   cards: sv.cards || [], mainCard: sv.mainCard || 0, addingCard: false,
   ncNum: '', ncExp: '', ncCvc: '',
   bookings: (Array.isArray(sv.bookings) ? sv.bookings : []).map(normalizeBooking), bkOpen: false, bkDate: 0, bkTime: '', bkGuests: 2, bkName: '', bkPhone: '',
-  cart: {}, favs: sv.favs || (DEMO ? { cap: 1 } : {}), toast: '', lastOrder: null, orderType: 0, sel: DEMO ? 1257 : null, sTab: 'work',
+  q: '', sort: '', navOpen: false, filterOpen: false, cart: {}, favs: sv.favs || (DEMO ? { cap: 1 } : {}), toast: '', lastOrder: null, orderType: 0, sel: DEMO ? 1257 : null, sTab: 'work',
   sview: 'orders', npName: '', npPrice: '', npCat: 'coffee', npImg: '', pay: 0,
   staffId: sv.staffId || null, offShift: sv.offShift || {},
   staff: Array.isArray(sv.staff) && sv.staff.length ? sv.staff.map(normStaff) : DEFAULT_STAFF,
@@ -1134,6 +1175,12 @@ const SVG = {
   backSm: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>`,
   chev: `<svg width="7" height="12" viewBox="0 0 8 14" fill="none" stroke="var(--dim2)" stroke-width="2" stroke-linecap="round"><path d="M1.5 1.5L6.5 7l-5 5.5"></path></svg>`,
   bell: `<svg width="17" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"></path><path d="M10 19a2.2 2.2 0 0 0 4 0"></path></svg>`,
+  burger: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"></path></svg>`,
+  search: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.4-3.4"></path></svg>`,
+  sliders: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 8h10M18 8h2M4 16h4M12 16h8"></path><circle cx="16" cy="8" r="2.1"></circle><circle cx="10" cy="16" r="2.1"></circle></svg>`,
+  star: `<svg width="12" height="12" viewBox="0 0 24 24" style="fill:#e8a33d" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.8 5.8 20.3l1.6-6.8L2.2 8.9l6.9-.6L12 2z"></path></svg>`,
+  plus: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>`,
+  cart: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg>`,
   cup: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h12v4.5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"></path><path d="M16 9.8h2a2.2 2.2 0 0 1 0 4.4h-2"></path><path d="M6.5 3.5v2M10 3.5v2M13.5 3.5v2"></path></svg>`,
   card: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.5"></rect><path d="M3 10.5h18"></path></svg>`,
   place: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>`,
@@ -1158,6 +1205,7 @@ const SVG = {
     home: `<path d="M4 11l8-7 8 7"></path><path d="M6 9.5V20h12V9.5"></path>`,
     menu: `<rect x="4" y="4" width="7" height="10" rx="2"></rect><rect x="13" y="4" width="7" height="6" rx="2"></rect><rect x="13" y="12" width="7" height="8" rx="2"></rect><rect x="4" y="16" width="7" height="4" rx="2"></rect>`,
     order: `<path d="M6 8h12l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path>`,
+    fav: `<path d="M12 20.3S3.6 14.6 3.6 8.6A4.6 4.6 0 0 1 12 5.9a4.6 4.6 0 0 1 8.4 2.7c0 6-8.4 11.7-8.4 11.7z"></path>`,
     prof: `<circle cx="12" cy="8" r="3.6"></circle><path d="M5.5 20a6.5 6.5 0 0 1 13 0"></path>`
   },
   prof: {
@@ -1429,6 +1477,11 @@ function renderStaff() {
             <div style="font:600 11px/1.5 Manrope,system-ui,sans-serif;color:var(--sub)">Правила общепита требуют указывать состав, выход и калорийность каждой позиции; аллергены — по перечню ТР ТС 022/2011.</div>
             ${inp('if-ingr', 'ingr', 'Состав: эспрессо, молоко 3,2 %, сироп…', 'maxlength="300"')}
             ${inp('if-kcal', 'kcal', 'Калорийность порции, ккал', 'inputmode="numeric" maxlength="4"')}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              ${inp('if-rate', 'rate', 'Оценка, например 4.8', 'inputmode="decimal" maxlength="3"')}
+              ${inp('if-rateN', 'rateN', 'Сколько оценок', 'inputmode="numeric" maxlength="6"')}
+            </div>
+            <div style="font:600 10.5px/1.5 Manrope,system-ui,sans-serif;color:var(--dim)">Оценка появится на карточке витрины. Ставьте настоящую — по отзывам гостей.</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">${ALLERGENS.map(([c, l]) => `<div data-c="${act(() => { const a = new Set(S.edInfoF.allerg || []); a.has(c) ? a.delete(c) : a.add(c); setS({ edInfoF: { ...S.edInfoF, allerg: [...a] } }); })}" style="padding:7px 11px;border-radius:99px;cursor:pointer;font:700 11.5px Manrope,system-ui,sans-serif;${(IF.allerg || []).includes(c) ? `background:${GG};color:var(--accInk)` : 'background:var(--hov);color:var(--sub2)'}">${l}</div>`).join('')}</div>
             <div data-c="${act(() => setS({ edInfoF: { ...S.edInfoF, adult: !IF.adult } }))}" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 2px"><div style="width:19px;height:19px;border-radius:6px;box-sizing:border-box;flex:none;${IF.adult ? `background:${GG};box-shadow:inset 0 0 0 4px var(--ph)` : 'border:2px solid var(--bdr)'}"></div><div style="font:600 12.5px Manrope,system-ui,sans-serif">18+ — тонизирующий (энергетический) напиток</div></div>
             <div style="display:flex;gap:8px">
@@ -2249,7 +2302,7 @@ const ALLERGEN_LABEL = Object.fromEntries(ALLERGENS);
 // поэтому заполняются для любых позиций — и базовых, и добавленных бариста.
 function itemInfo(id) {
   const it = item(id) || {}, o = (S.itemInfo || {})[id] || {};
-  return { ingr: o.ingr || it.ingr || '', kcal: o.kcal != null && o.kcal !== '' ? o.kcal : (it.kcal || ''), allerg: o.allerg || it.allerg || [], adult: !!(o.adult != null ? o.adult : it.adult) };
+  return { rate: o.rate || '', rateN: o.rateN || '', ingr: o.ingr || it.ingr || '', kcal: o.kcal != null && o.kcal !== '' ? o.kcal : (it.kcal || ''), allerg: o.allerg || it.allerg || [], adult: !!(o.adult != null ? o.adult : it.adult) };
 }
 SVG.prof.iI = '<circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path>';
 function toMin(hm) { const m = /^(\d{1,2}):(\d{2})$/.exec(hm || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; }
@@ -2436,81 +2489,170 @@ function renderApp() {
       </div>` : '';
     const h = new Date().getHours();
     const greet = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер';
-    const tiles = CATS.map(([k, label]) => `
-      <div data-c="${act(() => setS({ tab: 'menu', cat: k }))}" class="h-gold a94" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 2px;border-radius:14px;background:var(--card);border:1px solid var(--line);cursor:pointer;transition:all .15s">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="stroke:var(--goldT)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${SVG.cat[k] || SVG.cat.other}</svg>
-        <div style="font:600 10.5px Manrope,system-ui,sans-serif;color:var(--sub2)">${label}</div>
-      </div>`).join('');
-    const popular = ['cap', 'shaw', 'mojito'].map(id => item(id)).filter(it => it && !S.hidden[it.id]).map(it => {
-      const id = it.id;
-      const open = act(() => setS({ product: id, pQty: 1, pSize: 0, pAdds: {} }));
-      const favTap = act(() => { const f = { ...S.favs }; f[id] ? delete f[id] : f[id] = 1; set({ favs: f }); });
+    // Круглые значки разделов: выбранный залит акцентом, как на макете.
+    const tiles = CATS.map(([k, label]) => {
+      const on = S.cat === k;
       return `
-      <div data-c="${open}" class="h-gold" style="flex:none;width:124px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;animation:fadeUp .45s ease both">
-        <div style="height:86px;background:url(&quot;${esc(imgW(it.img, 360))}&quot;) center/cover no-repeat;animation:kenburns 13s ease-in-out infinite alternate"></div>
-        <div style="padding:9px 11px 11px">
-          <div style="font:700 12.5px Manrope,system-ui,sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(it.n)}</div>
-          <div style="display:flex;align-items:center;margin-top:4px">
-            <div style="font:800 13px Manrope,system-ui,sans-serif;color:var(--goldT)">${priceTag(it)}</div>
-            <div style="flex:1"></div>
-            <div data-c="${favTap}" role="button" aria-pressed="${!!S.favs[id]}" aria-label="В избранное: ${esc(it.n)}" style="cursor:pointer;padding:2px">${SVG.heart(S.favs[id] ? 'var(--goldT)' : 'none', 16, 15)}</div>
+      <div data-c="${act(() => setS({ tab: 'menu', cat: k }))}" class="a94" role="button" aria-label="Раздел меню: ${label}" style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer">
+        <div style="width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;transition:all .15s;${on ? 'background:var(--acc);color:var(--accInk);box-shadow:0 10px 20px -10px rgba(0,0,0,.45)' : 'background:var(--card);border:1px solid var(--line);color:var(--goldT)'}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${SVG.cat[k] || SVG.cat.other}</svg>
+        </div>
+        <div style="font:600 10px Manrope,system-ui,sans-serif;color:var(--sub2);text-align:center;overflow-wrap:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${label}</div>
+      </div>`;
+    }).join('');
+    // Карточка товара витрины: снимок, бейдж по фактам, описание, оценка и «+».
+    const card = it => {
+      const id = it.id, info = itemInfo(id), badge = itemBadge(it);
+      return `
+      <div data-key="pop-${id}" data-c="${act(() => setS({ product: id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }))}" class="h-gold" style="flex:none;width:158px;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;cursor:pointer;box-shadow:0 14px 28px -20px rgba(0,0,0,.45);animation:fadeUp .45s ease both">
+        <div style="position:relative;height:104px;background:url(&quot;${esc(imgW(it.img, 360))}&quot;) center/cover no-repeat">
+          ${badge ? `<div style="position:absolute;left:8px;top:8px;padding:4px 9px;border-radius:99px;background:rgba(28,20,14,.84);color:#fff;font:800 8.5px Manrope,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase">${badge}</div>` : ''}
+        </div>
+        <div style="padding:10px 11px 12px">
+          <div style="font:700 13px Manrope,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.n)}</div>
+          <div style="font:500 10.5px/1.45 Manrope,system-ui,sans-serif;color:var(--sub);margin-top:3px;height:31px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(it.d || it.v || '')}</div>
+          ${info.rate ? `<div style="display:flex;align-items:center;gap:4px;margin-top:6px">${SVG.star}<span style="font:800 11px Manrope,system-ui,sans-serif">${esc(String(info.rate))}</span>${info.rateN ? `<span style="font:600 10.5px Manrope,system-ui,sans-serif;color:var(--dim)">(${esc(String(info.rateN))})</span>` : ''}</div>` : ''}
+          <div style="display:flex;align-items:center;gap:8px;margin-top:9px">
+            <div style="flex:1;min-width:0;font:800 14px Manrope,system-ui,sans-serif">${priceTag(it)}</div>
+            ${noPrice(it) ? '' : `<div data-c="${addTap(it)}" class="a90" role="button" aria-label="В заказ: ${esc(it.n)}" style="width:30px;height:30px;border-radius:50%;flex:none;background:var(--acc);color:var(--accInk);display:flex;align-items:center;justify-content:center;cursor:pointer">${SVG.plus}</div>`}
           </div>
         </div>
       </div>`;
-    }).join('');
+    };
+    const popular = popularItems(6).map(card).join('');
     const gallery = GALLERY.map(g => `
       <div style="flex:none;width:172px;border-radius:16px;overflow:hidden;position:relative;height:210px;animation:fadeUp ${g.delay} ease both">
         <img src="${g.img}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${g.pos};animation:kenburns ${g.kb} ease-in-out infinite alternate">
         <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,17,13,0) 55%,rgba(20,17,13,.82))"></div>
         <div style="position:absolute;left:12px;right:12px;bottom:10px"><div style="font:700 12px Manrope,system-ui,sans-serif;color:#fff">${g.n}</div><div style="font:600 10px Manrope,system-ui,sans-serif;color:rgba(255,255,255,.65)">${g.r}</div></div>
       </div>`).join('');
-    screen = `
-    <div data-key="scr-home" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">
-      <div style="display:flex;align-items:flex-start;gap:10px">
-        <div style="flex:1">
-          <div style="font:600 21px/1.2 'Cormorant Garamond',serif">Кофейня</div>
-          <div style="font:600 21px/1.2 'Cormorant Garamond',serif;color:var(--goldT)">на высоте</div>
-        </div>
-        ${playerBtn()}
-        <div data-c="${act(() => setS({ themeOpen: !S.themeOpen, notifOpen: false, plOpen: false }))}" class="h-gold" title="Тема оформления" style="width:40px;height:40px;border-radius:50%;border:1px solid ${S.themeOpen ? 'var(--goldT)' : 'var(--bdr)'};display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"></path></svg>
-        </div>
-        <div data-c="${act(() => set({ notifOpen: !S.notifOpen, themeOpen: false, plOpen: false, unread: 0 }))}" class="h-gold" style="position:relative;width:40px;height:40px;border-radius:50%;border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer">
-          ${SVG.bell}
-          ${S.unread > 0 ? `<div style="position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 3px;border-radius:99px;background:#c0564a;color:#fff;font:800 9.5px/16px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph);box-sizing:content-box;animation:pop .3s ease both">${S.unread}</div>` : ''}
-        </div>
+    const arrow = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M12 5.5l6.5 6.5-6.5 6.5"></path></svg>';
+    // Карусель промо: три настоящих повода, листается пальцем, точки под ней
+    // показывают положение — их двигает обработчик прокрутки, без перерисовки.
+    const HERO = [
+      { t1: 'Хороший кофе', t2: 'Хорошее настроение', d: S.cfg.disc > 0 ? 'Скидка ' + S.cfg.disc + '% на каждый заказ в приложении' : 'Свежая обжарка каждый день', b: 'Заказать',
+        img: 'https://images.unsplash.com/photo-1534687941688-651ccaafbff8?auto=format&fit=crop&w=800&q=70', tap: act(() => setS({ tab: 'menu', cat: 'coffee' })) },
+      { t1: 'Столик с видом', t2: 'Горы за окном', d: 'Забронируйте место заранее — подтвердим в приложении', b: 'Забронировать',
+        img: 'assets/facade.jpg', tap: act(() => setS({ tab: 'order', bkOpen: true })) },
+      { t1: 'Не только кофе', t2: 'Кухня на высоте', d: 'Шаурма, крылья, сэндвичи и салаты — готовим при вас', b: 'Смотреть',
+        img: (item('shaw') || {}).img || 'assets/interior.jpg', tap: act(() => setS({ tab: 'menu', cat: 'fast' })) }
+    ];
+    const hero = `
+      <div id="hero" data-key="hero" style="display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;margin:16px -20px 0;padding:0 20px;scroll-padding:0 20px">
+        ${HERO.map(x => `
+        <div data-c="${x.tap}" class="a98" style="flex:0 0 100%;scroll-snap-align:center;position:relative;height:208px;border-radius:22px;overflow:hidden;cursor:pointer">
+          <img src="${esc(x.img)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:75% 50%">
+          <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(28,20,14,.94) 32%,rgba(28,20,14,.22))"></div>
+          <div style="position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:0 20px;box-sizing:border-box;max-width:82%">
+            <div style="font:600 17px 'Cormorant Garamond',serif;font-style:italic;color:#e3c48b">${x.t1}</div>
+            <div style="font:700 25px/1.12 'Cormorant Garamond',serif;color:#fbf6ee">${x.t2}</div>
+            <div style="font:500 12px/1.5 Manrope,system-ui,sans-serif;color:#cdc1b2;margin-top:3px;max-width:200px">${esc(x.d)}</div>
+            <div style="margin-top:13px;display:inline-flex;align-self:flex-start;align-items:center;gap:9px;padding:8px 8px 8px 16px;border-radius:99px;background:var(--acc);color:var(--accInk);font:800 11px Manrope,system-ui,sans-serif;letter-spacing:.07em;text-transform:uppercase">${esc(x.b)}<span style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;flex:none">${arrow}</span></div>
+          </div>
+        </div>`).join('')}
       </div>
+      <div id="hero-dots" data-key="hero-dots" style="display:flex;justify-content:center;gap:6px;margin-top:11px">
+        ${HERO.map((_, i) => `<div data-dot="${i}" style="width:${i === 0 ? '18px' : '7px'};height:7px;border-radius:99px;background:${i === 0 ? 'var(--acc)' : 'var(--bdr)'};transition:all .25s"></div>`).join('')}
+      </div>`;
+    // Поиск по меню — настоящий: найденное показывается тут же, вместо витрины.
+    const qq = (S.q || '').trim().toLowerCase();
+    const found = qq ? allProducts().filter(m => !S.hidden[m.id] && ((m.n || '').toLowerCase().includes(qq) || (m.d || '').toLowerCase().includes(qq))).slice(0, 12) : [];
+    const searchRow = `
+      <div style="display:flex;gap:10px;margin-top:15px">
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;box-sizing:border-box;border-radius:99px;background:var(--card);border:1px solid var(--line);color:var(--dim)">
+          ${SVG.search}
+          <input id="q-home" type="search" autocomplete="off" aria-label="Поиск по меню" data-i="${act(e => setS({ q: e.target.value }))}" value="${esc(S.q || '')}" placeholder="Поиск: кофе, еда и другое…" style="flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:600 13px Manrope,system-ui,sans-serif;outline:none">
+          ${qq ? `<div data-c="${act(() => setS({ q: '' }))}" role="button" aria-label="Очистить поиск" style="cursor:pointer;padding:4px;color:var(--dim);font:800 14px Manrope,system-ui,sans-serif;line-height:1">✕</div>` : ''}
+        </div>
+        <div data-c="${act(() => setS({ filterOpen: !S.filterOpen }))}" class="h-gold" role="button" aria-label="Фильтр и сортировка" aria-expanded="${!!S.filterOpen}" style="width:48px;height:48px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;background:${S.filterOpen ? 'var(--acc)' : 'var(--card)'};border:1px solid ${S.filterOpen ? 'var(--acc)' : 'var(--line)'};color:${S.filterOpen ? 'var(--accInk)' : 'var(--goldT)'}">${SVG.sliders}</div>
+      </div>
+      ${S.filterOpen ? `<div data-key="filter-panel" style="margin-top:10px;padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line);animation:fadeUp .25s ease both">
+        <div style="font:700 10.5px Manrope,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:2px 2px 9px">Как показывать меню</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          ${[['', 'Как в меню'], ['cheap', 'Сначала недорогие'], ['rich', 'Сначала дорогие'], ['fav', 'Только избранное']].map(([k, label]) => `
+            <div data-c="${act(() => setS({ sort: k }))}" class="h-gold" role="button" aria-pressed="${S.sort === k}" style="padding:9px 14px;border-radius:99px;cursor:pointer;font:700 12px Manrope,system-ui,sans-serif;border:1px solid ${S.sort === k ? 'var(--goldT)' : 'var(--line)'};background:${S.sort === k ? 'var(--hov)' : 'transparent'};color:${S.sort === k ? 'var(--goldT)' : 'var(--sub2)'}">${label}</div>`).join('')}
+        </div>
+      </div>` : ''}`;
+    const results = `
+      <div style="margin-top:16px">
+        <div style="font:600 19px 'Cormorant Garamond',serif;margin-bottom:12px">${found.length ? 'Нашлось: ' + found.length : 'Ничего не нашлось'}</div>
+        ${found.length ? `<div style="display:flex;gap:11px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${found.map(card).join('')}</div>`
+          : `<div style="font:600 12.5px/1.6 Manrope,system-ui,sans-serif;color:var(--sub)">Попробуйте короче: «раф», «чай», «шаурма». Или загляните в меню целиком.</div>`}
+      </div>`;
+    // Шторка под гамбургером: сюда переехали тема, музыка, документы и вход персонала.
+    const navSheet = S.navOpen ? `
+      <div data-key="nav-sheet" style="margin-top:12px;border-radius:18px;background:var(--card);border:1px solid var(--line);padding:6px;animation:fadeUp .3s ease both">
+        ${[['Тема оформления', act(() => setS({ navOpen: false, themeOpen: true }))],
+           ...(playerOn() ? [['Музыка кофейни', act(() => setS({ navOpen: false, plOpen: true }))]] : []),
+           ['О кофейне и документы', act(() => setS({ navOpen: false, doc: 'about' }))],
+           ['Вход для персонала', act(() => setS({ navOpen: false, screen: 'spin', sPin: '', sPinErr: 0, sPinWho: S.staffId || S.staff[0].id }))]
+          ].map(([label, tap]) => `
+          <div data-c="${tap}" class="h-gold" role="button" style="display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:13px;cursor:pointer;font:600 13.5px Manrope,system-ui,sans-serif">
+            <div style="flex:1">${label}</div>${SVG.chev}
+          </div>`).join('')}
+      </div>` : '';
+    const iconBtn = (inner, tap, label, badge) => `
+      <div data-c="${tap}" class="h-gold" role="button" aria-label="${label}" style="position:relative;width:38px;height:38px;border-radius:50%;flex:none;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">
+        ${inner}
+        ${badge > 0 ? `<div style="position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;border-radius:99px;background:var(--acc);color:var(--accInk);font:800 9.5px/17px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph)">${badge}</div>` : ''}
+      </div>`;
+    screen = `
+    <div data-key="scr-home" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px 20px 120px;animation:fadeIn .3s ease both">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div data-c="${act(() => setS({ navOpen: !S.navOpen, notifOpen: false, themeOpen: false, plOpen: false }))}" class="h-gold" role="button" aria-label="Меню приложения" aria-expanded="${!!S.navOpen}" style="width:40px;height:40px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">${SVG.burger}</div>
+        <div style="flex:1;min-width:0;text-align:center">
+          <div style="display:flex;justify-content:center;color:var(--goldT)">${SVG.cup}</div>
+          <div style="font:600 18px/1.15 'Cormorant Garamond',serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Кофейня на высоте</div>
+          <div style="font:700 8px Manrope,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--sub);margin-top:2px">кофе с видом на горы</div>
+        </div>
+        ${iconBtn(SVG.bell, act(() => set({ notifOpen: !S.notifOpen, navOpen: false, themeOpen: false, plOpen: false, unread: 0 })), 'Уведомления', S.unread || 0)}
+        ${iconBtn(SVG.cart, act(() => setS({ tab: 'order' })), 'Мой заказ', cartCount)}
+      </div>
+      ${navSheet}
       ${renderThemePanel()}
       ${renderPlayerPanel()}
       ${notifPanel}
-      <div style="display:flex;align-items:center;gap:8px;font:600 15px Manrope,system-ui,sans-serif;color:var(--sub2);margin:14px 0 14px"><span>${S.user && S.user.name ? greet + ', ' + esc(S.user.name) + '!' : greet + '!'}</span><span style="color:var(--goldT);display:flex">${SVG.cup}</span></div>
-      <div data-c="${act(() => setS({ tab: 'menu', cat: 'coffee' }))}" style="position:relative;border-radius:20px;overflow:hidden;height:190px;cursor:pointer;animation:fadeUp .45s ease both;box-shadow:0 22px 44px -24px rgba(0,0,0,.55)">
-        <img src="https://images.unsplash.com/photo-1534687941688-651ccaafbff8?auto=format&fit=crop&w=800&q=70" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kenburns 14s ease-in-out infinite alternate">
-        <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(24,20,15,.94) 26%,rgba(24,20,15,.2))"></div>
-        <div style="position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 20px;box-sizing:border-box">
-          <div style="font:700 10px Manrope,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#e3c48b">Акция</div>
-          <div style="font:800 20px/1.25 Manrope,system-ui,sans-serif;max-width:240px;color:#f2ecdf">${S.cfg.disc > 0 ? '−' + S.cfg.disc + '% на каждый заказ в приложении' : 'Кофе, чай и фастфуд с видом на горы'}</div>
-          <div style="font:600 13px Manrope,system-ui,sans-serif;color:#b8ad9c">Скидка видна в корзине</div>
-          <div style="margin-top:9px;display:inline-flex;align-self:flex-start;padding:10px 18px;border-radius:11px;background:${GG};color:var(--accInk);font:800 13px Manrope,system-ui,sans-serif;box-shadow:0 10px 22px -10px rgba(var(--accRGB),.7)">Подробнее</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:16px">${tiles}</div>
-      <div style="display:flex;align-items:baseline;margin:20px 0 12px">
+      ${searchRow}
+      ${qq ? results : `
+      ${hero}
+      <div style="display:flex;gap:4px;margin-top:20px">${tiles}</div>
+      <div style="display:flex;align-items:baseline;margin:22px 0 12px">
         <div style="font:600 19px 'Cormorant Garamond',serif">Популярное</div>
         <div style="flex:1"></div>
-        <div data-c="${act(() => setS({ tab: 'menu' }))}" style="font:600 12px Manrope,system-ui,sans-serif;color:var(--goldT);cursor:pointer">Смотреть все</div>
+        <div data-c="${act(() => setS({ tab: 'menu' }))}" role="button" style="display:flex;align-items:center;gap:6px;font:600 12px Manrope,system-ui,sans-serif;color:var(--goldT);cursor:pointer">Смотреть все${arrow}</div>
       </div>
-      <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${popular}</div>
-      <div style="display:flex;align-items:baseline;margin:20px 0 12px">
+      <div style="display:flex;gap:11px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${popular}</div>
+      ${S.cfg.disc > 0 ? `
+      <div data-c="${act(() => setS({ tab: 'menu', cat: 'coffee' }))}" class="a98" style="position:relative;margin-top:22px;border-radius:20px;overflow:hidden;background:var(--hov);border:1px solid var(--line);min-height:122px;display:flex;cursor:pointer">
+        <div style="flex:1;min-width:0;padding:15px 16px;position:relative;z-index:1">
+          <div style="font:700 8.5px Manrope,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--goldT)">Скидка в приложении</div>
+          <div style="font:800 27px/1.05 Manrope,system-ui,sans-serif;margin-top:6px">−${S.cfg.disc}%</div>
+          <div style="font:600 11.5px Manrope,system-ui,sans-serif;color:var(--sub);margin-top:3px">на каждый заказ</div>
+          <div style="margin-top:11px;display:inline-flex;align-items:center;gap:8px;padding:7px 7px 7px 14px;border-radius:99px;background:var(--acc);color:var(--accInk);font:800 10.5px Manrope,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase">Заказать<span style="width:19px;height:19px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;flex:none">${arrow}</span></div>
+        </div>
+        <div style="position:absolute;right:0;top:0;bottom:0;width:52%;background:url(&quot;${esc(imgW((item('icelat') || {}).img || 'assets/interior.jpg', 360))}&quot;) center/cover no-repeat"></div>
+        <div style="position:absolute;right:0;top:0;bottom:0;width:52%;background:linear-gradient(90deg,var(--hov),rgba(0,0,0,0) 62%)"></div>
+        <div style="position:absolute;right:14px;top:50%;transform:translateY(-50%);width:58px;height:58px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;box-shadow:0 12px 24px -12px rgba(0,0,0,.6)">
+          <div style="font:800 15px Manrope,system-ui,sans-serif">${S.cfg.disc}%</div>
+          <div style="font:700 7.5px Manrope,system-ui,sans-serif;letter-spacing:.1em;margin-top:2px">СКИДКА</div>
+        </div>
+      </div>` : ''}
+      <div style="display:flex;align-items:baseline;margin:22px 0 12px">
         <div style="font:600 19px 'Cormorant Garamond',serif">Атмосфера гор</div>
         <div style="flex:1"></div>
         <div style="font:600 11px Manrope,system-ui,sans-serif;letter-spacing:.08em;color:var(--sub);text-transform:uppercase">Наши стены</div>
       </div>
-      <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${gallery}</div>
+      <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${gallery}</div>`}
     </div>`;
   } else if (S.tab === 'menu') {
     const chips = CATS.map(([k, label]) => `<div data-c="${act(() => setS({ cat: k }))}" class="a95" style="flex:none;padding:9px 16px;border-radius:99px;cursor:pointer;font:700 12.5px Manrope,system-ui,sans-serif;transition:all .15s;${S.cat === k ? `background:${GG};color:var(--accInk)` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('');
-    const rows = allProducts().filter(m => m.cat === S.cat).map(m => {
+    let list = allProducts().filter(m => m.cat === S.cat);
+    if (S.sort === 'fav') list = list.filter(m => S.favs[m.id]);
+    if (S.sort === 'cheap' || S.sort === 'rich') {
+      const p = m => { const ps = priceList(m).filter(x => x > 0); return ps.length ? Math.min(...ps) : (S.sort === 'cheap' ? 1e9 : -1); };
+      list = list.slice().sort((a, b) => S.sort === 'cheap' ? p(a) - p(b) : p(b) - p(a));
+    }
+    const rows = list.map(m => {
       const off = !!S.hidden[m.id], info = itemInfo(m.id);
       return `
       <div data-c="${off ? act(() => showToast('Сегодня этой позиции нет')) : act(() => setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }))}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both;${off ? 'opacity:.55' : ''}">
@@ -2531,6 +2673,11 @@ function renderApp() {
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--sub2)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.2-3.2"></path></svg>
       </div>
       <div style="display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${chips}</div>
+      ${S.sort ? `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;font:600 11.5px Manrope,system-ui,sans-serif;color:var(--sub)">
+        <span>${S.sort === 'cheap' ? 'Сначала недорогие' : S.sort === 'rich' ? 'Сначала дорогие' : 'Только избранное'}</span>
+        <div data-c="${act(() => setS({ sort: '' }))}" class="h-gold" role="button" style="padding:4px 10px;border-radius:99px;border:1px solid var(--line);cursor:pointer;color:var(--goldT);font:700 11px Manrope,system-ui,sans-serif">сбросить</div>
+      </div>` : ''}
+      ${rows === '' ? '<div style="padding:40px 0;text-align:center;font:600 13px Manrope,system-ui,sans-serif;color:var(--sub)">Здесь пока пусто — снимите фильтр или выберите другой раздел</div>' : ''}
       <div style="display:grid;gap:10px;margin-top:14px">${rows}</div>
     </div>`;
   } else if (S.tab === 'order') {
@@ -3016,17 +3163,35 @@ function renderApp() {
     screen = `<div data-key="scr-profile" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">${sub}</div>`;
   }
 
-  const navItems = [['home','Главная','home'],['menu','Меню','menu'],['order','Заказ','order'],['profile','Профиль','prof']].map(([key, label, ic]) => {
-    const active = S.tab === key;
+  // Нижнее меню по макету: четыре обычных пункта и приподнятая круглая кнопка
+  // заказа посередине. «Избранное» вынесено сюда пятым местом — раньше до него
+  // приходилось идти через профиль.
+  const NAV = [['home', 'Главная', 'home'], ['menu', 'Меню', 'menu'], ['order', 'Заказ', 'order'], ['fav', 'Избранное', 'fav'], ['profile', 'Профиль', 'prof']];
+  const navItems = NAV.map(([key, label, ic]) => {
+    const active = key === 'fav' ? (S.tab === 'profile' && S.psub === 'fav') : (S.tab === key && !(key === 'profile' && S.psub === 'fav'));
+    const tap = act(() => {
+      if (key === 'fav') { setS({ tab: 'profile', psub: 'fav', product: null }); return; }
+      setS({ tab: key, product: null, psub: (key === 'profile' && S.tab === 'profile') ? null : (key === 'profile' ? S.psub : null) });
+    });
+    if (key === 'order') {
+      // Центральная кнопка выступает над полосой — на неё же садится счётчик корзины.
+      return `
+      <div data-c="${tap}" class="a94" role="button" aria-label="Мой заказ" aria-current="${active}" style="position:relative;width:64px;flex:none;display:flex;justify-content:center;cursor:pointer">
+        <div style="position:absolute;top:-26px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 14px 28px -10px rgba(0,0,0,.55);border:4px solid var(--ph);box-sizing:border-box;transition:transform .15s">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav.order}</svg>
+          ${cartCount > 0 ? `<div style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--bad);color:#fff;font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph);animation:pop .3s ease both">${cartCount}</div>` : ''}
+        </div>
+        <div style="position:absolute;bottom:9px;font:700 9.5px Manrope,system-ui,sans-serif;color:${active ? 'var(--goldT)' : 'var(--dim2)'};white-space:nowrap">${label}</div>
+      </div>`;
+    }
     return `
-    <div data-c="${act(() => setS({ tab: key, product: null, psub: (key === 'profile' && S.tab === 'profile') ? null : S.psub }))}" class="a94" style="position:relative;width:64px;height:62px;border-radius:19px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:all .2s;${active ? 'background:rgba(var(--accRGB),.16);border:1px solid rgba(var(--accRGB),.45);color:var(--goldT)' : 'color:var(--dim2)'}">
-      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav[ic]}</svg>
-      <div style="font:600 11px Manrope,system-ui,sans-serif;margin-top:5px">${label}</div>
-      ${key === 'order' && cartCount > 0 ? `<div style="position:absolute;top:2px;right:4px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;background:${GG};color:var(--accInk);border-radius:99px;font:800 10px/17px Manrope,system-ui,sans-serif;text-align:center;animation:pop .3s ease both">${cartCount}</div>` : ''}
+    <div data-c="${tap}" class="a94" role="button" aria-current="${active}" style="position:relative;width:60px;height:62px;border-radius:19px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:all .2s;color:${active ? 'var(--goldT)' : 'var(--dim2)'}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav[ic]}</svg>
+      <div style="font:600 10px Manrope,system-ui,sans-serif;margin-top:5px">${label}</div>
     </div>`;
   }).join('');
   const navbar = !S.product ? `
-  <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:30;height:80px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 4px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
+  <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
 
   return screen + navbar;
 }
@@ -3118,6 +3283,20 @@ function renderInner() {
     }
   }
 }
+
+// Точки под каруселью промо двигаются за прокруткой напрямую, без перерисовки:
+// прокрутка идёт каждый кадр, а состояние от неё не зависит.
+app.addEventListener('scroll', e => {
+  const t = e.target;
+  if (!t || t.id !== 'hero') return;
+  const dots = document.getElementById('hero-dots');
+  if (!dots) return;
+  const w = t.clientWidth || 1, i = Math.round(t.scrollLeft / w);
+  [...dots.children].forEach((d, j) => {
+    d.style.width = j === i ? '18px' : '7px';
+    d.style.background = j === i ? 'var(--acc)' : 'var(--bdr)';
+  });
+}, true);
 
 // ===================== ползунок на заставке =====================
 // Как на старых айфонах: кружок тянется вправо и на трёх четвертях пути
