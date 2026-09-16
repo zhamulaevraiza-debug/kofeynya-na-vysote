@@ -161,7 +161,7 @@ def main():
     def font_uri(m):
         fp = os.path.join('assets', 'fonts', m.group(1))
         return 'url(data:font/woff2;base64,' + base64.b64encode(open(fp, 'rb').read()).decode('ascii') + ')'
-    fcss = re.sub(r'url\(assets/fonts/([\w.-]+\.woff2)\)', font_uri, fcss)
+    fcss = re.sub(r'url\(([\w.-]+\.woff2)\)', font_uri, fcss)
     html = html.replace('<link rel="stylesheet" href="assets/fonts/fonts.css">', '<style>' + fcss + '</style>', 1)
     if 'assets/fonts/' in html:
         sys.exit('ссылка на шрифты не вшита')
