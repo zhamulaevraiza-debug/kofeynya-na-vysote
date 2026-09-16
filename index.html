@@ -44,6 +44,10 @@ input::placeholder{color:var(--dim);opacity:1}
 /* Значок на кнопке заказа меняется каждые три секунды: пять значков разделов
    лежат друг на друге, каждому свой сдвиг старта. Всё на CSS — таймер сбивал бы
    ход при перерисовке, а перерисовка каждые три секунды ради значка не нужна. */
+/* Неоновая вывеска: свет живой, поэтому трубка едва заметно дышит.
+   При «уменьшить движение» остаётся ровное свечение — конец цикла — он же. */
+@keyframes neonbreath{0%,100%{opacity:1}42%{opacity:.88}}
+.knv-neon{animation:neonbreath 4.6s ease-in-out infinite}
 @keyframes navcyc{0%{opacity:0;transform:scale(.55) rotate(-20deg)}3%{opacity:1;transform:none}18%{opacity:1;transform:none}21%{opacity:0;transform:scale(.55) rotate(20deg)}100%{opacity:0;transform:scale(.55) rotate(-20deg)}}
 .knv-cyc{position:relative;width:24px;height:24px;flex:none}
 .knv-cyc>svg{position:absolute;left:0;top:0;opacity:0;animation:navcyc 15s linear infinite}
@@ -284,6 +288,25 @@ function renderThemePanel() {
     <div style="font:700 11px Manrope,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:10px 4px 0">Тема оформления</div>
     ${themeGrid(k => set({ theme: k, themeOpen: false }))}
   </div>`;
+}
+
+// ---------- знак кофейни ----------
+// Чашка с паром, нарисованная одной линией, — как неоновая вывеска в зале.
+// На тёмных темах линия светится тёплым светом, на светлых свечение не видно,
+// поэтому знак просто набран цветом темы.
+const CUP_MARK = `<path d="M13 9.4c2-1.7-2-2.8 0-4.6"></path><path d="M17.5 9.4c2-1.7-2-2.8 0-4.6"></path><path d="M22 9.4c2-1.7-2-2.8 0-4.6"></path>
+  <path d="M7.5 13.4c0-1.4 4.3-2.5 9.5-2.5s9.5 1.1 9.5 2.5"></path>
+  <path d="M7.5 13.4c0 1.4 4.3 2.5 9.5 2.5s9.5-1.1 9.5-2.5"></path>
+  <path d="M7.5 13.4v3.6a6.6 6.6 0 0 0 6.6 6.6h5.8a6.6 6.6 0 0 0 6.6-6.6v-3.6"></path>
+  <path d="M26.6 15h2.1a3.3 3.3 0 0 1 0 6.6h-1.4"></path>
+  <path d="M3.9 25.2c0-1.4 5.9-2.5 13.1-2.5s13.1 1.1 13.1 2.5"></path>
+  <path d="M3.9 25.2c0 1.9 5.9 3.4 13.1 3.4s13.1-1.5 13.1-3.4"></path>`;
+const NEON_GLOW = 'filter:drop-shadow(0 0 1.5px rgba(255,216,154,.95)) drop-shadow(0 0 5px rgba(255,168,64,.85)) drop-shadow(0 0 13px rgba(255,132,22,.6))';
+const NEON_TEXT = 'color:#fff4e3;text-shadow:0 0 3px rgba(255,208,146,.95),0 0 11px rgba(255,163,52,.7),0 0 24px rgba(255,124,16,.45)';
+const NEON_SUB = 'color:#ffcf94;text-shadow:0 0 7px rgba(255,150,40,.65)';
+function cupMark(h, neon) {
+  const w = Math.round(h * 34 / 30);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 34 30" fill="none" stroke="${neon ? '#fff3de' : 'var(--goldT)'}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto;${neon ? NEON_GLOW : ''}" aria-hidden="true">${CUP_MARK}</svg>`;
 }
 
 // ---------- главная: популярное, бейджи, слайды промо ----------
@@ -2196,9 +2219,11 @@ function renderSplash() {
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,15,12,.2),rgba(20,15,12,.72))"></div>
     <div style="position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;padding:24px 24px 56px;box-sizing:border-box">
       <div style="margin:auto 0;padding:clamp(22px,5vh,40px) 26px clamp(20px,4vh,32px);border-radius:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);box-shadow:0 34px 70px -30px rgba(0,0,0,.85);text-align:center;animation:rise .8s cubic-bezier(.2,.8,.3,1) both">
-        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#d9bc8c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto"><path d="M4 9h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V9z"></path><path d="M16 10h2a2.5 2.5 0 0 1 0 5h-2"></path><path d="M8 3c0 1.5 1.5 1.5 1.5 3M11.5 3c0 1.5 1.5 1.5 1.5 3"></path></svg>
-        <div style="font:600 40px/1.02 'Cormorant Garamond',serif;margin-top:16px;color:#f3ede4">Кофейня<br>на высоте</div>
-        <div style="font:600 17px 'Cormorant Garamond',serif;color:#d9bc8c;margin-top:12px;letter-spacing:.03em">Кофе с видом на горы</div>
+        <div class="knv-neon">
+          ${cupMark(58, true)}
+          <div style="font:600 40px/1.02 'Cormorant Garamond',serif;margin-top:16px;${NEON_TEXT}">Кофейня<br>на высоте</div>
+          <div style="font:600 17px 'Cormorant Garamond',serif;margin-top:12px;letter-spacing:.03em;${NEON_SUB}">Кофе с видом на горы</div>
+        </div>
         <div style="font:500 13.5px/1.65 Manrope,system-ui,sans-serif;color:#dcd3c6;margin-top:16px">Ароматный кофе.<br>Тёплая атмосфера.<br>Горы за окном.</div>
         <div id="sw-track" data-key="sw-track" role="button" tabindex="0" aria-label="Проведите вправо, чтобы открыть кофейню" style="position:relative;margin:30px auto 0;width:min(300px,86%);height:62px;border-radius:99px;background:rgba(255,255,255,.09);border:1px solid rgba(217,188,140,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);overflow:hidden;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none">
           <div id="sw-hint" style="position:absolute;inset:0;padding-left:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:700 13.5px Manrope,system-ui,sans-serif;white-space:nowrap;pointer-events:none"><span class="knv-shine">Проведите, чтобы начать</span></div>
@@ -2607,10 +2632,10 @@ function renderApp() {
     <div data-key="scr-home" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px 20px 120px;animation:fadeIn .3s ease both">
       <div style="display:flex;align-items:center;gap:8px">
         <div data-c="${act(() => setS({ navOpen: !S.navOpen, notifOpen: false, themeOpen: false, plOpen: false }))}" class="h-gold" role="button" aria-label="Меню приложения" aria-expanded="${!!S.navOpen}" style="width:40px;height:40px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">${SVG.burger}</div>
-        <div style="flex:1;min-width:0;text-align:center">
-          <div style="display:flex;justify-content:center;color:var(--goldT)">${SVG.cup}</div>
-          <div style="font:600 18px/1.15 'Cormorant Garamond',serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Кофейня на высоте</div>
-          <div style="font:700 8px Manrope,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--sub);margin-top:2px">кофе с видом на горы</div>
+        <div class="${themeDef().dark ? 'knv-neon' : ''}" style="flex:1;min-width:0;text-align:center">
+          ${cupMark(25, themeDef().dark)}
+          <div style="font:600 18.5px/1.15 'Cormorant Garamond',serif;letter-spacing:.01em;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${themeDef().dark ? NEON_TEXT : 'color:var(--ink)'}">Кофейня на высоте</div>
+          <div style="font:700 7.5px Manrope,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;margin-top:3px;${themeDef().dark ? NEON_SUB : 'color:var(--goldT)'}">кофе с видом на горы</div>
         </div>
         ${iconBtn(SVG.bell, act(() => set({ notifOpen: !S.notifOpen, navOpen: false, themeOpen: false, plOpen: false, unread: 0 })), 'Уведомления', S.unread || 0)}
         ${iconBtn(SVG.cart, act(() => setS({ tab: 'order' })), 'Мой заказ', cartCount)}
