@@ -32,7 +32,6 @@ SHRINK = {
     'splash.jpg':   (760, 60),
     'auth.jpg':     (760, 60),
     'facade.jpg':   (560, 60),
-    'bonus-band.jpg': (560, 60),
 }
 SHRINK_DEFAULT = (560, 60)
 

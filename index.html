@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Кофейня на высоте</title>
-<meta name="description" content="Кофейня на высоте — заказ кофе и десертов с предзаказом, бронь столика, бонусы. Кофе с видом на горы.">
+<meta name="description" content="Кофейня на высоте — заказ кофе и еды с предзаказом, бронь столика, меню кофейни. Кофе с видом на горы.">
 <meta name="theme-color" content="#120e0b">
 <meta property="og:title" content="Кофейня на высоте">
-<meta property="og:description" content="Заказ кофе и десертов, бронь столика, бонусы. Кофе с видом на горы.">
+<meta property="og:description" content="Заказ кофе и еды, бронь столика, меню кофейни. Кофе с видом на горы.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://zhamulaevraiza-debug.github.io/kofeynya-na-vysote/icons/icon-512.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -397,10 +397,10 @@ const DEFAULT_STAFF = [
   { id: 'admin', name: 'Мовсар', role: 'Администратор', shift: '—', pin: '0000', admin: true },
   { id: 'aisha', name: 'Айша', role: 'Бариста', shift: '09:00–21:00', pin: '1122' }
 ];
-// Правила кофейни, которые меняет администратор: скидка в приложении, процент
-// бонусов с заказа, приветственные баллы, показ PIN на экране входа.
+// Правила кофейни, которые меняет администратор: скидка в приложении,
+// показ PIN на экране входа, часы работы, приём заказов.
 const DEFAULT_CFG = {
-  disc: 10, bonus: 5, regBonus: 500, showPins: true,
+  disc: 10, showPins: true,
   // онлайн-оплата включается только после подключения платёжного провайдера;
   // до этого честный способ — оплата при получении
   onlinePay: false, acceptOrders: true, open: '09:00', close: '21:00', prepMin: 10, tipsUrl: '',
@@ -424,8 +424,6 @@ function mkCfg(c) {
     player: { ...DEFAULT_CFG.player, ...p, tracks: (Array.isArray(p.tracks) ? p.tracks : []).map(t => normTrack(t)), off: p.off || {} },
     prices: c.prices && typeof c.prices === 'object' ? c.prices : {},
     disc: Math.min(100, Math.max(0, c.disc != null ? +c.disc || 0 : DEFAULT_CFG.disc)),
-    bonus: Math.min(100, Math.max(0, c.bonus != null ? +c.bonus || 0 : DEFAULT_CFG.bonus)),
-    regBonus: Math.max(0, c.regBonus != null ? +c.regBonus || 0 : DEFAULT_CFG.regBonus),
     prepMin: Math.max(1, +c.prepMin || DEFAULT_CFG.prepMin),
     addPrice: Math.max(0, c.addPrice != null ? +c.addPrice || 0 : DEFAULT_CFG.addPrice),
     open: /^\d\d:\d\d$/.test(String(c.open || '')) ? c.open : DEFAULT_CFG.open,
@@ -527,7 +525,7 @@ function normalizeOrder(o) {
 
 let sv = {};
 try { sv = JSON.parse(localStorage.getItem('knv2') || '{}') || {}; } catch (e) {}
-// Демо-наполнение — заказы, лента событий, баллы и избранное — включается только
+// Демо-наполнение — заказы, лента событий и избранное — включается только
 // по ?demo в адресе. Боевая установка начинается с пустого состояния, и «Сбросить
 // всё» возвращает именно к нему, а не к выдуманным заказам с чужими телефонами.
 const DEMO = new URLSearchParams(location.search).has('demo');
@@ -538,8 +536,6 @@ const S = {
   sysDark: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches),
   user: sv.user || null, myNums: sv.myNums || [], psub: null,
   notifs: sv.notifs || [], unread: sv.unread || 0, notifOpen: false,
-  bonus: sv.bonus != null ? sv.bonus : (DEMO ? 1250 : 0),
-  bonusEv: sv.bonusEv || (DEMO ? [['Заказ №1256','24.06.2026',120],['Заказ №1255','20.06.2026',-250],['Бонус за регистрацию','18.06.2026',500]] : []),
   custom: (Array.isArray(sv.custom) ? sv.custom : []).map(normCustom), hidden: sv.hidden || {},
   cards: sv.cards || [], mainCard: sv.mainCard || 0, addingCard: false,
   ncNum: '', ncExp: '', ncCvc: '',
@@ -619,7 +615,7 @@ function snapshot() {
   return {
     theme: S.theme, user: S.user, myNums: S.myNums, notifs: S.notifs, unread: S.unread,
     snotifs: S.snotifs, sunread: S.sunread, nextNum: S.nextNum,
-    bonus: S.bonus, bonusEv: S.bonusEv, custom: S.custom, hidden: S.hidden, favs: S.favs,
+    custom: S.custom, hidden: S.hidden, favs: S.favs,
     orders: S.orders, cards: S.cards, mainCard: S.mainCard, bookings: S.bookings,
     staffId: S.staffId, offShift: S.offShift, myBks: S.myBks, sPinLock: S.sPinLock,
     staff: S.staff, cfg: S.cfg, itemInfo: S.itemInfo, alertSeen: S.alertSeen
@@ -646,7 +642,6 @@ function save() {
   S.myBks = (S.myBks || []).filter(id => bids.has(id));
   S.notifs = S.notifs.slice(0, 25); S.unread = Math.min(S.unread || 0, S.notifs.length);
   S.snotifs = S.snotifs.slice(0, 40); S.sunread = Math.min(S.sunread || 0, S.snotifs.length);
-  S.bonusEv = (S.bonusEv || []).slice(0, 100);
   // 3) запись; при переполнении — жёсткое сжатие и повтор, и только потом предупреждение
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -1163,7 +1158,6 @@ const SVG = {
     home: `<path d="M4 11l8-7 8 7"></path><path d="M6 9.5V20h12V9.5"></path>`,
     menu: `<rect x="4" y="4" width="7" height="10" rx="2"></rect><rect x="13" y="4" width="7" height="6" rx="2"></rect><rect x="13" y="12" width="7" height="8" rx="2"></rect><rect x="4" y="16" width="7" height="4" rx="2"></rect>`,
     order: `<path d="M6 8h12l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path>`,
-    bonus: `<rect x="3.5" y="8" width="17" height="4" rx="1.5"></rect><path d="M5.5 12v7a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5v-7M12 8v12.5"></path><path d="M12 8s-4.5.2-4.5-2.6C7.5 3.6 11 3.6 12 8zM12 8s4.5.2 4.5-2.6C16.5 3.6 13 3.6 12 8z"></path>`,
     prof: `<circle cx="12" cy="8" r="3.6"></circle><path d="M5.5 20a6.5 6.5 0 0 1 13 0"></path>`
   },
   prof: {
@@ -1524,8 +1518,6 @@ function renderStaff() {
         <div style="display:grid;gap:10px">
           <div style="font:600 17px 'Cormorant Garamond',serif">Правила кофейни</div>
           ${cfgRow('cfg-disc', 'disc', 'Скидка в приложении, %', 2, 'применяется к каждому заказу в корзине')}
-          ${cfgRow('cfg-bonus', 'bonus', 'Бонусы с заказа, %', 2, 'начисляются при выдаче заказа')}
-          ${cfgRow('cfg-reg', 'regBonus', 'Приветственные баллы', 4, 'за регистрацию клиента')}
           ${toggle('addsOn', 'Добавки к кофе', 'сироп и безлактозное молоко в карточке — включайте, если они есть на доске')}
           ${S.cfg.addsOn ? cfgRow('cfg-add', 'addPrice', 'Цена добавки, ₽', 3, 'за сироп или безлактозное молоко') : ''}
           ${toggle('showPins', 'Показывать PIN на экране входа', 'удобно, пока панелью пользуетесь только вы')}
@@ -1592,7 +1584,7 @@ function renderStaff() {
         trSaving = true; setS({});                             // на время записи кнопка занята
         
         // Просим браузер не вычищать хранилище: иначе Safari сносит всё через
-        // неделю без захода, а вместе с музыкой ушли бы заказы и бонусы.
+        // неделю без захода, а вместе с музыкой ушли бы заказы и настройки.
         try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
         f.arrayBuffer()
           .then(buf => audioPut(id, { buf, type: f.type || 'audio/mpeg', name: f.name }))
@@ -1967,14 +1959,6 @@ function renderStaff() {
         const msg = nx === 'work' ? 'Заказ №' + sel.num + ' начали готовить' : nx === 'ready' ? 'Заказ №' + sel.num + ' готов! Подходите к стойке' : 'Заказ №' + sel.num + ' выдан. Приятного!';
         patch.notifs = [{ text: msg, time: now() }, ...S.notifs];
         patch.unread = S.unread + 1;
-        if (nx === 'done') {
-          const tot = sel.total || sel.lines.reduce((a, l) => a + l[2], 0);
-          const pts = S.cfg.bonus > 0 ? Math.max(1, Math.round(tot * S.cfg.bonus / 100)) : 0;
-          patch.bonus = S.bonus + pts;
-          patch.bonusEv = [['Заказ №' + sel.num, today(), pts], ...S.bonusEv];
-          patch.notifs = [{ text: '+' + pts + ' баллов за заказ №' + sel.num, time: now() }, ...patch.notifs];
-          patch.unread = S.unread + 2;
-        }
       }
       set(patch);
       showToast('Заказ №' + sel.num + (nx === 'work' ? ' в работе' : nx === 'ready' ? ' готов — клиент уведомлён' : ' выдан'));
@@ -2220,9 +2204,9 @@ function renderAuth() {
       </div>
       <div data-c="${act(() => {
         if (!(S.fName.trim() && (S.fPhone.match(/\d/g) || []).length >= 6 && S.fPass && S.agree)) return;
-        set({ user: { name: S.fName.trim(), phone: S.fPhone, consents: { terms: { v: DOC_VERSION, at: Date.now() }, marketing: { on: !!S.agreeMkt, at: Date.now() } } }, screen: 'app', tab: 'home', authMode: 'welcome', bonus: S.bonus + (S.cfg.regBonus || 0), bonusEv: S.cfg.regBonus > 0 ? [['Бонус за регистрацию', today(), S.cfg.regBonus], ...S.bonusEv] : S.bonusEv });
-        showToast('Аккаунт создан!' + (S.cfg.regBonus > 0 ? ' +' + S.cfg.regBonus + ' баллов' : ''));
-      })}" class="a98" style="height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font:800 14px Manrope,system-ui,sans-serif;cursor:pointer;transition:all .2s;${can ? `background:#d9bc8c;color:#231b0e;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)` : 'background:rgba(255,255,255,.08);color:#8d8471;cursor:not-allowed'}">Создать аккаунт${S.cfg.regBonus > 0 ? ' · +' + S.cfg.regBonus + ' баллов' : ''}</div>
+        set({ user: { name: S.fName.trim(), phone: S.fPhone, consents: { terms: { v: DOC_VERSION, at: Date.now() }, marketing: { on: !!S.agreeMkt, at: Date.now() } } }, screen: 'app', tab: 'home', authMode: 'welcome' });
+        showToast('Аккаунт создан!');
+      })}" class="a98" style="height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font:800 14px Manrope,system-ui,sans-serif;cursor:pointer;transition:all .2s;${can ? `background:#d9bc8c;color:#231b0e;box-shadow:0 14px 30px -14px rgba(201,151,78,.7)` : 'background:rgba(255,255,255,.08);color:#8d8471;cursor:not-allowed'}">Создать аккаунт</div>
       <div data-c="${act(() => setS({ authMode: 'welcome' }))}" class="h-cream" style="padding:8px 2px;text-align:center;color:#b8ad9c;font:600 12.5px Manrope,system-ui,sans-serif;cursor:pointer">← Назад</div>
     </div>`;
   }
@@ -2290,7 +2274,7 @@ function medianPrepMin() {
     .map(o => (o.tss.ready - o.tss.new) / 60000).filter(x => x > 0 && x < 120).sort((a, b) => a - b);
   return xs.length ? Math.max(3, Math.round(xs[Math.floor(xs.length / 2)])) : (S.cfg.prepMin || 10);
 }
-const DOC_TITLES = { policy: 'Политика обработки данных', terms: 'Условия заказа', bonus: 'Правила бонусов и скидок', about: 'О кофейне и документы' };
+const DOC_TITLES = { policy: 'Политика обработки данных', terms: 'Условия заказа', about: 'О кофейне и документы' };
 // Тексты документов собираются из реквизитов и правил, заданных администратором,
 // поэтому всегда совпадают с тем, как приложение реально работает.
 function docHtml(key) {
@@ -2300,7 +2284,7 @@ function docHtml(key) {
   const p = t => `<div style="font:500 13px/1.6 Manrope,system-ui,sans-serif;color:var(--sub2)">${t}</div>`;
   const foot = p(`<br>Редакция от ${DOC_VERSION}.`);
   if (key === 'policy') return h('1. Оператор') + p(`${nm}${reg}. Адрес: ${adr}. Связь: ${ph}, ${em}.`)
-    + h('2. Какие данные и зачем') + p('Имя и телефон — чтобы принять заказ и позвать вас, когда он готов (исполнение договора). История заказов, избранное, адреса, бренд и последние четыре цифры карты, баллы — для программы лояльности. Телефон или e-mail для чека — чтобы отправить электронный чек. Полный номер карты, срок и код приложение не хранит.')
+    + h('2. Какие данные и зачем') + p('Имя и телефон — чтобы принять заказ и позвать вас, когда он готов (исполнение договора). История заказов, избранное, адреса, бренд и последние четыре цифры карты — чтобы вы могли повторить заказ и не вводить данные заново. Телефон или e-mail для чека — чтобы отправить электронный чек. Полный номер карты, срок и код приложение не хранит.')
     + h('3. Где хранятся данные') + p('В памяти вашего браузера на вашем устройстве. На сервер кофейни и третьим лицам данные не передаются. Удалить их можно в любой момент: Профиль → Личные данные → «Удалить мои данные», либо очистив данные сайта в браузере.')
     + h('4. Сроки') + p('Данные заказов хранятся 30 дней и удаляются автоматически. Данные аккаунта — до удаления вами.')
     + h('5. Сообщения') + p('О статусе заказа и брони — всегда. Акции и новости — только при отдельном согласии; отозвать его можно в личных данных.')
@@ -2310,10 +2294,8 @@ function docHtml(key) {
     + h('3. Приготовление и получение') + p('Ориентировочное время показывается в подтверждении; заказ «ко времени» готовится к выбранному слоту. Получение — у стойки по номеру заказа. Готовый напиток ждёт выдачи 30 минут.')
     + h('4. Оплата') + p(S.cfg.onlinePay ? 'Онлайн в приложении либо при получении — наличными или картой на кассе. Кассовый чек — электронный на указанный контакт или бумажный на кассе.' : 'При получении — наличными или картой на кассе; онлайн-оплата пока не подключена. Кассовый чек выдаётся на кассе, электронный — на указанный вами телефон или e-mail.')
     + h('5. Отказ и отмена') + p('До начала приготовления вы вправе отказаться от заказа без потерь; после — с оплатой фактически понесённых расходов. Кофейня может отменить заказ, если позиция закончилась: вы получите уведомление, предоплата возвращается тем же способом не позднее 10 дней.')
-    + h('6. Бронь столика') + p('Бронь действует 15 минут после выбранного времени, затем столик освобождается. Кофейня подтверждает или отклоняет бронь уведомлением.') + foot;
-  if (key === 'bonus') return h('Начисление') + p(`${S.cfg.bonus}% от суммы заказа возвращается баллами при выдаче. За регистрацию — ${S.cfg.regBonus} баллов.`)
-    + h('Скидка') + p(`${S.cfg.disc}% на каждый заказ в приложении, учитывается в корзине до оплаты.`)
-    + h('Условия') + p('Баллы не являются деньгами, не обмениваются на наличные и не передаются другим лицам. Условия могут меняться — об изменениях сообщается в приложении заранее.') + foot;
+    + h('6. Бронь столика') + p('Бронь действует 15 минут после выбранного времени, затем столик освобождается. Кофейня подтверждает или отклоняет бронь уведомлением.')
+    + h('7. Скидка в приложении') + p(`${S.cfg.disc}% на каждый заказ, оформленный в приложении. Скидка считается в корзине до оплаты и видна в подтверждении заказа.`) + foot;
   return '';
 }
 function routeButtons() {
@@ -2333,7 +2315,7 @@ function renderAboutBody() {
     ${!(l.inn || l.ogrn) ? '<div style="font:600 11.5px/1.5 Manrope,system-ui,sans-serif;color:var(--dim);margin-top:10px">Реквизиты заполняются администратором: панель → Администрирование → Реквизиты.</div>' : ''}
   </div>
   ${routeButtons()}
-  <div style="display:grid;gap:8px;margin-top:14px">${docBtn('terms', 'Условия заказа')}${docBtn('policy', 'Политика обработки данных')}${docBtn('bonus', 'Правила бонусов и скидок')}</div>
+  <div style="display:grid;gap:8px;margin-top:14px">${docBtn('terms', 'Условия заказа')}${docBtn('policy', 'Политика обработки данных')}</div>
   <div style="font:600 11px/1.5 Manrope,system-ui,sans-serif;color:var(--dim);margin-top:12px">Редакция документов от ${DOC_VERSION}.</div>`;
 }
 // Полноэкранный лист документа поверх любого экрана — доступен и до входа
@@ -2443,7 +2425,7 @@ function renderApp() {
     const notifPanel = S.notifOpen ? `
       <div data-key="notif" style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:12px;animation:fadeUp .3s ease both;box-shadow:0 20px 44px -22px rgba(0,0,0,.5)">
         <div style="font:600 16px 'Cormorant Garamond',serif;margin-bottom:10px">Уведомления</div>
-        ${S.notifs.length === 0 ? '<div style="font:600 12.5px Manrope,system-ui,sans-serif;color:var(--sub)">Пока пусто — здесь появятся статусы заказов и бонусы</div>' : ''}
+        ${S.notifs.length === 0 ? '<div style="font:600 12.5px Manrope,system-ui,sans-serif;color:var(--sub)">Пока пусто — здесь появятся статусы ваших заказов</div>' : ''}
         <div style="display:grid;gap:8px;max-height:240px;overflow-y:auto">
           ${S.notifs.map(n => `
             <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border-radius:11px;background:var(--hov)">
@@ -2525,16 +2507,6 @@ function renderApp() {
         <div style="font:600 11px Manrope,system-ui,sans-serif;letter-spacing:.08em;color:var(--sub);text-transform:uppercase">Наши стены</div>
       </div>
       <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${gallery}</div>
-      <div data-c="${act(() => setS({ tab: 'bonus' }))}" style="position:relative;border-radius:18px;overflow:hidden;height:118px;margin-top:18px;cursor:pointer;animation:fadeUp .5s ease both">
-        <img src="assets/bonus-band.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%">
-        <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,17,13,.93) 34%,rgba(20,17,13,.35))"></div>
-        <div style="position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 18px;box-sizing:border-box">
-          <div style="font:600 15px 'Cormorant Garamond',serif;color:#e3c48b">Бонусы и подарки</div>
-          <div style="font:600 11.5px Manrope,system-ui,sans-serif;color:#b8ad9c">Ваш баланс:</div>
-          <div style="font:800 16px Manrope,system-ui,sans-serif;color:#f2ecdf">${S.bonus.toLocaleString('ru-RU')} <span style="font:600 12px Manrope,system-ui,sans-serif;color:#b8ad9c">баллов</span></div>
-          <div style="margin-top:6px;display:inline-flex;align-self:flex-start;padding:6px 13px;border-radius:9px;background:${GG};color:var(--accInk);font:800 11px Manrope,system-ui,sans-serif">Подробнее</div>
-        </div>
-      </div>
     </div>`;
   } else if (S.tab === 'menu') {
     const chips = CATS.map(([k, label]) => `<div data-c="${act(() => setS({ cat: k }))}" class="a95" style="flex:none;padding:9px 16px;border-radius:99px;cursor:pointer;font:700 12.5px Manrope,system-ui,sans-serif;transition:all .15s;${S.cat === k ? `background:${GG};color:var(--accInk)` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('');
@@ -2823,27 +2795,6 @@ function renderApp() {
       ${empty}
       ${cartBlock}
     </div>`;
-  } else if (S.tab === 'bonus') {
-    screen = `
-    <div data-key="scr-bonus" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">
-      <div style="font:600 24px 'Cormorant Garamond',serif;margin-bottom:16px">Бонусы</div>
-      <div style="position:relative;border-radius:18px;overflow:hidden;padding:20px;background:linear-gradient(120deg,var(--hov),var(--card) 60%);border:1px solid rgba(var(--accRGB),.4);display:flex;align-items:center;animation:fadeUp .4s ease both">
-        <div>
-          <div style="font:600 12px Manrope,system-ui,sans-serif;color:var(--mut)">Ваш баланс:</div>
-          <div style="font:800 24px Manrope,system-ui,sans-serif;margin-top:4px">${S.bonus.toLocaleString('ru-RU')} <span style="font:600 14px Manrope,system-ui,sans-serif;color:var(--mut)">баллов</span></div>
-        </div>
-        <div style="flex:1"></div>
-        <svg width="42" height="40" viewBox="0 0 24 23" style="fill:var(--goldT)"><path d="M12 0l3 7.4 8 .6-6.1 5.2L18.8 21 12 16.8 5.2 21l1.9-7.8L1 8l8-.6L12 0z"></path></svg>
-      </div>
-      <div style="font:600 18px 'Cormorant Garamond',serif;margin:22px 0 12px">История начислений</div>
-      <div style="display:grid;gap:9px">
-        ${S.bonusEv.map(([t, d, v]) => `
-          <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;animation:fadeUp .35s ease both">
-            <div style="flex:1"><div style="font:700 13.5px Manrope,system-ui,sans-serif">${esc(t)}</div><div style="font:600 11.5px Manrope,system-ui,sans-serif;color:var(--sub);margin-top:2px">${esc(d)}</div></div>
-            <div style="font:800 13px Manrope,system-ui,sans-serif;${v > 0 ? 'color:var(--ok)' : 'color:var(--bad)'}">${(v > 0 ? '+' : '') + v} баллов</div>
-          </div>`).join('')}
-      </div>
-    </div>`;
   } else if (S.tab === 'profile') {
     const backBtn = `class="a90" style="width:38px;height:38px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer"`;
     let sub = '';
@@ -3017,7 +2968,7 @@ function renderApp() {
           <div data-c="${act(() => { if (!S.fName.trim()) return; set({ user: { ...S.user, name: S.fName.trim(), phone: S.fPhone }, psub: null }); showToast('Данные сохранены'); })}" class="a98" style="height:50px;border-radius:13px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;font:800 14px Manrope,system-ui,sans-serif;cursor:pointer">Сохранить</div>
           ${S.user ? `<div data-c="${act(() => { const c = { ...(S.user.consents || {}) }; const on = !(c.marketing && c.marketing.on); c.marketing = { on, at: Date.now() }; set({ user: { ...S.user, consents: c } }); showToast(on ? 'Будем присылать акции и новости' : 'Акции и новости отключены'); })}" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;cursor:pointer;margin-top:6px"><div style="flex:1;min-width:0"><div style="font:600 13px Manrope,system-ui,sans-serif">Акции и новости</div><div style="font:600 11px Manrope,system-ui,sans-serif;color:var(--sub);margin-top:1px">отдельное согласие — отключается в любой момент</div></div><div style="width:42px;height:24px;border-radius:99px;flex:none;position:relative;background:${S.user.consents && S.user.consents.marketing && S.user.consents.marketing.on ? GG : 'var(--bdr)'}"><div style="position:absolute;top:3px;${S.user.consents && S.user.consents.marketing && S.user.consents.marketing.on ? 'right:3px' : 'left:3px'};width:18px;height:18px;border-radius:50%;background:#fff"></div></div></div>
           <div data-c="${act(() => setS({ doc: 'policy' }))}" style="font:600 12px Manrope,system-ui,sans-serif;color:var(--goldT);cursor:pointer;padding:6px 2px">Как мы обрабатываем данные →</div>
-          <div data-c="${act(() => { if (!S.delAsk) { setS({ delAsk: 1 }); return; } set({ user: null, myNums: [], myBks: [], favs: {}, cards: [], mainCard: 0, bonus: 0, bonusEv: [], notifs: [], unread: 0, alertSeen: {}, delAsk: 0, screen: 'app', tab: 'home', authMode: 'welcome', psub: null }); showToast('Ваши данные удалены с этого устройства'); })}" class="h-redbg" style="margin-top:8px;text-align:center;padding:13px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13px Manrope,system-ui,sans-serif;cursor:pointer">${S.delAsk ? 'Точно удалить аккаунт, историю, избранное, карты и баллы?' : 'Удалить мои данные'}</div>` : ''}
+          <div data-c="${act(() => { if (!S.delAsk) { setS({ delAsk: 1 }); return; } set({ user: null, myNums: [], myBks: [], favs: {}, cards: [], mainCard: 0, notifs: [], unread: 0, alertSeen: {}, delAsk: 0, screen: 'app', tab: 'home', authMode: 'welcome', psub: null }); showToast('Ваши данные удалены с этого устройства'); })}" class="h-redbg" style="margin-top:8px;text-align:center;padding:13px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13px Manrope,system-ui,sans-serif;cursor:pointer">${S.delAsk ? 'Точно удалить аккаунт, историю, избранное и карты?' : 'Удалить мои данные'}</div>` : ''}
         </div>
       </div>`;
     } else {
@@ -3053,7 +3004,7 @@ function renderApp() {
         ${S.user ? `<div data-c="${act(() => set({ screen: 'app', tab: 'home', authMode: 'welcome', user: null, psub: null }))}" class="h-redbg" style="margin-top:18px;text-align:center;padding:14px;border-radius:13px;border:1px solid rgba(192,86,74,.4);color:var(--bad);font:700 13.5px Manrope,system-ui,sans-serif;cursor:pointer">Выйти</div>` : `
         <div style="margin-top:18px;padding:16px;border-radius:16px;background:var(--card);border:1px solid var(--line);animation:fadeUp .4s ease both">
           <div style="font:700 13.5px Manrope,system-ui,sans-serif">Войдите в аккаунт</div>
-          <div style="font:600 12px/1.55 Manrope,system-ui,sans-serif;color:var(--sub);margin-top:5px">Баллы за каждый заказ, история и повтор одним касанием.${S.cfg.regBonus > 0 ? ' За регистрацию — ' + S.cfg.regBonus + ' баллов.' : ''}</div>
+          <div style="font:600 12px/1.55 Manrope,system-ui,sans-serif;color:var(--sub);margin-top:5px">История заказов, избранное и повтор одним касанием.</div>
           <div style="display:flex;gap:9px;margin-top:13px">
             <div data-c="${act(() => setS({ screen: 'auth', authMode: 'reg', fName: '', fPhone: '', fPass: '', agree: false, agreeMkt: false }))}" class="a98" style="flex:1;height:46px;border-radius:12px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;font:800 13px Manrope,system-ui,sans-serif;cursor:pointer">Регистрация</div>
             <div data-c="${act(() => setS({ screen: 'auth', authMode: 'login', fPhone: '', fPass: '', agree: false }))}" class="h-gold" style="flex:1;height:46px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 13px Manrope,system-ui,sans-serif;cursor:pointer">Войти</div>
@@ -3065,7 +3016,7 @@ function renderApp() {
     screen = `<div data-key="scr-profile" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">${sub}</div>`;
   }
 
-  const navItems = [['home','Главная','home'],['menu','Меню','menu'],['order','Заказ','order'],['bonus','Бонусы','bonus'],['profile','Профиль','prof']].map(([key, label, ic]) => {
+  const navItems = [['home','Главная','home'],['menu','Меню','menu'],['order','Заказ','order'],['profile','Профиль','prof']].map(([key, label, ic]) => {
     const active = S.tab === key;
     return `
     <div data-c="${act(() => setS({ tab: key, product: null, psub: (key === 'profile' && S.tab === 'profile') ? null : S.psub }))}" class="a94" style="position:relative;width:64px;height:62px;border-radius:19px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:all .2s;${active ? 'background:rgba(var(--accRGB),.16);border:1px solid rgba(var(--accRGB),.45);color:var(--goldT)' : 'color:var(--dim2)'}">
@@ -3293,7 +3244,6 @@ window.addEventListener('storage', e => {
     theme: nv.theme || S.theme, user: nv.user || null, myNums: nv.myNums || [],
     notifs: nv.notifs || [], unread: Math.min(nv.unread || 0, (nv.notifs || []).length),
     snotifs: nv.snotifs || [], sunread: Math.min(nv.sunread || 0, (nv.snotifs || []).length),
-    bonus: nv.bonus != null ? nv.bonus : S.bonus, bonusEv: nv.bonusEv || S.bonusEv,
     custom: (Array.isArray(nv.custom) ? nv.custom : []).map(normCustom), hidden: nv.hidden || {}, favs: nv.favs || {},
     staff: Array.isArray(nv.staff) && nv.staff.length ? nv.staff.map(normStaff) : S.staff, cfg: mkCfg(nv.cfg),
     itemInfo: nv.itemInfo || S.itemInfo, alertSeen: nv.alertSeen || S.alertSeen,

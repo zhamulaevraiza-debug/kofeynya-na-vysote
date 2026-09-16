@@ -3,12 +3,12 @@
    приложение открывается без сети. index.html берётся из сети в первую очередь
    (так обновления доходят сразу), из кэша — только если сети нет. Снимки
    напитков с фотостока и шрифты кэшируются по мере обращения. */
-const VERSION = 'knv-2026-09-12-1';
+const VERSION = 'knv-2026-09-16-1';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
   'assets/interior.jpg', 'assets/splash.jpg', 'assets/auth.jpg', 'assets/facade.jpg',
-  'assets/bonus-band.jpg', 'assets/gal-gorge.jpg', 'assets/gal-sharoy.jpg', 'assets/gal-tower.jpg',
+  'assets/gal-gorge.jpg', 'assets/gal-sharoy.jpg', 'assets/gal-tower.jpg',
   'assets/audio/morning.mp3', 'assets/audio/cover-morning.jpg', 'assets/audio/playlist.json',
   'assets/fonts/fonts.css',
   'assets/fonts/Manrope-400-cyrillic.woff2', 'assets/fonts/Manrope-400-latin.woff2',
