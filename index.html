@@ -3242,11 +3242,11 @@ function renderApp() {
     </div>`;
   }).join('');
   const navbar = !S.product ? `
-  <!-- Полоса прижата к нижнему краю: безопасная зона здесь не прибавляется,
-       иначе на телефонах с домашним индикатором панель отъезжала бы вверх на
-       три сантиметра. 8 пикселей — нижний предел: при меньшем отступе скруглённые
-       углы экрана срезают углы панели, отступающей от боков на 12 пикселей. -->
-  <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:8px;z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
+  <!-- Полоса стоит у нижнего края, но безопасная зона к отступу не прибавляется:
+       иначе на телефонах с домашним индикатором панель отъезжала бы вверх почти
+       на сантиметр. 16 пикселей — отступ, при котором скруглённые углы экрана
+       уже не режут углы панели и она не упирается в домашний индикатор. -->
+  <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:16px;z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
 
   return screen + navbar;
 }
