@@ -1222,7 +1222,8 @@ function morphChildren(o, n) {
     let placed;
     if (match) {
       consumed.add(match);
-      if (nk.nodeType === 3) { if (match.nodeValue !== nk.nodeValue) match.nodeValue = nk.nodeValue; }
+      // текст и комментарии несут только значение — атрибутов и детей у них нет
+      if (nk.nodeType === 3 || nk.nodeType === 8) { if (match.nodeValue !== nk.nodeValue) match.nodeValue = nk.nodeValue; }
       else morphEl(match, nk);
       placed = match;
     } else {
@@ -3241,11 +3242,11 @@ function renderApp() {
       <div style="font:600 10px Manrope,system-ui,sans-serif;margin-top:5px">${label}</div>
     </div>`;
   }).join('');
+  // Полоса стоит у нижнего края, но безопасная зона к отступу не прибавляется:
+  // иначе на телефонах с домашним индикатором панель отъезжала бы вверх почти
+  // на сантиметр. 16 пикселей — отступ, при котором скруглённые углы экрана
+  // уже не режут углы панели и она не упирается в домашний индикатор.
   const navbar = !S.product ? `
-  <!-- Полоса стоит у нижнего края, но безопасная зона к отступу не прибавляется:
-       иначе на телефонах с домашним индикатором панель отъезжала бы вверх почти
-       на сантиметр. 16 пикселей — отступ, при котором скруглённые углы экрана
-       уже не режут углы панели и она не упирается в домашний индикатор. -->
   <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:16px;z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
 
   return screen + navbar;
