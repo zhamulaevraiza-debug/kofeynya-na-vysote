@@ -291,44 +291,10 @@ function renderThemePanel() {
 }
 
 // ---------- знак кофейни ----------
-// Чашка с паром, нарисованная одной линией, — как неоновая вывеска в зале.
-// На тёмных темах линия светится тёплым светом, на светлых свечение не видно,
-// поэтому знак просто набран цветом темы.
-const CUP_MARK = `<path d="M13 9.4c2-1.7-2-2.8 0-4.6"></path><path d="M17.5 9.4c2-1.7-2-2.8 0-4.6"></path><path d="M22 9.4c2-1.7-2-2.8 0-4.6"></path>
-  <path d="M7.5 13.4c0-1.4 4.3-2.5 9.5-2.5s9.5 1.1 9.5 2.5"></path>
-  <path d="M7.5 13.4c0 1.4 4.3 2.5 9.5 2.5s9.5-1.1 9.5-2.5"></path>
-  <path d="M7.5 13.4v3.6a6.6 6.6 0 0 0 6.6 6.6h5.8a6.6 6.6 0 0 0 6.6-6.6v-3.6"></path>
-  <path d="M26.6 15h2.1a3.3 3.3 0 0 1 0 6.6h-1.4"></path>
-  <path d="M3.9 25.2c0-1.4 5.9-2.5 13.1-2.5s13.1 1.1 13.1 2.5"></path>
-  <path d="M3.9 25.2c0 1.9 5.9 3.4 13.1 3.4s13.1-1.5 13.1-3.4"></path>`;
-const NEON_GLOW = 'filter:drop-shadow(0 0 1.5px rgba(255,216,154,.95)) drop-shadow(0 0 5px rgba(255,168,64,.85)) drop-shadow(0 0 13px rgba(255,132,22,.6))';
-const NEON_TEXT = 'color:#fff4e3;text-shadow:0 0 3px rgba(255,208,146,.95),0 0 11px rgba(255,163,52,.7),0 0 24px rgba(255,124,16,.45)';
-const NEON_SUB = 'color:#ffcf94;text-shadow:0 0 7px rgba(255,150,40,.65)';
-// Плашка логотипа в шапке: рамка вокруг знака. На тёмных темах — светящаяся
-// трубка, на светлых — двойная волосяная линия с тёплой подложкой.
-function brandPlate() {
-  const neon = themeDef().dark;
-  const frame = neon
-    ? 'border:1px solid rgba(255,196,124,.5);box-shadow:0 0 9px rgba(255,150,40,.3),inset 0 0 12px rgba(255,150,40,.14)'
-    : 'border:1px solid rgba(var(--accRGB),.42);box-shadow:inset 0 0 0 3px var(--ph),inset 0 0 0 4px rgba(var(--accRGB),.24);background:rgba(var(--accRGB),.05)';
-  const rule = neon
-    ? 'width:12px;height:1px;flex:none;background:rgba(255,190,120,.75);box-shadow:0 0 5px rgba(255,150,40,.7)'
-    : 'width:12px;height:1px;flex:none;background:rgba(var(--accRGB),.5)';
-  return `<div style="flex:1;min-width:0;display:flex;justify-content:center">
-    <div class="${neon ? 'knv-neon' : ''}" style="max-width:100%;box-sizing:border-box;padding:7px 15px 8px;border-radius:15px;text-align:center;${frame}">
-      ${cupMark(23, neon)}
-      <div style="font:600 17.5px/1.15 'Cormorant Garamond',serif;letter-spacing:.01em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${neon ? NEON_TEXT : 'color:var(--ink)'}">Кофейня на высоте</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px">
-        <span style="${rule}"></span>
-        <span style="font:700 7px Manrope,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;white-space:nowrap;${neon ? NEON_SUB : 'color:var(--goldT)'}">кофе с видом на горы</span>
-        <span style="${rule}"></span>
-      </div>
-    </div>
-  </div>`;
-}
-function cupMark(h, neon) {
-  const w = Math.round(h * 34 / 30);
-  return `<svg width="${w}" height="${h}" viewBox="0 0 34 30" fill="none" stroke="${neon ? '#fff3de' : 'var(--goldT)'}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto;${neon ? NEON_GLOW : ''}" aria-hidden="true">${CUP_MARK}</svg>`;
+// Горы с чашкой — основной знак: широкий, поэтому размер задаётся высотой.
+function logoMark(h, neon) {
+  const w = Math.round(h * 124 / 44);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 124 44" fill="none" stroke="${neon ? '#fff3de' : 'var(--goldT)'}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto;${neon ? NEON_GLOW : ''}" aria-hidden="true">${LOGO_MARK}</svg>`;
 }
 
 // ---------- главная: популярное, бейджи, слайды промо ----------
@@ -2241,7 +2207,7 @@ function renderSplash() {
     <div style="position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;padding:24px 24px 56px;box-sizing:border-box">
       <div style="margin:auto 0;padding:clamp(22px,5vh,40px) 26px clamp(20px,4vh,32px);border-radius:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);box-shadow:0 34px 70px -30px rgba(0,0,0,.85);text-align:center;animation:rise .8s cubic-bezier(.2,.8,.3,1) both">
         <div class="knv-neon">
-          ${cupMark(58, true)}
+          ${logoMark(72, true)}
           <div style="font:600 40px/1.02 'Cormorant Garamond',serif;margin-top:16px;${NEON_TEXT}">Кофейня<br>на высоте</div>
           <div style="font:600 17px 'Cormorant Garamond',serif;margin-top:12px;letter-spacing:.03em;${NEON_SUB}">Кофе с видом на горы</div>
         </div>
