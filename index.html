@@ -316,12 +316,20 @@ const LOGO_SVG = `<path d="M10 226 L72 187 L86 186 L102 174 L122 167 L183 121 L1
 // Цвета лок-апа: на тёмном фоне кремовый знак и тёплое свечение, на светлом —
 // тот же знак глухим коричневым и без свечения.
 const LOGO_C = {
-  dark: { mark: '#efd3a6', name: '#f8f3ea', sub: '#e3cda9', rule: '#c9ae84' },
-  light: { mark: '#4e3623', name: 'var(--ink)', sub: '#6b4a2c', rule: 'rgba(var(--accRGB),.45)' }
+  dark: { mark: '#ffd75a', name: '#f8f3ea', sub: '#e3cda9', rule: '#c9ae84' },
+  // На светлом фоне жёлтая линия теряется, поэтому лента там показана иначе:
+  // ядро тёмно-янтарное, а свечение остаётся жёлтым — как лента при дневном свете.
+  light: { mark: '#7a4f12', name: 'var(--ink)', sub: '#6b4a2c', rule: 'rgba(var(--accRGB),.45)' }
+};
+// Слои свечения ленты: чем дальше, тем шире и прозрачнее.
+const LED_GLOW = {
+  dark: k => `drop-shadow(0 0 ${k * .6}px rgba(255,246,202,.95)) drop-shadow(0 0 ${k * 2.2}px rgba(255,203,66,.85)) drop-shadow(0 0 ${k * 5}px rgba(255,170,20,.5)) drop-shadow(0 0 ${k * 10}px rgba(255,150,0,.26))`,
+  light: k => `drop-shadow(0 0 ${k * 1.1}px rgba(255,208,74,.9)) drop-shadow(0 0 ${k * 3.4}px rgba(255,190,50,.55)) drop-shadow(0 0 ${k * 7.5}px rgba(255,170,20,.28))`
 };
 // width — ширина знака в пикселях; свечение слабое и включается только на тёмном.
 function logoMark(width, glow, big) {
-  const sh = glow ? `filter:drop-shadow(0 0 ${big ? 8 : 5}px rgba(236,196,136,${big ? .32 : .3}))` : '';
+  const k = big ? 1.6 : 1;
+  const sh = 'filter:' + (glow ? LED_GLOW.dark(k) : LED_GLOW.light(k));
   return `<svg viewBox="0 0 640 262" width="${width}" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Кофейня на высоте" style="display:block;height:auto;max-width:100%;${sh}">${LOGO_SVG}</svg>`;
 }
 // Лок-ап: знак, под ним название, ниже слоган между двумя тонкими линиями.
