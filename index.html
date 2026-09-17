@@ -3242,7 +3242,11 @@ function renderApp() {
     </div>`;
   }).join('');
   const navbar = !S.product ? `
-  <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:calc(3px + env(safe-area-inset-bottom));z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
+  <!-- Полоса прижата к нижнему краю: безопасная зона здесь не прибавляется,
+       иначе на телефонах с домашним индикатором панель отъезжала бы вверх на
+       три сантиметра. 8 пикселей — нижний предел: при меньшем отступе скруглённые
+       углы экрана срезают углы панели, отступающей от боков на 12 пикселей. -->
+  <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:8px;z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
 
   return screen + navbar;
 }
