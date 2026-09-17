@@ -3242,7 +3242,7 @@ function renderApp() {
     </div>`;
   }).join('');
   const navbar = !S.product ? `
-  <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
+  <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:calc(3px + env(safe-area-inset-bottom));z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
 
   return screen + navbar;
 }
