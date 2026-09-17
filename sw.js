@@ -3,7 +3,7 @@
    приложение открывается без сети. index.html берётся из сети в первую очередь
    (так обновления доходят сразу), из кэша — только если сети нет. Снимки
    напитков с фотостока и шрифты кэшируются по мере обращения. */
-const VERSION = 'knv-2026-09-16-2';
+const VERSION = 'knv-2026-09-17-1';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
@@ -16,6 +16,8 @@ const SHELL = [
   'assets/fonts/Manrope-600-cyrillic.woff2', 'assets/fonts/Manrope-600-latin.woff2',
   'assets/fonts/Manrope-700-cyrillic.woff2', 'assets/fonts/Manrope-700-latin.woff2',
   'assets/fonts/Manrope-800-cyrillic.woff2', 'assets/fonts/Manrope-800-latin.woff2',
+  'assets/fonts/PlayfairDisplay-600-cyrillic.woff2', 'assets/fonts/PlayfairDisplay-600-latin.woff2',
+  'assets/fonts/Montserrat-700-cyrillic.woff2', 'assets/fonts/Montserrat-700-latin.woff2',
   'assets/fonts/CormorantGaramond-500-cyrillic.woff2', 'assets/fonts/CormorantGaramond-500-latin.woff2',
   'assets/fonts/CormorantGaramond-600-cyrillic.woff2', 'assets/fonts/CormorantGaramond-600-latin.woff2'
 ];
