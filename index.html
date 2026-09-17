@@ -291,10 +291,40 @@ function renderThemePanel() {
 }
 
 // ---------- знак кофейни ----------
+// Горы с чашкой: хребет с несколькими вершинами и гранями, на уступе — чашка
+// с паром и блюдцем. Рисунок один и тот же в шапке и на заставке.
+const LOGO_MARK = `<path d="M2 52 16 41 26 46 40 25 50 35 63 11 73 29 84 37 116 37 129 24 140 37 150 45 158 52"></path>
+  <path d="M63 11 56.5 23.5 61 30"></path>
+  <path d="M40 25 34.5 34.5"></path>
+  <path d="M129 24 123.5 33"></path>
+  <path d="M63 11 67.5 18.5M40 25 43.5 30.5M129 24 132.5 29.5"></path>
+  <path d="M94 19h22v6.2a7.6 7.6 0 0 1-7.6 7.6h-6.8a7.6 7.6 0 0 1-7.6-7.6z"></path>
+  <path d="M116 22.2h3a3.3 3.3 0 0 1 0 6.6h-1.8"></path>
+  <path d="M89 34.4h32"></path>
+  <path d="M100 15.6c1.8-1.6-1.8-2.5 0-4.4M108 15.6c1.8-1.6-1.8-2.5 0-4.4"></path>`;
+// Неоновое свечение: ядро, тёплый ореол и дальний отсвет — как у вывески в зале.
+const NEON_GLOW = 'filter:drop-shadow(0 0 1.5px rgba(255,216,154,.95)) drop-shadow(0 0 5px rgba(255,168,64,.85)) drop-shadow(0 0 13px rgba(255,132,22,.6))';
+const NEON_TEXT = 'color:#fff4e3;text-shadow:0 0 3px rgba(255,208,146,.95),0 0 11px rgba(255,163,52,.7),0 0 24px rgba(255,124,16,.45)';
+const NEON_SUB = 'color:#ffcf94;text-shadow:0 0 7px rgba(255,150,40,.65)';
+// Знак в шапке: рисунок, название, тонкая черта, подпись.
+function brandPlate() {
+  const neon = themeDef().dark;
+  const rule = neon
+    ? 'height:1px;background:rgba(255,190,120,.7);box-shadow:0 0 6px rgba(255,150,40,.6)'
+    : 'height:1px;background:rgba(var(--accRGB),.45)';
+  return `<div style="flex:1;min-width:0;display:flex;justify-content:center">
+    <div class="${neon ? 'knv-neon' : ''}" style="max-width:100%;box-sizing:border-box;text-align:center">
+      ${logoMark(36, neon)}
+      <div style="font:600 17.5px/1.15 'Cormorant Garamond',serif;letter-spacing:.01em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${neon ? NEON_TEXT : 'color:var(--ink)'}">Кофейня на высоте</div>
+      <div style="${rule};margin:5px auto 4px;width:88%"></div>
+      <div style="font:700 7px Manrope,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;white-space:nowrap;${neon ? NEON_SUB : 'color:var(--goldT)'}">кофе с видом на горы</div>
+    </div>
+  </div>`;
+}
 // Горы с чашкой — основной знак: широкий, поэтому размер задаётся высотой.
 function logoMark(h, neon) {
-  const w = Math.round(h * 124 / 44);
-  return `<svg width="${w}" height="${h}" viewBox="0 0 124 44" fill="none" stroke="${neon ? '#fff3de' : 'var(--goldT)'}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto;${neon ? NEON_GLOW : ''}" aria-hidden="true">${LOGO_MARK}</svg>`;
+  const w = Math.round(h * 160 / 56);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 160 56" fill="none" stroke="${neon ? '#fff3de' : 'var(--goldT)'}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto;${neon ? NEON_GLOW : ''}" aria-hidden="true">${LOGO_MARK}</svg>`;
 }
 
 // ---------- главная: популярное, бейджи, слайды промо ----------
