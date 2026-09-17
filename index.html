@@ -1227,7 +1227,7 @@ const SVG = {
   backSm: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>`,
   chev: `<svg width="7" height="12" viewBox="0 0 8 14" fill="none" stroke="var(--dim2)" stroke-width="2" stroke-linecap="round"><path d="M1.5 1.5L6.5 7l-5 5.5"></path></svg>`,
   bell: `<svg width="17" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"></path><path d="M10 19a2.2 2.2 0 0 0 4 0"></path></svg>`,
-  burger: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"></path></svg>`,
+  gear: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"></circle><path d="M19 12a7 7 0 0 0-.14-1.4l2-1.55-2-3.46-2.36.95A7 7 0 0 0 14.06 5L13.7 2.5h-3.4L9.94 5a7 7 0 0 0-2.44 1.4l-2.36-.8-2 3.47 2 1.53a7.1 7.1 0 0 0 0 2.8l-2 1.55 2 3.46 2.36-.95a7 7 0 0 0 2.44 1.4l.36 2.54h3.4l.36-2.54a7 7 0 0 0 2.44-1.4l2.36.95 2-3.46-2-1.55c.1-.46.14-.92.14-1.4z"></path></svg>`,
   search: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.4-3.4"></path></svg>`,
   sliders: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 8h10M18 8h2M4 16h4M12 16h8"></path><circle cx="16" cy="8" r="2.1"></circle><circle cx="10" cy="16" r="2.1"></circle></svg>`,
   star: `<svg width="12" height="12" viewBox="0 0 24 24" style="fill:#e8a33d" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.8 5.8 20.3l1.6-6.8L2.2 8.9l6.9-.6L12 2z"></path></svg>`,
@@ -2653,7 +2653,7 @@ function renderApp() {
     screen = `
     <div data-key="scr-home" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px 20px 120px;animation:fadeIn .3s ease both">
       <div style="display:flex;align-items:center;gap:8px">
-        <div data-c="${act(() => setS({ navOpen: !S.navOpen, notifOpen: false, themeOpen: false, plOpen: false }))}" class="h-gold" role="button" aria-label="Меню приложения" aria-expanded="${!!S.navOpen}" style="width:40px;height:40px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">${SVG.burger}</div>
+        <div data-c="${act(() => setS({ navOpen: !S.navOpen, notifOpen: false, themeOpen: false, plOpen: false }))}" class="h-gold" role="button" aria-label="Настройки приложения" aria-expanded="${!!S.navOpen}" style="width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;background:${S.navOpen ? 'var(--acc)' : 'var(--card)'};border:1px solid ${S.navOpen ? 'var(--acc)' : 'var(--line)'};color:${S.navOpen ? 'var(--accInk)' : 'var(--ink)'}">${SVG.gear}</div>
         ${brandPlate()}
         ${iconBtn(SVG.bell, act(() => set({ notifOpen: !S.notifOpen, navOpen: false, themeOpen: false, plOpen: false, unread: 0 })), 'Уведомления', S.unread || 0)}
         ${iconBtn(SVG.cart, act(() => setS({ tab: 'order' })), 'Мой заказ', cartCount)}
