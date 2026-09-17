@@ -1232,7 +1232,6 @@ const SVG = {
   sliders: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 8h10M18 8h2M4 16h4M12 16h8"></path><circle cx="16" cy="8" r="2.1"></circle><circle cx="10" cy="16" r="2.1"></circle></svg>`,
   star: `<svg width="12" height="12" viewBox="0 0 24 24" style="fill:#e8a33d" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.8 5.8 20.3l1.6-6.8L2.2 8.9l6.9-.6L12 2z"></path></svg>`,
   plus: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>`,
-  cart: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg>`,
   cup: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h12v4.5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"></path><path d="M16 9.8h2a2.2 2.2 0 0 1 0 4.4h-2"></path><path d="M6.5 3.5v2M10 3.5v2M13.5 3.5v2"></path></svg>`,
   card: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.5"></rect><path d="M3 10.5h18"></path></svg>`,
   place: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>`,
@@ -2656,7 +2655,6 @@ function renderApp() {
         <div data-c="${act(() => setS({ navOpen: !S.navOpen, notifOpen: false, themeOpen: false, plOpen: false }))}" class="h-gold" role="button" aria-label="Настройки приложения" aria-expanded="${!!S.navOpen}" style="width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;background:${S.navOpen ? 'var(--acc)' : 'var(--card)'};border:1px solid ${S.navOpen ? 'var(--acc)' : 'var(--line)'};color:${S.navOpen ? 'var(--accInk)' : 'var(--ink)'}">${SVG.gear}</div>
         ${brandPlate()}
         ${iconBtn(SVG.bell, act(() => set({ notifOpen: !S.notifOpen, navOpen: false, themeOpen: false, plOpen: false, unread: 0 })), 'Уведомления', S.unread || 0)}
-        ${iconBtn(SVG.cart, act(() => setS({ tab: 'order' })), 'Мой заказ', cartCount)}
       </div>
       ${navSheet}
       ${renderThemePanel()}
