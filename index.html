@@ -293,19 +293,18 @@ function renderThemePanel() {
 // ---------- знак кофейни ----------
 // Горы с чашкой: хребет с несколькими вершинами и гранями, на уступе — чашка
 // с паром и блюдцем. Рисунок один и тот же в шапке и на заставке.
-const LOGO_MARK = `<path d="M2 52 16 41 26 46 40 25 50 35 63 11 73 29 84 37 116 37 129 24 140 37 150 45 158 52"></path>
-  <path d="M63 11 56.5 23.5 61 30"></path>
-  <path d="M40 25 34.5 34.5"></path>
-  <path d="M129 24 123.5 33"></path>
-  <path d="M63 11 67.5 18.5M40 25 43.5 30.5M129 24 132.5 29.5"></path>
-  <path d="M94 19h22v6.2a7.6 7.6 0 0 1-7.6 7.6h-6.8a7.6 7.6 0 0 1-7.6-7.6z"></path>
-  <path d="M116 22.2h3a3.3 3.3 0 0 1 0 6.6h-1.8"></path>
-  <path d="M89 34.4h32"></path>
-  <path d="M100 15.6c1.8-1.6-1.8-2.5 0-4.4M108 15.6c1.8-1.6-1.8-2.5 0-4.4"></path>`;
+// Хребет — одна непрерывная линия: пологие подножия по краям, к центру выше,
+// главная вершина чуть левее середины, за ней короткий уступ. На этом уступе
+// стоит чашка: отдельного дна у неё нет, дном служит сама линия гор.
+const LOGO_RIDGE = 'M6 46 26 37.5 38 42 58 27 70 34 84 13 90 30 114 30 126 19.5 142 34 158 29 194 46';
+const LOGO_CUP = 'M90.6 19 93.6 30M111.4 19 108.4 30M89 19h24';
+const LOGO_HANDLE = 'M113 21.4a3.4 3.4 0 0 1 0 5.8';
+const LOGO_STEAM = 'M95.5 16c1.4-1.2-1.4-1.9 0-3.2M101 15.2c1.4-1.2-1.4-1.9 0-3.2M106.5 16c1.4-1.2-1.4-1.9 0-3.2';
 // Неоновое свечение: ядро, тёплый ореол и дальний отсвет — как у вывески в зале.
-const NEON_GLOW = 'filter:drop-shadow(0 0 1.5px rgba(255,216,154,.95)) drop-shadow(0 0 5px rgba(255,168,64,.85)) drop-shadow(0 0 13px rgba(255,132,22,.6))';
-const NEON_TEXT = 'color:#fff4e3;text-shadow:0 0 3px rgba(255,208,146,.95),0 0 11px rgba(255,163,52,.7),0 0 24px rgba(255,124,16,.45)';
-const NEON_SUB = 'color:#ffcf94;text-shadow:0 0 7px rgba(255,150,40,.65)';
+// Текст светится ровно настолько, чтобы читаться как тёплая линия света
+// в темноте, — без ореола вывески.
+const NEON_TEXT = 'color:#f3e6cd;text-shadow:0 0 10px rgba(199,155,94,.28)';
+const NEON_SUB = 'color:#d9bd8e;text-shadow:0 0 9px rgba(199,155,94,.22)';
 // Знак в шапке: рисунок, название, тонкая черта, подпись.
 function brandPlate() {
   const neon = themeDef().dark;
@@ -314,17 +313,29 @@ function brandPlate() {
     : 'height:1px;background:rgba(var(--accRGB),.45)';
   return `<div style="flex:1;min-width:0;display:flex;justify-content:center">
     <div class="${neon ? 'knv-neon' : ''}" style="max-width:100%;box-sizing:border-box;text-align:center">
-      ${logoMark(36, neon)}
+      ${logoMark(34, neon, 1.3)}
       <div style="font:600 17.5px/1.15 'Cormorant Garamond',serif;letter-spacing:.01em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${neon ? NEON_TEXT : 'color:var(--ink)'}">Кофейня на высоте</div>
       <div style="${rule};margin:5px auto 4px;width:88%"></div>
       <div style="font:700 7px Manrope,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;white-space:nowrap;${neon ? NEON_SUB : 'color:var(--goldT)'}">кофе с видом на горы</div>
     </div>
   </div>`;
 }
-// Горы с чашкой — основной знак: широкий, поэтому размер задаётся высотой.
-function logoMark(h, neon) {
-  const w = Math.round(h * 160 / 56);
-  return `<svg width="${w}" height="${h}" viewBox="0 0 160 56" fill="none" stroke="${neon ? '#fff3de' : 'var(--goldT)'}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto;${neon ? NEON_GLOW : ''}" aria-hidden="true">${LOGO_MARK}</svg>`;
+// Знак рисуется в два слоя: снизу размытый ореол малой прозрачности, сверху —
+// чёткая тонкая линия. Толщина линии задана в экранных пикселях (non-scaling-stroke),
+// поэтому не зависит от размера знака, а ореол и линию можно крутить по отдельности.
+const LINE_WARM = '#ebd2a4';   // тёплый кремовый, основной цвет линии
+const GLOW_WARM = '#c79b5e';   // приглушённый янтарь под ореол
+function logoMark(h, glow, sw, pct) {
+  const w = Math.round(h * 200 / 56), id = 'knvglow' + h;
+  const box = pct ? `width:${pct}%;height:auto;max-width:${w}px` : `width:${w}px;height:${h}px`;
+  const body = k => `<g fill="none" stroke="${k.c}" stroke-width="${k.w}" stroke-linecap="round" stroke-linejoin="round"${k.ns ? ' vector-effect="non-scaling-stroke"' : ''}${k.o ? ` opacity="${k.o}"` : ''}${k.f ? ` filter="url(#${id})"` : ''}>
+      <path d="${LOGO_RIDGE}"></path><path d="${LOGO_CUP}"></path><path d="${LOGO_HANDLE}"></path><path d="${LOGO_STEAM}" opacity=".72"></path>
+    </g>`;
+  return `<svg viewBox="0 0 200 56" style="display:block;margin:0 auto;overflow:visible;${box}" aria-hidden="true">
+    ${glow ? `<defs><filter id="${id}" x="-20%" y="-45%" width="140%" height="190%"><feGaussianBlur stdDeviation="2.6"></feGaussianBlur></filter></defs>
+    ${body({ c: GLOW_WARM, w: 2.6, o: '.34', f: 1 })}` : ''}
+    ${body({ c: glow ? LINE_WARM : 'var(--goldT)', w: sw || 1.5, ns: 1 })}
+  </svg>`;
 }
 
 // ---------- главная: популярное, бейджи, слайды промо ----------
@@ -2232,16 +2243,20 @@ function renderStaffPin() {
 function renderSplash() {
   return `
   <div data-key="scr-splash" style="position:absolute;inset:0;z-index:5;animation:fadeIn .5s ease both">
-    <img src="assets/splash.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:zoomIn 9s ease-out both">
-    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,15,12,.2),rgba(20,15,12,.72))"></div>
+<div style="position:absolute;inset:0;background:#131211"></div>
+    <div style="position:absolute;inset:0;background:radial-gradient(120% 70% at 50% 34%,#1d1b18 0%,#161514 46%,#101010 100%)"></div>
     <div style="position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;padding:24px 24px 56px;box-sizing:border-box">
-      <div style="margin:auto 0;padding:clamp(22px,5vh,40px) 26px clamp(20px,4vh,32px);border-radius:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);box-shadow:0 34px 70px -30px rgba(0,0,0,.85);text-align:center;animation:rise .8s cubic-bezier(.2,.8,.3,1) both">
+      <div style="margin:auto 0;padding:clamp(22px,5vh,40px) 26px clamp(20px,4vh,32px);border-radius:32px;background:rgba(255,255,255,.035);border:1px solid rgba(235,210,164,.12);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);box-shadow:0 34px 70px -30px rgba(0,0,0,.85);text-align:center;animation:rise .8s cubic-bezier(.2,.8,.3,1) both">
         <div class="knv-neon">
-          ${logoMark(72, true)}
-          <div style="font:600 40px/1.02 'Cormorant Garamond',serif;margin-top:16px;${NEON_TEXT}">Кофейня<br>на высоте</div>
-          <div style="font:600 17px 'Cormorant Garamond',serif;margin-top:12px;letter-spacing:.03em;${NEON_SUB}">Кофе с видом на горы</div>
+          ${logoMark(78, true, 1.6, 68)}
+          <div style="font:600 36px/1.08 'Cormorant Garamond',serif;margin-top:22px;letter-spacing:.015em;${NEON_TEXT}">Кофейня<br>на высоте</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:11px;margin-top:16px">
+            <span style="width:26px;height:1px;background:rgba(235,210,164,.3)"></span>
+            <span style="font:600 9.5px 'Cormorant Garamond',serif;letter-spacing:.3em;text-transform:uppercase;white-space:nowrap;${NEON_SUB}">Кофе с видом на горы</span>
+            <span style="width:26px;height:1px;background:rgba(235,210,164,.3)"></span>
+          </div>
         </div>
-        <div style="font:500 13.5px/1.65 Manrope,system-ui,sans-serif;color:#dcd3c6;margin-top:16px">Ароматный кофе.<br>Тёплая атмосфера.<br>Горы за окном.</div>
+        <div style="font:500 13px/1.75 Manrope,system-ui,sans-serif;color:#a9a099;margin-top:20px">Ароматный кофе.<br>Тёплая атмосфера.<br>Горы за окном.</div>
         <div id="sw-track" data-key="sw-track" role="button" tabindex="0" aria-label="Проведите вправо, чтобы открыть кофейню" style="position:relative;margin:30px auto 0;width:min(300px,86%);height:62px;border-radius:99px;background:rgba(255,255,255,.09);border:1px solid rgba(217,188,140,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);overflow:hidden;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none">
           <div id="sw-hint" style="position:absolute;inset:0;padding-left:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:700 13.5px Manrope,system-ui,sans-serif;white-space:nowrap;pointer-events:none"><span class="knv-shine">Проведите, чтобы начать</span></div>
           <div id="sw-knob" style="position:absolute;top:5px;left:5px;width:52px;height:52px;border-radius:50%;background:#d9bc8c;color:#2a2016;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 22px -10px rgba(0,0,0,.7);pointer-events:none;will-change:transform"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M12 6l6 6-6 6"></path></svg></div>
@@ -2249,7 +2264,7 @@ function renderSplash() {
       </div>
     </div>
     <div style="position:absolute;left:0;right:0;bottom:28px;display:flex;justify-content:center;gap:8px">
-      <div style="width:8px;height:8px;border-radius:50%;background:#d9bc8c"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:#ebd2a4"></div>
       <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3)"></div>
       <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3)"></div>
     </div>
