@@ -208,6 +208,11 @@ input::placeholder{color:var(--dim);opacity:1}
 #app [style*="var(--card)"] [role="radio"]{-webkit-backdrop-filter:none;backdrop-filter:none}
 
 /* hover/active-состояния (перенос style-hover / style-active из макета) */
+/* Тема переключалась наполовину: на корне перетекали фон и цвет текста, а
+   карточки, рамки, акценты и значки щёлкали в том же кадре. Селектор нарочно
+   слабее одного класса — дорожка заказа, чипы и всё остальное со своим
+   переходом сохраняют собственные времена и задержки. */
+body *{transition:background-color .35s,border-color .35s,color .35s,fill .35s,stroke .35s}
 @media (hover:hover){
 .h-gold:hover{border-color:rgba(var(--accRGB),.5)!important}
 .h-goldb2:hover{border-color:rgba(var(--accRGB),.7)!important}
@@ -2868,7 +2873,7 @@ function renderApp() {
       <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px 4px">${gallery}</div>`}
     </div>`;
   } else if (S.tab === 'menu') {
-    const chips = CATS.map(([k, label]) => `<div data-c="${act(() => setS({ cat: k }))}" class="a95" style="flex:none;padding:9px 16px;border-radius:99px;cursor:pointer;font:700 12.5px Manrope,system-ui,sans-serif;transition:all .15s;${S.cat === k ? `background:${GG};color:var(--accInk)` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('');
+    const chips = CATS.map(([k, label]) => `<div data-c="${act(() => setS({ cat: k }))}" class="a95" style="flex:none;padding:9px 16px;border-radius:99px;cursor:pointer;font:700 12.5px Manrope,system-ui,sans-serif;transition:all .15s;${S.cat === k ? `background:${GG};border:1px solid transparent;color:var(--accInk)` : 'background:var(--card);border:1px solid var(--line);color:var(--sub2)'}">${label}</div>`).join('');
     let list = allProducts().filter(m => m.cat === S.cat);
     if (S.sort === 'fav') list = list.filter(m => S.favs[m.id]);
     if (S.sort === 'cheap' || S.sort === 'rich') {
