@@ -52,6 +52,24 @@ input::placeholder{color:var(--dim);opacity:1}
 .knv-cyc{position:relative;width:24px;height:24px;flex:none}
 .knv-cyc>svg{position:absolute;left:0;top:0;opacity:0;animation:navcyc 15s linear infinite}
 @media (prefers-reduced-motion:reduce){.knv-cyc>svg{animation:none!important;opacity:0!important}.knv-cyc>svg:first-child{opacity:1!important}}
+/* Знак зажигается как светодиодная вывеска: линия прочерчивается слева направо,
+   грани подхватываются по мере прохода тока, следом чашка и пар; по дороге два
+   неровных мига, в конце свечение выходит на рабочее. Играется один раз на
+   заставке. Конец разгона совпадает с LED_GLOW.dark(1) — после анимации знак
+   выглядит ровно так же, как раньше. */
+@keyframes signdraw{to{stroke-dashoffset:0}}
+@keyframes signblink{0%{opacity:1}18.67%{opacity:.3}20.87%{opacity:1}22%{opacity:.6}24.2%{opacity:1}88.67%{opacity:.15}90.87%{opacity:.85}92%{opacity:.45}94.2%,100%{opacity:1}}
+@keyframes signglow{
+0%{filter:drop-shadow(0 0 .6px rgba(255,246,202,.7)) drop-shadow(0 0 1.25px rgba(255,203,66,.4)) drop-shadow(0 0 1.9px rgba(255,170,20,.15)) drop-shadow(0 0 2.5px rgba(255,150,0,0))}
+60%{filter:drop-shadow(0 0 .72px rgba(255,246,202,1)) drop-shadow(0 0 2.8px rgba(255,203,66,.95)) drop-shadow(0 0 6.2px rgba(255,170,20,.6)) drop-shadow(0 0 12.5px rgba(255,150,0,.34))}
+100%{filter:drop-shadow(0 0 .6px rgba(255,246,202,.95)) drop-shadow(0 0 2.2px rgba(255,203,66,.85)) drop-shadow(0 0 5px rgba(255,170,20,.5)) drop-shadow(0 0 10px rgba(255,150,0,.26))}
+}
+.knv-sign-lit{animation:signglow .36s cubic-bezier(.3,.7,.3,1) 1.42s both}
+.knv-sign-lit .knv-sgrp{animation:signblink 1.5s steps(1,end) both}
+.knv-sign-lit path,.knv-sign-lit ellipse{animation:signdraw .18s cubic-bezier(.25,.5,.35,1) both}
+.knv-sign-lit .sr{animation-timing-function:linear}
+.knv-sign-off path,.knv-sign-off ellipse{stroke-dashoffset:0}
+@media (prefers-reduced-motion:reduce){.knv-sign-lit,.knv-sign-lit *{animation:none!important}.knv-sign-lit path,.knv-sign-lit ellipse{stroke-dashoffset:0}}
 @keyframes shine{from{background-position:130% 0}to{background-position:-30% 0}}
 .knv-shine{color:rgba(243,237,228,.82)}
 @media (prefers-reduced-motion:no-preference){
@@ -296,23 +314,25 @@ function renderThemePanel() {
 // Знак кофейни по спецификации: хребет с гранями, чашка с блюдцем и паром.
 // Координаты и толщина обводки фиксированы (640×262, stroke-width 4), цвет берётся
 // из свойства color родителя — заливок в рисунке нет.
-const LOGO_SVG = `<path d="M10 226 L72 187 L86 186 L102 174 L122 167 L183 121 L191 122 L215 141 L222 141 L277 87 L300 84 L364 22 L369 23 L456 115 L467 115 L488 106 L549 166 L577 174 L606 201 L629 213"/>
-  <path d="M215 141 L228 158 L236 172"/>
-  <path d="M200 130 L206 166 L213 140"/>
-  <path d="M180 126 L171 142 L178 146 L168 162"/>
-  <path d="M372 36 L388 58 L379 63 L396 86 L387 91 L404 112"/>
-  <path d="M296 92 L283 106 L291 111 L277 126"/>
-  <path d="M104 190 L138 172"/>
-  <path d="M150 180 L170 170"/>
-  <path d="M498 132 L516 122"/>
-  <ellipse cx="340" cy="172" rx="35" ry="8"/>
-  <path d="M306 176 C308 207, 318 225, 340 225 C362 225, 372 207, 374 176"/>
-  <path d="M376 184 C402 180, 406 215, 373 219"/>
-  <ellipse cx="340" cy="239" rx="51" ry="9.5"/>
-  <path d="M289 241 C299 256, 381 256, 391 241"/>
-  <path d="M324 164 C315 152, 331 144, 322 130"/>
-  <path d="M340 162 C331 150, 347 142, 338 128"/>
-  <path d="M356 164 C347 152, 363 144, 354 130"/>`;
+const LOGO_SVG = `<g class="knv-sgrp">
+  <path class="sr" d="M10 226 L72 187 L86 186 L102 174 L122 167 L183 121 L191 122 L215 141 L222 141 L277 87 L300 84 L364 22 L369 23 L456 115 L467 115 L488 106 L549 166 L577 174 L606 201 L629 213" stroke-dasharray="792" stroke-dashoffset="796" style="animation-duration:.56s"/>
+  <path d="M215 141 L228 158 L236 172" stroke-dasharray="44" stroke-dashoffset="48" style="animation-delay:.17s;animation-duration:.1s"/>
+  <path d="M200 130 L206 166 L213 140" stroke-dasharray="70" stroke-dashoffset="74" style="animation-delay:.16s;animation-duration:.14s"/>
+  <path d="M180 126 L171 142 L178 146 L168 162" stroke-dasharray="52" stroke-dashoffset="56" style="animation-delay:.15s;animation-duration:.12s"/>
+  <path d="M372 36 L388 58 L379 63 L396 86 L387 91 L404 112" stroke-dasharray="110" stroke-dashoffset="114" style="animation-delay:.33s;animation-duration:.2s"/>
+  <path d="M296 92 L283 106 L291 111 L277 126" stroke-dasharray="55" stroke-dashoffset="59" style="animation-delay:.25s;animation-duration:.12s"/>
+  <path d="M104 190 L138 172" stroke-dasharray="45" stroke-dashoffset="49" style="animation-delay:.08s;animation-duration:.1s"/>
+  <path d="M150 180 L170 170" stroke-dasharray="29" stroke-dashoffset="33" style="animation-delay:.12s;animation-duration:.08s"/>
+  <path d="M498 132 L516 122" stroke-dasharray="27" stroke-dashoffset="31" style="animation-delay:.44s;animation-duration:.08s"/>
+  <ellipse cx="340" cy="172" rx="35" ry="8" stroke-dasharray="155" stroke-dashoffset="159" style="animation-delay:.52s"/>
+  <path d="M306 176 C308 207, 318 225, 340 225 C362 225, 372 207, 374 176" stroke-dasharray="144" stroke-dashoffset="148" style="animation-delay:.61s"/>
+  <path d="M376 184 C402 180, 406 215, 373 219" stroke-dasharray="68" stroke-dashoffset="72" style="animation-delay:.7s;animation-duration:.12s"/>
+  <ellipse cx="340" cy="239" rx="51" ry="9.5" stroke-dasharray="220" stroke-dashoffset="224" style="animation-delay:.8s;animation-duration:.2s"/>
+  <path d="M289 241 C299 256, 381 256, 391 241" stroke-dasharray="112" stroke-dashoffset="116" style="animation-delay:.9s;animation-duration:.12s"/>
+  <path d="M324 164 C315 152, 331 144, 322 130" stroke-dasharray="43" stroke-dashoffset="47" style="animation-delay:.98s;animation-duration:.22s"/>
+  <path d="M340 162 C331 150, 347 142, 338 128" stroke-dasharray="43" stroke-dashoffset="47" style="animation-delay:1.04s;animation-duration:.22s"/>
+  <path d="M356 164 C347 152, 363 144, 354 130" stroke-dasharray="43" stroke-dashoffset="47" style="animation-delay:1.1s;animation-duration:.22s"/>
+</g>`;
 // Цвета лок-апа: на тёмном фоне кремовый знак и тёплое свечение, на светлом —
 // тот же знак глухим коричневым и без свечения.
 const LOGO_C = {
@@ -327,19 +347,23 @@ const LED_GLOW = {
   light: k => `drop-shadow(0 0 ${k * 1.1}px rgba(255,208,74,.9)) drop-shadow(0 0 ${k * 3.4}px rgba(255,190,50,.55)) drop-shadow(0 0 ${k * 7.5}px rgba(255,170,20,.28))`
 };
 // width — ширина знака в пикселях; свечение слабое и включается только на тёмном.
-function logoMark(width, glow, big) {
+// lit — знак зажигается как вывеска (заставка); иначе он показан сразу.
+// Класс обязателен в любом случае: без него штриховка из путей оставит линию
+// спрятанной. Свечение остаётся и в стиле — на случай «уменьшить движение»,
+// когда анимация выключена.
+function logoMark(width, glow, big, lit) {
   const k = big ? 1.6 : 1;
   const sh = 'filter:' + (glow ? LED_GLOW.dark(k) : LED_GLOW.light(k));
-  return `<svg viewBox="0 0 640 262" width="${width}" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Кофейня на высоте" style="display:block;height:auto;max-width:100%;${sh}">${LOGO_SVG}</svg>`;
+  return `<svg class="${lit ? 'knv-sign-lit' : 'knv-sign-off'}" viewBox="0 0 640 262" width="${width}" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Кофейня на высоте" style="display:block;height:auto;max-width:100%;${sh}">${LOGO_SVG}</svg>`;
 }
 // Лок-ап: знак, под ним название, ниже слоган между двумя тонкими линиями.
 // Ширина названия держится около 1,2 ширины знака — на этом соотношении логотип
 // узнаётся, поэтому кегль и ширина знака меняются вместе.
-function logoLockup(markW, nameSize, subSize, subSpace, ruleW, glow) {
+function logoLockup(markW, nameSize, subSize, subSpace, ruleW, glow, lit) {
   const c = glow ? LOGO_C.dark : LOGO_C.light;
   const nameGlow = glow ? `;text-shadow:0 0 ${nameSize > 30 ? 14 : 10}px rgba(240,220,190,.2)` : '';
   return `<div style="display:flex;flex-direction:column;align-items:center;color:${c.mark}">
-    ${logoMark(markW, glow, nameSize > 30)}
+    ${logoMark(markW, glow, nameSize > 30, lit)}
     <div style="font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:${nameSize}px;line-height:1.12;letter-spacing:-.005em;color:${c.name};margin-top:2px;white-space:nowrap${nameGlow}">Кофейня на высоте</div>
     <div style="display:flex;align-items:center;gap:${Math.round(ruleW * .38)}px;margin-top:${nameSize > 30 ? 18 : 7}px">
       <span style="width:${ruleW}px;height:1px;flex:none;background:${c.rule}"></span>
@@ -2263,7 +2287,7 @@ function renderSplash() {
     <div style="position:absolute;inset:0;background:radial-gradient(120% 70% at 50% 34%,#1d1b18 0%,#161514 46%,#101010 100%)"></div>
     <div style="position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;padding:24px 24px 56px;box-sizing:border-box">
       <div style="margin:auto 0;padding:clamp(22px,5vh,40px) 26px clamp(20px,4vh,32px);border-radius:32px;background:rgba(255,255,255,.035);border:1px solid rgba(235,210,164,.12);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);box-shadow:0 34px 70px -30px rgba(0,0,0,.85);text-align:center;animation:rise .8s cubic-bezier(.2,.8,.3,1) both">
-        ${logoLockup(213, 27, 9.5, .3, 30, true)}
+        ${logoLockup(213, 27, 9.5, .3, 30, true, true)}
         <div style="font:500 13px/1.75 Manrope,system-ui,sans-serif;color:#a9a099;margin-top:20px">Ароматный кофе.<br>Тёплая атмосфера.<br>Горы за окном.</div>
         <div id="sw-track" data-key="sw-track" role="button" tabindex="0" aria-label="Проведите вправо, чтобы открыть кофейню" style="position:relative;margin:30px auto 0;width:min(300px,86%);height:62px;border-radius:99px;background:rgba(255,255,255,.09);border:1px solid rgba(217,188,140,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);overflow:hidden;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none">
           <div id="sw-hint" style="position:absolute;inset:0;padding-left:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:700 13.5px Manrope,system-ui,sans-serif;white-space:nowrap;pointer-events:none"><span class="knv-shine">Проведите, чтобы начать</span></div>
