@@ -2904,7 +2904,7 @@ function renderApp() {
     // показывают положение — их двигает обработчик прокрутки, без перерисовки.
     const HERO = [
       { t1: 'Хороший кофе', t2: 'Хорошее настроение', d: S.cfg.disc > 0 ? 'Скидка ' + S.cfg.disc + '% на каждый заказ в приложении' : 'Свежая обжарка каждый день', b: 'Заказать',
-        img: 'https://images.unsplash.com/photo-1534687941688-651ccaafbff8?auto=format&fit=crop&w=800&q=70', tap: act(() => setS({ tab: 'menu', cat: 'coffee' })) },
+        img: 'assets/promo-coffee.jpg', tap: act(() => setS({ tab: 'menu', cat: 'coffee' })) },
       { t1: 'Столик с видом', t2: 'Горы за окном', d: 'Забронируйте место заранее — подтвердим в приложении', b: 'Забронировать',
         img: 'assets/facade.jpg', tap: act(() => setS({ tab: 'order', bkOpen: true })) },
       { t1: 'Не только кофе', t2: 'Кухня на высоте', d: 'Шаурма, крылья, сэндвичи и салаты — готовим при вас', b: 'Смотреть',
