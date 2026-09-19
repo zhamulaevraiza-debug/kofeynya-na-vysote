@@ -208,6 +208,44 @@ input::placeholder{color:var(--dim);opacity:1}
 #app [style*="var(--card)"] [role="radio"]{-webkit-backdrop-filter:none;backdrop-filter:none}
 
 /* hover/active-состояния (перенос style-hover / style-active из макета) */
+/* Выпадающие шторки. Высота содержимого заранее неизвестна (от трёх чипов
+   фильтра до сетки из 14 тем), поэтому раскрытие идёт анимацией грид-трека
+   0fr→1fr — height тут не годится. Именно анимацией, а не переходом: узел
+   вставляется уже открытым, переходу не с чего было бы стартовать. Верхний
+   отступ и собственные поля карточки схлопываются в такт с треком, иначе от
+   свёрнутой шторки осталась бы полоска в два десятка пикселей. Свёрнутая
+   шторка получает visibility:hidden в последнем кадре — содержимое выпадает
+   из табуляции и озвучки. Safari 16+; на более старых открытие мгновенное. */
+.sh-open,.sh-shut{display:grid;overflow:hidden}
+.sh-open{grid-template-rows:1fr;margin-top:12px;animation:sh-open .28s cubic-bezier(.2,.75,.3,1) both}
+.sh-shut{grid-template-rows:0fr;margin-top:0;animation:sh-shut .26s cubic-bezier(.4,0,.5,1) both}
+.sh-open > *,.sh-shut > *{min-height:0}
+.sh-shut > *{overflow:hidden}
+.sh-open > *{animation:sh-pad-in .28s cubic-bezier(.2,.75,.3,1) both}
+.sh-shut > *{animation:sh-pad-out .26s cubic-bezier(.4,0,.5,1) both}
+@keyframes sh-pad-in{from{padding-top:0;padding-bottom:0;border-top-width:0;border-bottom-width:0}}
+@keyframes sh-pad-out{to{padding-top:0;padding-bottom:0;border-top-width:0;border-bottom-width:0}}
+.sh-shut{visibility:hidden;animation-name:sh-shut,sh-hide}
+@keyframes sh-open{from{grid-template-rows:0fr;margin-top:0;opacity:0}40%{opacity:1}to{grid-template-rows:1fr;margin-top:12px;opacity:1}}
+@keyframes sh-shut{from{grid-template-rows:1fr;margin-top:12px;opacity:1}60%{opacity:0}to{grid-template-rows:0fr;margin-top:0;opacity:0}}
+@keyframes sh-hide{from{visibility:visible}99%{visibility:visible}to{visibility:hidden}}
+/* Всплывающая плашка приходит сверху и туда же уходит, а по нижней кромке
+   утекает полоска оставшегося времени — видно, сколько ещё висит. */
+.tst{animation:tst-in .25s cubic-bezier(.2,.75,.3,1) both}
+.tst.sh-shut{visibility:visible;overflow:visible;display:block;animation:tst-out .26s cubic-bezier(.4,0,.5,1) both}
+.tst::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%;border-radius:0 0 14px 14px;background:var(--goldT);transform-origin:0 50%;animation:tst-bar 2.8s linear both}
+@keyframes tst-in{from{opacity:0;transform:translate3d(0,-14px,0)}60%{opacity:1}to{opacity:1;transform:none}}
+@keyframes tst-out{from{opacity:1;transform:none}to{opacity:0;transform:translate3d(0,-14px,0)}}
+@keyframes tst-bar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media (prefers-reduced-motion:reduce){
+/* открытие и закрытие мгновенные; полоска времени остаётся — это информация */
+.sh-open,.sh-shut,.tst,.tst.sh-shut{animation:none!important}
+.sh-open > *,.sh-shut > *{animation:none!important}
+.sh-shut > *{padding-top:0!important;padding-bottom:0!important;border-top-width:0!important;border-bottom-width:0!important}
+.sh-open{grid-template-rows:1fr;margin-top:12px}
+.sh-shut{grid-template-rows:0fr;margin-top:0;visibility:hidden;opacity:0}
+.tst.sh-shut{opacity:0}
+}
 /* Отклик на касание. Правила наведения ниже завёрнуты в @media (hover:hover)
    и на телефоне не срабатывают никогда — это отдельное семейство для пальца.
    Нажатие проявляется за .07 с, отпускание за .14 с: ответ должен успеть
@@ -460,11 +498,10 @@ function themeGrid(pick) {
 }
 // Выпадающая карточка выбора темы под шапкой главной.
 function renderThemePanel() {
-  if (!S.themeOpen) return '';
-  return `<div data-key="theme-panel" style="margin-top:12px;border-radius:18px;background:var(--card);border:1px solid var(--line);padding:4px 12px 12px;animation:fadeUp .3s ease both">
+  return sheetWrap('theme-panel', S.themeOpen, `<div style="border-radius:18px;background:var(--card);border:1px solid var(--line);padding:4px 12px 12px">
     <div style="font:700 11px Manrope,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:10px 4px 0">Тема оформления</div>
     ${themeGrid(k => set({ theme: k, themeOpen: false }))}
-  </div>`;
+  </div>`);
 }
 
 // ---------- знак кофейни ----------
@@ -703,8 +740,7 @@ function playerCard() {
 }
 // Карточка под шапкой главной — как список тем, только про музыку.
 function renderPlayerPanel() {
-  if (!S.plOpen || !playerOn()) return '';
-  return `<div data-key="player-panel" style="margin-top:12px;border-radius:18px;background:var(--card);border:1px solid var(--line);padding:11px 12px 13px;animation:fadeUp .3s ease both">${playerHead()}${playerCard()}</div>`;
+  return sheetWrap('player-panel', S.plOpen && playerOn(), `<div style="border-radius:18px;background:var(--card);border:1px solid var(--line);padding:11px 12px 13px">${playerHead()}${playerCard()}</div>`);
 }
 
 // Персонал: вход в панель — по личному PIN (демо-коды в README).
@@ -990,9 +1026,15 @@ function today() { const d = new Date(); return ('0' + d.getDate()).slice(-2) + 
 
 let toastTimer;
 function showToast(t) {
-  setS({ toast: t });
+  // Номер сообщения входит в ключ узла: две подряд одинаковые подсказки
+  // должны заново проиграть вход и заново пустить полоску времени.
+  setS({ toast: t, toastOut: 0, toastN: (S.toastN || 0) + 1 });
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => setS({ toast: '' }), 2800);
+  // Плашка не пропадает рывком: сначала 260 мс ухода, потом снимаем узел.
+  toastTimer = setTimeout(() => {
+    setS({ toastOut: 1 });
+    toastTimer = setTimeout(() => setS({ toast: '', toastOut: 0 }), 260);
+  }, 2800);
 }
 function allProducts() { return [...M, ...S.custom].filter(m => m); }
 const SVG_CAMERA = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>';
@@ -2678,10 +2720,37 @@ function renderAlert() {
   </div>`;
 }
 
+// Шторка живёт в обёртке-гармошке: раскрывается появлением узла, сворачивается
+// подменой класса. Движок удаляет узел в том же кадре, поэтому закрытую шторку
+// держим ещё 260 мс — ровно столько идёт сворачивание.
+let shutTimer = 0;
+function sheetWrap(key, open, body) {
+  if (open && S._shut === key) { S._shut = null; clearTimeout(shutTimer); }
+  const closing = !open && S._shut === key;
+  if (!open && !closing) return '';
+  return `<div data-key="${key}-wrap" class="${closing ? 'sh-shut' : 'sh-open'}">${body}</div>`;
+}
+// Какая шторка только что закрылась, видно из сравнения с прошлым рендером —
+// так не приходится трогать десяток мест, где шторки гасят друг друга.
+const SHEET_FLAGS = [['nav-sheet', 'navOpen'], ['theme-panel', 'themeOpen'], ['player-panel', 'plOpen'], ['notif', 'notifOpen'], ['filter-panel', 'filterOpen']];
+function sheetWatch() {
+  const prev = S._shPrev || {};
+  for (const [key, flag] of SHEET_FLAGS) {
+    if (prev[flag] && !S[flag] && S._shut !== key) {
+      S._shut = key;
+      clearTimeout(shutTimer);
+      shutTimer = setTimeout(() => { S._shut = null; render(); }, 260);
+    }
+  }
+  S._shPrev = {};
+  for (const [, flag] of SHEET_FLAGS) S._shPrev[flag] = !!S[flag];
+}
+
 function renderApp() {
   // Товар могли удалить в другой вкладке панели — такая строка корзины не должна
   // ронять рендер; она просто исчезает.
   if (S.product && !item(S.product)) S.product = null;
+  sheetWatch();
   const entries = Object.entries(S.cart).filter(([, x]) => item(x.id));
   const cartCount = entries.reduce((a, [, x]) => a + x.qty, 0);
   const sum = entries.reduce((a, [, x]) => a + unitPrice(x.id, x.size, x.adds) * x.qty, 0);
@@ -2758,8 +2827,8 @@ function renderApp() {
       </div>
     </div>`;
   } else if (S.tab === 'home') {
-    const notifPanel = S.notifOpen ? `
-      <div data-key="notif" style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:12px;animation:fadeUp .3s ease both;box-shadow:0 20px 44px -22px rgba(0,0,0,.5)">
+    const notifPanel = sheetWrap('notif', S.notifOpen, `
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:0 20px 44px -22px rgba(0,0,0,.5)">
         <div style="font:600 16px 'Cormorant Garamond',serif;margin-bottom:10px">Уведомления</div>
         ${S.notifs.length === 0 ? '<div style="font:600 12.5px Manrope,system-ui,sans-serif;color:var(--sub)">Пока пусто — здесь появятся статусы ваших заказов</div>' : ''}
         <div style="display:grid;gap:8px;max-height:240px;overflow-y:auto">
@@ -2769,7 +2838,7 @@ function renderApp() {
               <div style="flex:1"><div style="font:600 12.5px/1.45 Manrope,system-ui,sans-serif">${esc(n.text)}</div><div style="font:600 10.5px Manrope,system-ui,sans-serif;color:var(--sub);margin-top:2px">${esc(n.time)}</div></div>
             </div>`).join('')}
         </div>
-      </div>` : '';
+      </div>`);
     const h = new Date().getHours();
     const greet = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер';
     // Круглые значки разделов: выбранный залит акцентом, как на макете.
@@ -2849,13 +2918,13 @@ function renderApp() {
         </div>
         <div data-c="${act(() => setS({ filterOpen: !S.filterOpen }))}" class="h-gold" role="button" aria-label="Фильтр и сортировка" aria-expanded="${!!S.filterOpen}" style="width:48px;height:48px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;background:${S.filterOpen ? 'var(--acc)' : 'var(--card)'};border:1px solid ${S.filterOpen ? 'var(--acc)' : 'var(--line)'};color:${S.filterOpen ? 'var(--accInk)' : 'var(--goldT)'}">${SVG.sliders}</div>
       </div>
-      ${S.filterOpen ? `<div data-key="filter-panel" style="margin-top:10px;padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line);animation:fadeUp .25s ease both">
+      ${sheetWrap('filter-panel', S.filterOpen, `<div style="padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line)">
         <div style="font:700 10.5px Manrope,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:2px 2px 9px">Как показывать меню</div>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
           ${[['', 'Как в меню'], ['cheap', 'Сначала недорогие'], ['rich', 'Сначала дорогие'], ['fav', 'Только избранное']].map(([k, label]) => `
             <div data-c="${act(() => setS({ sort: k }))}" class="h-gold" role="button" aria-pressed="${S.sort === k}" style="padding:9px 14px;border-radius:99px;cursor:pointer;font:700 12px Manrope,system-ui,sans-serif;border:1px solid ${S.sort === k ? 'var(--goldT)' : 'var(--line)'};background:${S.sort === k ? 'var(--hov)' : 'transparent'};color:${S.sort === k ? 'var(--goldT)' : 'var(--sub2)'}">${label}</div>`).join('')}
         </div>
-      </div>` : ''}`;
+      </div>`)}`;
     const results = `
       <div style="margin-top:16px">
         <div style="font:600 19px 'Cormorant Garamond',serif;margin-bottom:12px">${found.length ? 'Нашлось: ' + found.length : 'Ничего не нашлось'}</div>
@@ -2863,8 +2932,8 @@ function renderApp() {
           : `<div style="font:600 12.5px/1.6 Manrope,system-ui,sans-serif;color:var(--sub)">Попробуйте короче: «раф», «чай», «шаурма». Или загляните в меню целиком.</div>`}
       </div>`;
     // Шторка под гамбургером: сюда переехали тема, музыка, документы и вход персонала.
-    const navSheet = S.navOpen ? `
-      <div data-key="nav-sheet" style="margin-top:12px;border-radius:18px;background:var(--card);border:1px solid var(--line);padding:6px;animation:fadeUp .3s ease both">
+    const navSheet = sheetWrap('nav-sheet', S.navOpen, `
+      <div style="border-radius:18px;background:var(--card);border:1px solid var(--line);padding:6px">
         ${[['Тема оформления', act(() => setS({ navOpen: false, themeOpen: true }))],
            ...(playerOn() ? [['Музыка кофейни', act(() => setS({ navOpen: false, plOpen: true }))]] : []),
            ['О кофейне и документы', act(() => setS({ navOpen: false, doc: 'about' }))],
@@ -2873,7 +2942,7 @@ function renderApp() {
           <div data-c="${tap}" class="h-gold" role="button" style="display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:13px;cursor:pointer;font:600 13.5px Manrope,system-ui,sans-serif">
             <div style="flex:1">${label}</div>${SVG.chev}
           </div>`).join('')}
-      </div>` : '';
+      </div>`);
     const iconBtn = (inner, tap, label, badge) => `
       <div data-c="${tap}" class="h-gold" role="button" aria-label="${label}" style="position:relative;width:42px;height:42px;box-sizing:border-box;border-radius:50%;flex:none;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)">
         ${inner}
@@ -3514,7 +3583,7 @@ function renderInner() {
   }
   // Центрирование через left/right + margin:auto, а не transform: анимация появления
   // перезаписывала transform, и на телефоне плашка уезжала за правый край.
-  const toast = S.toast ? `<div data-key="toast" role="status" aria-live="polite" style="position:fixed;top:calc(18px + env(safe-area-inset-top));left:0;right:0;margin:0 auto;z-index:99;box-sizing:border-box;width:min(390px,calc(100% - 40px));background:var(--navbg);border:1px solid rgba(var(--accRGB),.4);color:var(--ink);padding:12px 18px;border-radius:14px;font:700 12.5px Manrope,system-ui,sans-serif;box-shadow:0 18px 40px -14px var(--shadow);animation:fadeUp .3s ease both;text-align:center">${esc(S.toast)}</div>` : '';
+  const toast = S.toast ? `<div data-key="toast-${S.toastN || 0}" class="tst${S.toastOut ? ' sh-shut' : ''}" role="status" aria-live="polite" style="position:fixed;top:calc(18px + env(safe-area-inset-top));left:0;right:0;margin:0 auto;z-index:99;box-sizing:border-box;width:min(390px,calc(100% - 40px));background:var(--navbg);border:1px solid rgba(var(--accRGB),.4);color:var(--ink);padding:12px 18px;border-radius:14px;overflow:hidden;font:700 12.5px Manrope,system-ui,sans-serif;box-shadow:0 18px 40px -14px var(--shadow);text-align:center">${esc(S.toast)}</div>` : '';
 
   // сохранить фокус и каретку через перерисовку
   const ae = document.activeElement;
