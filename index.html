@@ -57,6 +57,23 @@ input::placeholder{color:var(--dim);opacity:1}
    неровных мига, в конце свечение выходит на рабочее. Играется один раз на
    заставке. Конец разгона совпадает с LED_GLOW.dark(1) — после анимации знак
    выглядит ровно так же, как раньше. */
+/* Подтверждение заказа: карточка поднимается, её блоки приходят четырьмя
+   ступенями, и в шапке ставится печать — галочка отчерчивается, кружок
+   подаётся вперёд, от него расходится кольцо (то же trk-ring, что и на точке
+   дорожки статуса). Всё одноразовое и стартует появлением узла; задержки
+   постоянные, поэтому длинный чек не растягивает вход. Вход укладывается
+   в 0.6 с, печать заканчивается на 0.96 с. */
+.oc{animation:oc-card .45s cubic-bezier(.2,.7,.2,1) both}
+.oc-b{animation:oc-block .28s cubic-bezier(.2,.7,.2,1) both}
+.oc-b1{animation-delay:.08s}.oc-b2{animation-delay:.16s}.oc-b3{animation-delay:.24s}.oc-b4{animation-delay:.32s}
+@keyframes oc-card{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes oc-block{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.oc-seal{position:relative;isolation:isolate;animation:oc-push .36s cubic-bezier(.3,.7,.3,1) .32s both}
+.oc-seal::before{content:"";position:absolute;inset:-6px;z-index:-1;border-radius:50%;border:2px solid var(--acc);opacity:0;animation:trk-ring .56s ease-out .4s both}
+.oc-chk path{stroke-dasharray:26;animation:oc-draw .3s cubic-bezier(.3,.6,.3,1) .22s both}
+@keyframes oc-push{0%{transform:scale(1)}45%{transform:scale(1.1)}100%{transform:scale(1)}}
+@keyframes oc-draw{from{stroke-dashoffset:28}to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.oc,.oc *,.oc *::before{animation:none!important}}
 /* Индикатор статуса заказа: чашка и дорожка живут по классу состояния на
    .knv-ord (st-new | st-work | st-ready | st-done | st-cancel). Шаги дорожки
    помечает шаблон: .on — пройден, .hit — только что достигнутый; так отменённый
@@ -2951,22 +2968,22 @@ function renderApp() {
 
     const lastO = S.lastOrder ? S.orders.find(o => o.num === S.lastOrder) : null;
     const justOrdered = entries.length === 0 && lastO ? `
-      <div style="background:var(--card);border:1px solid rgba(var(--accRGB),.5);border-radius:18px;padding:20px 18px;animation:pop .45s ease both">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:44px;height:44px;border-radius:50%;background:${GG};flex:none;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="stroke:var(--accInk)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg></div>
+      <div style="background:var(--card);border:1px solid rgba(var(--accRGB),.5);border-radius:18px;padding:20px 18px" class="oc">
+        <div class="oc-b oc-b1" style="display:flex;align-items:center;gap:12px">
+          <div class="oc-seal" style="width:44px;height:44px;border-radius:50%;background:${GG};flex:none;display:flex;align-items:center;justify-content:center"><svg class="oc-chk" width="22" height="22" viewBox="0 0 24 24" fill="none" style="stroke:var(--accInk)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg></div>
           <div><div style="font:600 20px 'Cormorant Garamond',serif">Заказ №${lastO.num} принят</div><div style="font:600 12px Manrope,system-ui,sans-serif;color:var(--sub)">${lastO.time} · ${lastO.type === 1 ? 'с собой' : 'в зале'}</div></div>
         </div>
-        <div style="display:grid;gap:6px;margin-top:14px;border-top:1px solid var(--line2);padding-top:12px">
+        <div class="oc-b oc-b2" style="display:grid;gap:6px;margin-top:14px;border-top:1px solid var(--line2);padding-top:12px">
           ${lastO.lines.map(([n, v, p]) => `<div style="display:flex;gap:10px;font:600 12.5px Manrope,system-ui,sans-serif"><div style="flex:1;min-width:0">${esc(n)} <span style="color:var(--sub)">${esc(v || '')}</span></div><div style="white-space:nowrap">${p} ₽</div></div>`).join('')}
           <div style="display:flex;font:800 14px Manrope,system-ui,sans-serif;margin-top:4px"><div>Итого со скидкой</div><div style="flex:1"></div><div>${lastO.total} ₽</div></div>
         </div>
-        <div style="display:grid;gap:6px;margin-top:12px;font:600 12px/1.5 Manrope,system-ui,sans-serif;color:var(--sub2)">
+        <div class="oc-b oc-b3" style="display:grid;gap:6px;margin-top:12px;font:600 12px/1.5 Manrope,system-ui,sans-serif;color:var(--sub2)">
           <div style="display:flex;align-items:flex-start;gap:7px"><span style="flex:none;margin-top:1px;color:var(--goldT)">${SVG.clock}</span><span>${lastO.dueAt ? 'Заберите к ' + hhmm(lastO.dueAt) : 'Как можно скорее — обычно около ' + medianPrepMin() + ' мин'}</span></div>
           <div style="display:flex;align-items:flex-start;gap:7px"><span style="flex:none;margin-top:1px;color:var(--goldT)">${SVG.card}</span><span>${lastO.pay === 2 ? 'Оплата при получении — наличными или картой на кассе' : lastO.pay === 1 ? 'Онлайн-оплата' : 'Банковская карта'}${lastO.receiptTo ? ' · чек: ' + esc(lastO.receiptTo) : ''}</span></div>
           <div style="display:flex;align-items:flex-start;gap:7px"><span style="flex:none;margin-top:1px;color:var(--goldT)">${SVG.place}</span><span>${esc(S.cfg.legal.address || 'у стойки')}${S.cfg.legal.phone ? ' · ' + esc(S.cfg.legal.phone) : ''}</div>
           <div style="color:var(--sub)">Отказаться без потерь можно до начала приготовления — скажите бариста. Мы позовём вас, когда заказ будет готов.</div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:14px">
+        <div class="oc-b oc-b4" style="display:flex;gap:8px;margin-top:14px">
           <div data-c="${act(() => setS({ tab: 'menu' }))}" style="flex:1;padding:12px;text-align:center;border-radius:12px;background:${GG};color:var(--accInk);font:800 13px Manrope,system-ui,sans-serif;cursor:pointer">В меню</div>
           <div data-c="${act(() => setS({ doc: 'terms' }))}" style="padding:12px 14px;border-radius:12px;border:1px solid var(--line);color:var(--sub2);font:700 12.5px Manrope,system-ui,sans-serif;cursor:pointer">Условия</div>
         </div>
