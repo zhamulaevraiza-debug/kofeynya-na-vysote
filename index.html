@@ -57,6 +57,55 @@ input::placeholder{color:var(--dim);opacity:1}
    неровных мига, в конце свечение выходит на рабочее. Играется один раз на
    заставке. Конец разгона совпадает с LED_GLOW.dark(1) — после анимации знак
    выглядит ровно так же, как раньше. */
+/* Индикатор статуса заказа: чашка и дорожка живут по классу состояния на
+   .knv-ord (st-new | st-work | st-ready | st-done | st-cancel). Шаги дорожки
+   помечает шаблон: .on — пройден, .hit — только что достигнутый; так отменённый
+   заказ сохраняет прогресс, на котором остановился. Бесконечно крутится только
+   «Готовится», и там только transform с opacity — карточка висит на экране,
+   пока гость ждёт свой кофе. */
+.knv-ord{display:flex;flex-direction:column;align-items:center;gap:10px;transition:color .6s}
+.knv-ord.st-done,.knv-ord.st-cancel{color:var(--sub)}
+.oi{display:block;overflow:visible;transform-origin:50% 55%}
+.oi-liq,.oi-wv,.oi-steam path{transform-box:fill-box;transform-origin:50% 50%}
+.oi-liq{transform:translateY(20px);opacity:0;transition:transform .7s cubic-bezier(.3,.6,.3,1),opacity .5s}
+.oi-wv{transition:transform .6s ease-out}
+.st-work .oi-liq{transform:translateY(8px);opacity:1;animation:oi-pour 4s infinite}
+.st-work .oi-wv1{animation:oi-sway 2.4s ease-in-out -.8s infinite alternate}
+.st-work .oi-wv2{animation:oi-sway 3.1s ease-in-out -2s infinite alternate-reverse}
+.st-ready .oi-liq,.st-done .oi-liq{transform:none;opacity:1}
+.oi-steam path{opacity:0;transform:translateY(3px);transition:opacity .5s,transform .5s}
+.st-work .oi-steam path{opacity:.75;transform:none;animation:oi-steam 3s ease-in-out infinite}
+.st-work .oi-steam path:nth-child(1){animation-delay:-1s}
+.st-work .oi-steam path:nth-child(2){animation-delay:-2.2s}
+.st-work .oi-steam path:nth-child(3){animation-delay:-.4s}
+.st-ready .oi-steam path{opacity:.85;transform:none}
+.oi-chk{stroke:var(--ok);stroke-dasharray:20;stroke-dashoffset:22;transition:stroke-dashoffset .45s cubic-bezier(.3,.7,.3,1),opacity .4s}
+.st-ready .oi-chk{stroke-dashoffset:0;transition-delay:.35s}
+.st-done .oi-chk{stroke-dashoffset:0;opacity:.6}
+.st-ready .oi{animation:oi-pop .55s cubic-bezier(.2,.8,.3,1) 1,oi-flash .8s ease-out 1}
+@keyframes oi-pour{0%{transform:translateY(20px);opacity:1;animation-timing-function:cubic-bezier(.35,.1,.5,1)}78%{transform:translateY(1px);opacity:1}88%{transform:translateY(0);opacity:0}90%{transform:translateY(20px);opacity:0}100%{transform:translateY(20px);opacity:1}}
+@keyframes oi-sway{from{transform:translateX(-7px)}to{transform:translateX(0)}}
+@keyframes oi-steam{0%{opacity:0;transform:translateY(3px)}30%{opacity:.85}70%{opacity:.5}100%{opacity:0;transform:translateY(-5px)}}
+@keyframes oi-pop{0%{transform:scale(1)}35%{transform:scale(1.07)}100%{transform:scale(1)}}
+@keyframes oi-flash{0%{filter:drop-shadow(0 0 0 transparent)}30%{filter:drop-shadow(0 0 5px currentColor)}100%{filter:drop-shadow(0 0 8px transparent)}}
+.trk{display:flex;width:100%}
+.trk-line{background:var(--line);overflow:hidden}
+.trk-line::after{content:"";position:absolute;inset:0;background:var(--goldT);transform:scaleX(0);transform-origin:0 50%;transition:transform .45s cubic-bezier(.3,0,.4,1)}
+.trk-dot{border-color:var(--line);background:transparent;transition:background-color .25s,border-color .25s}
+.trk-dot::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--goldT);opacity:0;transform:scale(.5)}
+.trk-label{color:var(--sub);transition:color .3s}
+.trk-step.on .trk-line::after{transform:scaleX(1)}
+.trk-step.on .trk-dot{background:var(--goldT);border-color:var(--goldT);transition-delay:.4s}
+.trk-step.on .trk-label{color:var(--ink);transition-delay:.4s}
+.trk-step.hit .trk-dot{animation:trk-hit .5s ease-out .4s 1}
+.trk-step.hit .trk-dot::after{animation:trk-ring .7s ease-out .4s 1}
+/* отменённый: путь пройден, но праздновать нечего — гасим до серого, без вспышек */
+.st-cancel .trk-step.on .trk-line::after,.st-cancel .trk-step.on .trk-dot{background:var(--dim);border-color:var(--dim)}
+.st-cancel .trk-step.on .trk-label{color:var(--sub)}
+.st-cancel .trk-step.hit .trk-dot,.st-cancel .trk-step.hit .trk-dot::after{animation:none}
+@keyframes trk-hit{0%{transform:scale(1)}40%{transform:scale(1.3)}100%{transform:scale(1)}}
+@keyframes trk-ring{0%{opacity:.9;transform:scale(.5)}100%{opacity:0;transform:scale(1.5)}}
+@media (prefers-reduced-motion:reduce){.knv-ord,.knv-ord *,.knv-ord *::before,.knv-ord *::after{animation:none!important;transition:none!important}}
 @keyframes signdraw{to{stroke-dashoffset:0}}
 @keyframes signblink{0%{opacity:1}18.67%{opacity:.3}20.87%{opacity:1}22%{opacity:.6}24.2%{opacity:1}88.67%{opacity:.15}90.87%{opacity:.85}92%{opacity:.45}94.2%,100%{opacity:1}}
 @keyframes signglow{
@@ -347,6 +396,26 @@ const LED_GLOW = {
   light: k => `drop-shadow(0 0 ${k * 1.1}px rgba(255,208,74,.9)) drop-shadow(0 0 ${k * 3.4}px rgba(255,190,50,.55)) drop-shadow(0 0 ${k * 7.5}px rgba(255,170,20,.28))`
 };
 // width — ширина знака в пикселях; свечение слабое и включается только на тёмном.
+// Чашка индикатора: кофе налит во вложенный svg — он работает окном-обрезкой,
+// поэтому уровень можно двигать, не трогая контур чашки.
+const ORD_CUP = `<svg class="oi" viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <svg class="oi-well" x="17" y="24" width="26" height="21.5" viewBox="0 0 26 21.5" overflow="hidden">
+    <g class="oi-liq" fill="currentColor" stroke="none">
+      <path class="oi-wv oi-wv1" fill-opacity=".3" d="M-20 4.5 Q-16.5 .5 -13 4.5 T-6 4.5 T1 4.5 T8 4.5 T15 4.5 T22 4.5 T29 4.5 T36 4.5 T43 4.5 T50 4.5 V40 H-20 Z"/>
+      <path class="oi-wv oi-wv2" fill-opacity=".22" d="M-20 5.5 Q-16.5 9.5 -13 5.5 T-6 5.5 T1 5.5 T8 5.5 T15 5.5 T22 5.5 T29 5.5 T36 5.5 T43 5.5 T50 5.5 V40 H-20 Z"/>
+    </g>
+  </svg>
+  <path d="M16 24 H44 L43 43.5 C42.8 45.5 41.5 47 39.5 47 H20.5 C18.5 47 17.2 45.5 17 43.5 Z"/>
+  <path d="M44.3 29 C51 28.5 53.5 34 50.5 37.8 C49 39.7 46.8 40.6 43.5 40.6"/>
+  <path d="M8 51.5 H56 C54 55.5 10 55.5 8 51.5 Z"/>
+  <g class="oi-steam">
+    <path d="M24 19 C20.5 16.5 27.5 13.5 24 11"/>
+    <path d="M32 19 C28.5 15.5 35.5 12 32 8.5"/>
+    <path d="M40 19 C36.5 16.5 43.5 13.5 40 11"/>
+  </g>
+  <path class="oi-chk" d="M46.5 14 L50.5 18 L57.5 10"/>
+</svg>`;
+
 // lit — знак зажигается как вывеска (заставка); иначе он показан сразу.
 // Класс обязателен в любом случае: без него штриховка из путей оставит линию
 // спрятанной. Свечение остаётся и в стиле — на случай «уменьшить движение»,
@@ -2776,17 +2845,18 @@ function renderApp() {
               <div style="padding:4px 10px;border-radius:99px;font:700 11px Manrope,system-ui,sans-serif;${TAGS[o.st][1]}">${TAGS[o.st][0]}</div>
             </div>
             <div style="font:600 12.5px/1.5 Manrope,system-ui,sans-serif;color:var(--sub2);margin-bottom:14px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
-            <div style="display:flex;align-items:flex-start">
+            <div class="knv-ord st-${o.st}">
+              ${ORD_CUP}
+              <div class="trk">
               ${STEPS.map(([k, label], i) => {
-                const cancelled = o.st === 'cancel';
-                const dot = cancelled ? 'var(--dim)' : 'var(--goldT)';
                 const done = i <= idx(o), cur = i === idx(o);
-                return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative">
-                  ${i > 0 ? `<div style="position:absolute;top:7px;right:50%;width:100%;height:2px;${done ? 'background:' + dot : 'background:var(--line)'}"></div>` : ''}
-                  <div style="width:15px;height:15px;border-radius:50%;box-sizing:border-box;position:relative;z-index:1;transition:all .3s;${done ? 'background:' + dot + ';border:4px solid ' + dot : 'background:var(--card);border:2px solid var(--line)'}"></div>
-                  <div style="margin-top:6px;font:${cur ? '800' : '600'} 10px Manrope;${done && !cancelled ? 'color:var(--ink)' : 'color:var(--sub)'}">${label}</div>
+                return `<div class="trk-step${done ? ' on' : ''}${cur ? ' hit' : ''}" style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative">
+                  ${i > 0 ? `<div class="trk-line" style="position:absolute;top:7px;right:50%;width:100%;height:2px"></div>` : ''}
+                  <div class="trk-dot" style="width:15px;height:15px;border-radius:50%;box-sizing:border-box;position:relative;z-index:1;border-width:4px;border-style:solid"></div>
+                  <div class="trk-label" style="margin-top:6px;font:${cur ? '800' : '600'} 10px Manrope,system-ui,sans-serif">${label}</div>
                 </div>`;
               }).join('')}
+              </div>
             </div>
             ${o.hist && o.hist.length ? `
               <div style="margin-top:13px;border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:6px">
