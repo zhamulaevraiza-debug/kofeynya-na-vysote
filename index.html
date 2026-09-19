@@ -57,6 +57,27 @@ input::placeholder{color:var(--dim);opacity:1}
    неровных мига, в конце свечение выходит на рабочее. Играется один раз на
    заставке. Конец разгона совпадает с LED_GLOW.dark(1) — после анимации знак
    выглядит ровно так же, как раньше. */
+/* Переходы между экранами. Анимируется только вход: старый экран движок
+   удаляет в том же кадре, что вставляет новый, — на уход опираться нечем.
+   Поэтому непрозрачность набирается быстро, к 0.11 с, иначе сквозь пустоту
+   видна подложка. Направление ставит renderApp одним из четырёх классов. */
+.scr-fwd,.scr-back,.scr-up,.scr-down{animation:.24s cubic-bezier(.22,.7,.3,1) both}
+.scr-fwd{animation-name:scr-fwd}
+.scr-back{animation-name:scr-back}
+.scr-up{animation-name:scr-up}
+.scr-down{animation-name:scr-down}
+@keyframes scr-fwd{0%{opacity:0;transform:translate3d(20px,0,0)}45%{opacity:1}100%{transform:none}}
+@keyframes scr-back{0%{opacity:0;transform:translate3d(-20px,0,0)}45%{opacity:1}100%{transform:none}}
+@keyframes scr-up{0%{opacity:0;transform:translate3d(0,18px,0)}45%{opacity:1}100%{transform:none}}
+@keyframes scr-down{0%{opacity:0;transform:translate3d(0,-18px,0)}45%{opacity:1}100%{transform:none}}
+/* Полоса приходит следом за экраном — она пропадает, только когда открыт товар. */
+.bar-in{animation:bar-in .26s cubic-bezier(.22,.7,.3,1) .06s both}
+@keyframes bar-in{0%{opacity:0;transform:translate3d(0,74px,0)}50%{opacity:1}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){
+.scr-fwd,.scr-back,.scr-up,.scr-down{animation-name:scr-fade}
+.bar-in{animation-name:scr-fade;animation-delay:0s}
+@keyframes scr-fade{from{opacity:0}to{opacity:1}}
+}
 /* Полноэкранный вызов «заказ готов»: фон приходит, номер приземляется и за ним
    разово разливается свет, остальное поднимается ступенями — всё на месте к 0.56 с,
    номер читается с 0.25 с. У отменённого заказа та же лестница, но ровная: без
@@ -2628,6 +2649,14 @@ function renderApp() {
   const total = sum - disc;
   const name = userName();
 
+  // Направление перехода: сравниваем позицию вкладки с предыдущим рендером.
+  // «Избранное» живёт внутри профиля, поэтому у них общая позиция — переход
+  // между ними подчёркивать нечем, узел экрана всё равно один и тот же.
+  const TABI = { home: 0, menu: 1, order: 2, profile: 3 };
+  const tabI = TABI[S.tab] != null ? TABI[S.tab] : 0;
+  const scrIn = S.product ? 'scr-up' : S._wasProd ? 'scr-down' : tabI > S._tabI ? 'scr-fwd' : tabI < S._tabI ? 'scr-back' : '';
+  S._tabI = tabI; S._wasProd = !!S.product;
+
   let screen = '';
   if (S.product) {
     const it = item(S.product);
@@ -2659,7 +2688,7 @@ function renderApp() {
           </div>`).join('')}
       </div>` : '';
     screen = `
-    <div data-key="scr-prod" style="flex:1;min-height:0;overflow-y:auto;animation:fadeIn .25s ease both;padding-bottom:26px">
+    <div data-key="scr-prod" style="flex:1;min-height:0;overflow-y:auto;padding-bottom:26px" class="${scrIn}">
       <div style="position:relative;height:300px;overflow:hidden">
         <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 47%,rgba(var(--accRGB),.26),rgba(23,18,15,0) 52%)"></div>
         <div style="position:absolute;left:50%;top:50%;width:268px;height:268px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid var(--line)"></div>
@@ -2811,7 +2840,7 @@ function renderApp() {
         ${badge > 0 ? `<div style="position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;border-radius:99px;background:var(--acc);color:var(--accInk);font:800 9.5px/17px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph)">${badge}</div>` : ''}
       </div>`;
     screen = `
-    <div data-key="scr-home" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px 20px 120px;animation:fadeIn .3s ease both">
+    <div data-key="scr-home" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px 20px 120px" class="${scrIn}">
       <div style="display:grid;grid-template-columns:42px minmax(0,1fr) 42px;gap:6px;align-items:center;padding:8px 0 2px">
         <div data-c="${act(() => setS({ navOpen: !S.navOpen, notifOpen: false, themeOpen: false, plOpen: false }))}" class="h-gold" role="button" aria-label="Настройки приложения" aria-expanded="${!!S.navOpen}" style="width:42px;height:42px;box-sizing:border-box;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;background:${S.navOpen ? 'var(--acc)' : 'var(--card)'};border:1px solid ${S.navOpen ? 'var(--acc)' : 'var(--line)'};color:${S.navOpen ? 'var(--accInk)' : 'var(--ink)'}">${SVG.gear}</div>
         ${brandPlate()}
@@ -2860,7 +2889,7 @@ function renderApp() {
       </div>`;
     }).join('');
     screen = `
-    <div data-key="scr-menu" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">
+    <div data-key="scr-menu" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px" class="${scrIn}">
       <div style="display:flex;align-items:center;margin-bottom:14px">
         <div style="font:600 24px 'Cormorant Garamond',serif">Меню</div>
         <div style="flex:1"></div>
@@ -3125,7 +3154,7 @@ function renderApp() {
       <div style="font:600 11px/1.5 Manrope,system-ui,sans-serif;color:var(--dim);margin-top:10px;text-align:center">Оформляя заказ, вы принимаете <span data-c="${act(() => setS({ doc: 'terms' }))}" style="color:var(--goldT);cursor:pointer">условия заказа</span> и <span data-c="${act(() => setS({ doc: 'policy' }))}" style="color:var(--goldT);cursor:pointer">политику обработки данных</span></div>`}`;
     }
     screen = `
-    <div data-key="scr-order" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">
+    <div data-key="scr-order" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px" class="${scrIn}">
       <div style="display:flex;align-items:center;margin-bottom:16px">
         <div style="font:600 24px 'Cormorant Garamond',serif">Мой заказ</div>
         <div style="flex:1"></div>
@@ -3355,7 +3384,7 @@ function renderApp() {
         <div data-c="${act(() => setS({ screen: 'spin', sPin: '', sPinErr: 0, sPinWho: S.staffId || S.staff[0].id }))}" class="h-goldc" style="margin-top:16px;text-align:center;padding:8px;color:var(--dim);font:600 11px Manrope,system-ui,sans-serif;letter-spacing:.08em;cursor:pointer;text-transform:uppercase">Вход для персонала</div>
       </div>`;
     }
-    screen = `<div data-key="scr-profile" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px;animation:fadeIn .3s ease both">${sub}</div>`;
+    screen = `<div data-key="scr-profile" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px 120px" class="${scrIn}">${sub}</div>`;
   }
 
   // Нижнее меню по макету: четыре обычных пункта и приподнятая круглая кнопка
@@ -3390,7 +3419,7 @@ function renderApp() {
   // на сантиметр. 16 пикселей — отступ, при котором скруглённые углы экрана
   // уже не режут углы панели и она не упирается в домашний индикатор.
   const navbar = !S.product ? `
-  <div data-key="nav" style="position:absolute;left:12px;right:12px;bottom:16px;z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
+  <div data-key="nav" class="bar-in" style="position:absolute;left:12px;right:12px;bottom:16px;z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
 
   return screen + navbar;
 }
