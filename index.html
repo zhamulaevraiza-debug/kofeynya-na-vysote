@@ -44,10 +44,6 @@ input::placeholder{color:var(--dim);opacity:1}
 /* Значок на кнопке заказа меняется каждые три секунды: пять значков разделов
    лежат друг на друге, каждому свой сдвиг старта. Всё на CSS — таймер сбивал бы
    ход при перерисовке, а перерисовка каждые три секунды ради значка не нужна. */
-/* Неоновая вывеска: свет живой, поэтому трубка едва заметно дышит.
-   При «уменьшить движение» остаётся ровное свечение — конец цикла — он же. */
-@keyframes neonbreath{0%,100%{opacity:1}42%{opacity:.88}}
-.knv-neon{animation:neonbreath 4.6s ease-in-out infinite}
 @keyframes navcyc{0%{opacity:0;transform:scale(.55) rotate(-20deg)}3%{opacity:1;transform:none}18%{opacity:1;transform:none}21%{opacity:0;transform:scale(.55) rotate(20deg)}100%{opacity:0;transform:scale(.55) rotate(-20deg)}}
 .knv-cyc{position:relative;width:24px;height:24px;flex:none}
 .knv-cyc>svg{position:absolute;left:0;top:0;opacity:0;animation:navcyc 15s linear infinite}
@@ -122,7 +118,7 @@ input::placeholder{color:var(--dim);opacity:1}
 @keyframes oc-card{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes oc-block{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .oc-seal{position:relative;isolation:isolate;animation:oc-push .36s cubic-bezier(.3,.7,.3,1) .32s both}
-.oc-seal::before{content:"";position:absolute;inset:-6px;z-index:-1;border-radius:50%;border:2px solid var(--acc);opacity:0;animation:trk-ring .56s ease-out .4s both}
+.oc-seal::before{content:"";position:absolute;inset:-6px;z-index:-1;border-radius:50%;border:2px solid var(--goldT);opacity:0;animation:trk-ring .56s ease-out .4s both}
 .oc-chk path{stroke-dasharray:26;animation:oc-draw .3s cubic-bezier(.3,.6,.3,1) .22s both}
 @keyframes oc-push{0%{transform:scale(1)}45%{transform:scale(1.1)}100%{transform:scale(1)}}
 @keyframes oc-draw{from{stroke-dashoffset:28}to{stroke-dashoffset:0}}
@@ -152,12 +148,11 @@ input::placeholder{color:var(--dim);opacity:1}
 .oi-chk{stroke:var(--ok);stroke-dasharray:20;stroke-dashoffset:22;transition:stroke-dashoffset .45s cubic-bezier(.3,.7,.3,1),opacity .4s}
 .st-ready .oi-chk{stroke-dashoffset:0;transition-delay:.35s}
 .st-done .oi-chk{stroke-dashoffset:0;opacity:.6}
-.st-ready .oi{animation:oi-pop .55s cubic-bezier(.2,.8,.3,1) 1,oi-flash .8s ease-out 1}
+.st-ready .oi{animation:oi-pop .55s cubic-bezier(.2,.8,.3,1) 1}
 @keyframes oi-pour{0%{transform:translateY(20px);opacity:1;animation-timing-function:cubic-bezier(.35,.1,.5,1)}78%{transform:translateY(1px);opacity:1}88%{transform:translateY(0);opacity:0}90%{transform:translateY(20px);opacity:0}100%{transform:translateY(20px);opacity:1}}
 @keyframes oi-sway{from{transform:translateX(-7px)}to{transform:translateX(0)}}
 @keyframes oi-steam{0%{opacity:0;transform:translateY(3px)}30%{opacity:.85}70%{opacity:.5}100%{opacity:0;transform:translateY(-5px)}}
 @keyframes oi-pop{0%{transform:scale(1)}35%{transform:scale(1.07)}100%{transform:scale(1)}}
-@keyframes oi-flash{0%{filter:drop-shadow(0 0 0 transparent)}30%{filter:drop-shadow(0 0 5px currentColor)}100%{filter:drop-shadow(0 0 8px transparent)}}
 .trk{display:flex;width:100%}
 .trk-line{background:var(--line);overflow:hidden}
 .trk-line::after{content:"";position:absolute;inset:0;background:var(--goldT);transform:scaleX(0);transform-origin:0 50%;transition:transform .45s cubic-bezier(.3,0,.4,1)}
@@ -170,7 +165,7 @@ input::placeholder{color:var(--dim);opacity:1}
 .trk-step.hit .trk-dot{animation:trk-hit .5s ease-out .4s 1}
 .trk-step.hit .trk-dot::after{animation:trk-ring .7s ease-out .4s 1}
 /* отменённый: путь пройден, но праздновать нечего — гасим до серого, без вспышек */
-.st-cancel .trk-step.on .trk-line::after,.st-cancel .trk-step.on .trk-dot{background:var(--dim);border-color:var(--dim)}
+.st-cancel .trk{filter:grayscale(1) opacity(.55)}
 .st-cancel .trk-step.on .trk-label{color:var(--sub)}
 .st-cancel .trk-step.hit .trk-dot,.st-cancel .trk-step.hit .trk-dot::after{animation:none}
 @keyframes trk-hit{0%{transform:scale(1)}40%{transform:scale(1.3)}100%{transform:scale(1)}}
@@ -202,10 +197,14 @@ input::placeholder{color:var(--dim);opacity:1}
 .knv-vol::-moz-range-track{height:4px;border-radius:99px;background:var(--line)}
 .knv-vol::-moz-range-thumb{width:15px;height:15px;border:0;border-radius:50%;background:var(--goldT)}
 
-/* Стеклянные поверхности: панели задают фон через var(--card), поэтому размытие
-   подложки навешивается одним правилом, а не правкой каждого инлайнового стиля. */
-#app [style*="var(--card)"],#app [style*="var(--navbg)"]{-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
-#app [style*="var(--card)"] [role="radio"]{-webkit-backdrop-filter:none;backdrop-filter:none}
+/* Стеклянные поверхности помечаются классом. Раньше размытие вешалось по
+   подстроке инлайнового стиля и доставалось всему, где встречалось var(--card),
+   включая галочку 18×18 и каждую из 26 строк меню. Подложка страницы лежит вне
+   прокручиваемого контейнера, поэтому блюр строки нельзя закешировать: он
+   считался заново на каждый кадр прокрутки. Фон и так размыт на 28 пикселей —
+   второй слой под карточками ничего не добавлял, кроме работы. */
+.glass{-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+.glass .glass{-webkit-backdrop-filter:none;backdrop-filter:none}
 
 /* hover/active-состояния (перенос style-hover / style-active из макета) */
 /* Выпадающие шторки. Высота содержимого заранее неизвестна (от трёх чипов
@@ -253,7 +252,7 @@ input::placeholder{color:var(--dim);opacity:1}
    почти вся разметка на инлайновых стилях, и свой transition там уже написан.
    Глубина просадки лежит в --pr, поэтому одно правило накрывает и классы
    a90…a98, и все кликабельные строки с h-gold. */
-.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold{-webkit-tap-highlight-color:transparent;transition:transform .14s cubic-bezier(.2,.8,.3,1),background-color .14s ease,border-color .14s ease!important}
+.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold{-webkit-tap-highlight-color:transparent;transition:transform .14s cubic-bezier(.2,.8,.3,1),background-color .14s ease,border-color .14s ease,color .35s,fill .35s,stroke .35s!important}
 .a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold{--pr:.97}
 .a90{--pr:.90}.a91{--pr:.91}.a92{--pr:.92}.a93{--pr:.93}.a94{--pr:.94}.a95{--pr:.95}.a96{--pr:.96}.a98{--pr:.98}
 :is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active{transition-duration:.07s!important}
@@ -285,7 +284,7 @@ input::placeholder{color:var(--dim);opacity:1}
    карточки, рамки, акценты и значки щёлкали в том же кадре. Селектор нарочно
    слабее одного класса — дорожка заказа, чипы и всё остальное со своим
    переходом сохраняют собственные времена и задержки. */
-body *{transition:background-color .35s,border-color .35s,color .35s,fill .35s,stroke .35s}
+body *,body *::before,body *::after{transition:background-color .35s,border-color .35s,color .35s,fill .35s,stroke .35s}
 @media (hover:hover){
 .h-gold:hover{border-color:rgba(var(--accRGB),.5)!important}
 .h-goldb2:hover{border-color:rgba(var(--accRGB),.7)!important}
@@ -308,7 +307,7 @@ body *{transition:background-color .35s,border-color .35s,color .35s,fill .35s,s
 
 /* Доступность: видимый фокус с клавиатуры; уважение к «уменьшить движение» */
 #app [data-c]:focus-visible,#app input:focus-visible,#app a:focus-visible{outline:2px solid var(--goldT);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){#app *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media (prefers-reduced-motion:reduce){#app *{animation-delay:0s!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -491,7 +490,7 @@ function themeGrid(pick) {
 }
 // Выпадающая карточка выбора темы под шапкой главной.
 function renderThemePanel() {
-  return sheetWrap('theme-panel', S.themeOpen, `<div style="border-radius:18px;background:var(--card);border:1px solid var(--line);padding:4px 12px 12px">
+  return sheetWrap('theme-panel', S.themeOpen, `<div class="glass" style="border-radius:18px;background:var(--card);border:1px solid var(--line);padding:4px 12px 12px">
     <div style="font:700 11px Manrope,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:10px 4px 0">Тема оформления</div>
     ${themeGrid(k => set({ theme: k, themeOpen: false }))}
   </div>`);
@@ -733,7 +732,7 @@ function playerCard() {
 }
 // Карточка под шапкой главной — как список тем, только про музыку.
 function renderPlayerPanel() {
-  return sheetWrap('player-panel', S.plOpen && playerOn(), `<div style="border-radius:18px;background:var(--card);border:1px solid var(--line);padding:11px 12px 13px">${playerHead()}${playerCard()}</div>`);
+  return sheetWrap('player-panel', S.plOpen && playerOn(), `<div class="glass" style="border-radius:18px;background:var(--card);border:1px solid var(--line);padding:11px 12px 13px">${playerHead()}${playerCard()}</div>`);
 }
 
 // Персонал: вход в панель — по личному PIN (демо-коды в README).
@@ -2703,7 +2702,7 @@ function renderAlert() {
   if (S._buzzed !== key) { S._buzzed = key; try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {} }
   const tips = ready && S.cfg.tipsUrl ? `<a class="al-s al-4" href="${esc(S.cfg.tipsUrl)}" target="_blank" rel="noopener" style="display:block;margin-top:14px;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,255,255,.35);color:#fff;font:700 13px Manrope,system-ui,sans-serif;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">${SVG.cup}<span>Поблагодарить бариста${o.by ? ' ' + esc(o.by) : ''}</span></a>` : '';
   const why = ready ? 'Подойдите к стойке и покажите этот экран бариста.' : ((o.cancel && o.cancel.reason ? 'Причина: ' + esc(o.cancel.reason) + '. ' : '') + (o.pay !== 2 ? 'Оплата вернётся тем же способом.' : 'Приносим извинения.'));
-  return `<div data-key="alert-${key}" role="alert" aria-live="assertive" style="position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px;box-sizing:border-box;background:${ready ? '#1f7a4a' : '#7a2e22'};color:#fff" class="al ${ready ? 'al-ready' : 'al-cancel'}">
+  return `<div data-key="alert-${key}" role="alertdialog" aria-modal="true" style="position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px;box-sizing:border-box;background:${ready ? '#1f7a4a' : '#7a2e22'};color:#fff" class="al ${ready ? 'al-ready' : 'al-cancel'}">
     <div class="al-s al-1" style="font:700 13px Manrope,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;opacity:.85">${ready ? 'Ваш заказ готов' : 'Заказ отменён кофейней'}</div>
     <div class="al-num" style="font:800 112px/1 Manrope,system-ui,sans-serif;margin:14px 0 6px;letter-spacing:-.02em">${o.num}</div>
     <div class="al-s al-2" style="font:600 15px/1.5 Manrope,system-ui,sans-serif;max-width:300px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
@@ -2726,8 +2725,9 @@ function sheetWrap(key, open, body) {
 // Какая шторка только что закрылась, видно из сравнения с прошлым рендером —
 // так не приходится трогать десяток мест, где шторки гасят друг друга.
 const SHEET_FLAGS = [['nav-sheet', 'navOpen'], ['theme-panel', 'themeOpen'], ['player-panel', 'plOpen'], ['notif', 'notifOpen'], ['filter-panel', 'filterOpen']];
-function sheetWatch() {
+function sheetWatch(live) {
   const prev = S._shPrev || {};
+  if (!live) { S._shPrev = null; S._shut = null; clearTimeout(shutTimer); return; }
   for (const [key, flag] of SHEET_FLAGS) {
     if (prev[flag] && !S[flag] && S._shut !== key) {
       S._shut = key;
@@ -2743,9 +2743,10 @@ function renderApp() {
   // Товар могли удалить в другой вкладке панели — такая строка корзины не должна
   // ронять рендер; она просто исчезает.
   if (S.product && !item(S.product)) S.product = null;
-  sheetWatch();
   const entries = Object.entries(S.cart).filter(([, x]) => item(x.id));
   const cartCount = entries.reduce((a, [, x]) => a + x.qty, 0);
+  if (cartCount > (S._cbPrev || 0)) S._cbTick = (S._cbTick || 0) + 1;
+  S._cbPrev = cartCount;
   const sum = entries.reduce((a, [, x]) => a + unitPrice(x.id, x.size, x.adds) * x.qty, 0);
   const disc = Math.round(sum * (S.cfg.disc || 0) / 100);
   const total = sum - disc;
@@ -2757,6 +2758,13 @@ function renderApp() {
   const TABI = { home: 0, menu: 1, order: 2, profile: 3 };
   const tabI = TABI[S.tab] != null ? TABI[S.tab] : 0;
   const prodNow = !!S.product;
+  // При уходе с вкладки шторки просто гаснут: показывать их сворачивание уже
+  // некому, а без сброса памяти они доигрывали бы закрытие при возвращении.
+  if (S._tabI != null && tabI !== S._tabI) {
+    S.navOpen = S.themeOpen = S.plOpen = S.notifOpen = S.filterOpen = false;
+    S._shPrev = null; S._shut = null; clearTimeout(shutTimer);
+  }
+  sheetWatch(true);
   if (S._tabI == null) { S._tabI = tabI; S._wasProd = prodNow; S._scrIn = ''; }
   else if (tabI !== S._tabI || prodNow !== S._wasProd) {
     S._scrIn = prodNow ? 'scr-up' : S._wasProd ? 'scr-down' : tabI > S._tabI ? 'scr-fwd' : 'scr-back';
@@ -2826,7 +2834,7 @@ function renderApp() {
     </div>`;
   } else if (S.tab === 'home') {
     const notifPanel = sheetWrap('notif', S.notifOpen, `
-      <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:0 20px 44px -22px rgba(0,0,0,.5)">
+      <div class="glass" style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:0 20px 44px -22px rgba(0,0,0,.5)">
         <div style="font:600 16px 'Cormorant Garamond',serif;margin-bottom:10px">Уведомления</div>
         ${S.notifs.length === 0 ? '<div style="font:600 12.5px Manrope,system-ui,sans-serif;color:var(--sub)">Пока пусто — здесь появятся статусы ваших заказов</div>' : ''}
         <div style="display:grid;gap:8px;max-height:240px;overflow-y:auto">
@@ -2916,7 +2924,7 @@ function renderApp() {
         </div>
         <div data-c="${act(() => setS({ filterOpen: !S.filterOpen }))}" class="h-gold" role="button" aria-label="Фильтр и сортировка" aria-expanded="${!!S.filterOpen}" style="width:48px;height:48px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;background:${S.filterOpen ? 'var(--acc)' : 'var(--card)'};border:1px solid ${S.filterOpen ? 'var(--acc)' : 'var(--line)'};color:${S.filterOpen ? 'var(--accInk)' : 'var(--goldT)'}">${SVG.sliders}</div>
       </div>
-      ${sheetWrap('filter-panel', S.filterOpen, `<div style="padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line)">
+      ${sheetWrap('filter-panel', S.filterOpen, `<div class="glass" style="padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line)">
         <div style="font:700 10.5px Manrope,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin:2px 2px 9px">Как показывать меню</div>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
           ${[['', 'Как в меню'], ['cheap', 'Сначала недорогие'], ['rich', 'Сначала дорогие'], ['fav', 'Только избранное']].map(([k, label]) => `
@@ -2931,7 +2939,7 @@ function renderApp() {
       </div>`;
     // Шторка под гамбургером: сюда переехали тема, музыка, документы и вход персонала.
     const navSheet = sheetWrap('nav-sheet', S.navOpen, `
-      <div style="border-radius:18px;background:var(--card);border:1px solid var(--line);padding:6px">
+      <div class="glass" style="border-radius:18px;background:var(--card);border:1px solid var(--line);padding:6px">
         ${[['Тема оформления', act(() => setS({ navOpen: false, themeOpen: true }))],
            ...(playerOn() ? [['Музыка кофейни', act(() => setS({ navOpen: false, plOpen: true }))]] : []),
            ['О кофейне и документы', act(() => setS({ navOpen: false, doc: 'about' }))],
@@ -3032,7 +3040,7 @@ function renderApp() {
             <div style="font:600 12.5px/1.5 Manrope,system-ui,sans-serif;color:var(--sub2);margin-bottom:14px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
             <div class="knv-ord st-${o.st}">
               ${ORD_CUP}
-              <div class="trk">
+              <div class="trk" aria-hidden="true">
               ${STEPS.map(([k, label], i) => {
                 const done = i <= idx(o), cur = i === idx(o);
                 return `<div class="trk-step${done ? ' on' : ''}${cur ? ' hit' : ''}" style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative">
@@ -3507,10 +3515,10 @@ function renderApp() {
     if (key === 'order') {
       // Центральная кнопка выступает над полосой — на неё же садится счётчик корзины.
       return `
-      <div data-c="${tap}" class="a94" role="button" aria-label="Мой заказ" aria-current="${active}" style="position:relative;width:64px;height:62px;box-sizing:border-box;flex:none;display:flex;justify-content:center;cursor:pointer">
+      <div data-c="${tap}" class="a94" role="button" aria-label="Мой заказ${cartCount ? ', в корзине ' + cartCount : ''}" aria-current="${active}" style="position:relative;width:64px;height:62px;box-sizing:border-box;flex:none;display:flex;justify-content:center;cursor:pointer">
         <div style="position:absolute;top:-36px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 14px 28px -10px rgba(0,0,0,.55);border:4px solid var(--ph);box-sizing:border-box;transition:transform .15s">
           <div class="knv-cyc" aria-hidden="true">${CATS.map(([k], i) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="animation-delay:${i * 3}s">${SVG.cat[k] || SVG.cat.other}</svg>`).join('')}</div>
-          ${cartCount > 0 ? `<div data-key="cartn-${cartCount}" class="cart-badge" style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--acc);color:var(--accInk);font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph)">${cartCount}</div>` : ''}
+          ${cartCount > 0 ? `<div data-key="cartn-${S._cbTick || 0}" class="cart-badge" aria-hidden="true" style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--acc);color:var(--accInk);font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph)">${cartCount}</div>` : ''}
         </div>
         <div style="position:absolute;bottom:11px;font:600 10px Manrope,system-ui,sans-serif;color:${active ? 'var(--goldT)' : 'var(--dim2)'};white-space:nowrap">${label}</div>
       </div>`;
@@ -3526,7 +3534,7 @@ function renderApp() {
   // на сантиметр. 16 пикселей — отступ, при котором скруглённые углы экрана
   // уже не режут углы панели и она не упирается в домашний индикатор.
   const navbar = !S.product ? `
-  <div data-key="nav" class="bar-in" style="position:absolute;left:12px;right:12px;bottom:16px;z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
+  <div data-key="nav" class="bar-in glass" style="position:absolute;left:12px;right:12px;bottom:16px;z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
 
   return screen + navbar;
 }
@@ -3555,7 +3563,9 @@ function render() {
     if (rs) rs.onclick = () => { try { localStorage.removeItem('knv2'); } catch (e) {} location.reload(); };
   }
 }
+let lastAlertKey = null;
 function renderInner() {
+  if (S.screen !== 'app') sheetWatch(false);
   actions = [];
   const T = themeDef();
   const isDark = T.dark;
@@ -3581,7 +3591,11 @@ function renderInner() {
   }
   // Центрирование через left/right + margin:auto, а не transform: анимация появления
   // перезаписывала transform, и на телефоне плашка уезжала за правый край.
-  const toast = S.toast ? `<div data-key="toast-${S.toastN || 0}" class="tst${S.toastOut ? ' sh-shut' : ''}" role="status" aria-live="polite" style="position:fixed;top:calc(18px + env(safe-area-inset-top));left:0;right:0;margin:0 auto;z-index:99;box-sizing:border-box;width:min(390px,calc(100% - 40px));background:var(--navbg);border:1px solid rgba(var(--accRGB),.4);color:var(--ink);padding:12px 18px;border-radius:14px;overflow:hidden;font:700 12.5px Manrope,system-ui,sans-serif;box-shadow:0 18px 40px -14px var(--shadow);text-align:center">${esc(S.toast)}</div>` : '';
+  // Живая область живёт всегда и с неизменным ключом: скринридер объявляет
+  // только изменение текста внутри уже существующей области, а вставленный
+  // вместе с текстом aria-live молчит.
+  const live = `<div data-key="live" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">${esc(S.toast || '')}</div>`;
+  const toast = S.toast ? `<div data-key="toast-${S.toastN || 0}" class="tst glass${S.toastOut ? ' sh-shut' : ''}" aria-hidden="true" style="position:fixed;top:calc(18px + env(safe-area-inset-top));left:0;right:0;margin:0 auto;z-index:99;box-sizing:border-box;width:min(390px,calc(100% - 40px));background:var(--navbg);border:1px solid rgba(var(--accRGB),.4);color:var(--ink);padding:12px 18px;border-radius:14px;overflow:hidden;font:700 12.5px Manrope,system-ui,sans-serif;box-shadow:0 18px 40px -14px var(--shadow);text-align:center">${esc(S.toast)}</div>` : '';
 
   // сохранить фокус и каретку через перерисовку
   const ae = document.activeElement;
@@ -3594,12 +3608,20 @@ function renderInner() {
   const tpl = document.createElement('template');
   const offlineBar = S.online === false ? `<div data-key="offline-bar" role="status" style="position:fixed;left:0;right:0;top:0;z-index:97;padding:calc(8px + env(safe-area-inset-top)) 16px 8px;background:#5a4632;color:#fff;font:700 12px Manrope,system-ui,sans-serif;text-align:center">Нет связи — меню доступно, заказы сохраняются на этом устройстве</div>` : '';
   const storageWarn = S.storageFull ? `<div data-key="storage-warn" style="position:fixed;left:0;right:0;bottom:0;z-index:98;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#7a2e22;color:#fff;font:700 12.5px/1.4 Manrope,system-ui,sans-serif;text-align:center">Хранилище браузера переполнено — изменения не сохраняются. Освободите место или очистите старые данные в браузере.</div>` : '';
-  tpl.innerHTML = `<div data-key="root" style="${vars};position:fixed;inset:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;transition:background .35s,color .35s">${inner}${toast}${storageWarn}${offlineBar}</div>`;
+  tpl.innerHTML = `<div data-key="root" style="${vars};position:fixed;inset:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;transition:background .35s,color .35s">${inner}${live}${toast}${storageWarn}${offlineBar}</div>`;
   morphChildren(app, tpl.content);
   // Каждый элемент с обработчиком доступен с клавиатуры: Tab доводит до него,
   // Enter и пробел нажимают (см. общий обработчик клавиш). Роль — кнопка, если
   // разметка не задала свою.
   if (swDrag) swSet(swDrag.cur, false);
+  // Модальный вызов «заказ готов» уводит фокус на свою кнопку — один раз,
+  // при появлении, чтобы перерисовки его не воровали.
+  const alertNode = app.querySelector('[data-key^="alert-"]');
+  const alertKey = alertNode ? alertNode.getAttribute('data-key') : null;
+  if (alertKey !== lastAlertKey) {
+    lastAlertKey = alertKey;
+    if (alertNode) { const b = alertNode.querySelector('[data-c]:last-of-type'); if (b) try { b.setAttribute('tabindex', '0'); b.focus({ preventScroll: true }); } catch (e) {} }
+  }
   app.querySelectorAll('[data-c]:not([tabindex])').forEach(el => {
     el.setAttribute('tabindex', '0');
     if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
