@@ -208,6 +208,41 @@ input::placeholder{color:var(--dim);opacity:1}
 #app [style*="var(--card)"] [role="radio"]{-webkit-backdrop-filter:none;backdrop-filter:none}
 
 /* hover/active-состояния (перенос style-hover / style-active из макета) */
+/* Отклик на касание. Правила наведения ниже завёрнуты в @media (hover:hover)
+   и на телефоне не срабатывают никогда — это отдельное семейство для пальца.
+   Нажатие проявляется за .07 с, отпускание за .14 с: ответ должен успеть
+   раньше, чем произойдёт переход на другой экран. !important обязателен —
+   почти вся разметка на инлайновых стилях, и свой transition там уже написан.
+   Глубина просадки лежит в --pr, поэтому одно правило накрывает и классы
+   a90…a98, и все кликабельные строки с h-gold. */
+.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold{-webkit-tap-highlight-color:transparent;transition:transform .14s cubic-bezier(.2,.8,.3,1),background-color .14s ease,border-color .14s ease!important}
+.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold{--pr:.97}
+.a90{--pr:.90}.a91{--pr:.91}.a92{--pr:.92}.a93{--pr:.93}.a94{--pr:.94}.a95{--pr:.95}.a96{--pr:.96}.a98{--pr:.98}
+:is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active{transition-duration:.07s!important}
+/* палец на вложенной кнопке «+» не должен проседать всю строку */
+:is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active:not(:has(:is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active)){transform:scale(var(--pr))!important}
+/* подсветка подложкой — только строкам и карточкам: у кнопок своя заливка,
+   и общий --hov съедал бы её (золотой «+» белел, под приподнятой кнопкой
+   заказа проступал бы светлый прямоугольник) */
+.h-gold:active:not(:has(:is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active)){background-color:var(--hov)!important;border-color:rgba(var(--accRGB),.5)!important}
+/* залитые акцентом кнопки: подложка --hov на них не видна, гасим сам акцент */
+.a-fill:active{background-color:rgba(var(--accRGB),.78)!important;border-color:transparent!important}
+/* Вход списка при смене раздела меню. Ступени с потолком на восьмой строке,
+   иначе в длинном разделе последняя карточка доезжала бы почти секунду. */
+.lst > *{animation:lst-in .22s cubic-bezier(.2,.75,.3,1) both}
+.lst > :nth-child(2){animation-delay:.018s}
+.lst > :nth-child(3){animation-delay:.036s}
+.lst > :nth-child(4){animation-delay:.054s}
+.lst > :nth-child(5){animation-delay:.072s}
+.lst > :nth-child(6){animation-delay:.09s}
+.lst > :nth-child(7){animation-delay:.108s}
+.lst > :nth-child(n+8){animation-delay:.126s}
+@keyframes lst-in{from{opacity:0;transform:translate3d(0,9px,0)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+/* отклик остаётся — это обратная связь, а не украшение; уходит только масштаб */
+:is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active{transform:none!important}
+.lst > *{animation:none!important}
+}
 /* Тема переключалась наполовину: на корне перетекали фон и цвет текста, а
    карточки, рамки, акценты и значки щёлкали в том же кадре. Селектор нарочно
    слабее одного класса — дорожка заказа, чипы и всё остальное со своим
@@ -2883,14 +2918,14 @@ function renderApp() {
     const rows = list.map(m => {
       const off = !!S.hidden[m.id], info = itemInfo(m.id);
       return `
-      <div data-c="${off ? act(() => showToast('Сегодня этой позиции нет')) : act(() => setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }))}" class="h-gold" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer;transition:border-color .15s;animation:fadeUp .35s ease both;${off ? 'opacity:.55' : ''}">
+      <div data-c="${off ? act(() => showToast('Сегодня этой позиции нет')) : act(() => setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }))}" class="h-gold a97" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer;transition:border-color .15s;${off ? 'opacity:.55' : ''}">
         <div style="${circleImg(m.img, 58, '50%', ';border:2px solid var(--line)')}"></div>
         <div style="flex:1;min-width:0">
           <div style="font:700 14px Manrope,system-ui,sans-serif;display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(m.n)}${info.adult ? '<span style="font:800 10px Manrope,system-ui,sans-serif;padding:1px 6px;border-radius:99px;border:1px solid #e08a7a;color:var(--bad)">18+</span>' : ''}${off ? '<span style="font:700 10px Manrope,system-ui,sans-serif;padding:2px 7px;border-radius:99px;background:var(--hov);color:var(--sub)">Сегодня нет</span>' : ''}</div>
           <div style="font:600 11.5px Manrope,system-ui,sans-serif;color:var(--sub);margin:2px 0 5px">${esc(m.v || (m.pv ? m.pv.map(x => x[0]).join(' · ') : '') || '—')}${info.kcal !== '' ? ' · ' + esc(String(info.kcal)) + ' ккал' : ''}</div>
           <div style="font:800 14px Manrope,system-ui,sans-serif;color:var(--goldT)">${priceTag(m)}</div>
         </div>
-        ${off || noPrice(m) ? '' : `<div data-c="${act(() => { if (info.adult) { setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }); showToast('Напиток 18+ — подтвердите возраст в карточке'); return; } addCart(m.id, 0, {}, 1); showToast(m.n + ' — в заказе'); })}" class="a90" aria-label="В заказ" style="width:34px;height:34px;border-radius:11px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;font:800 20px/1 Manrope,system-ui,sans-serif">+</div>`}
+        ${off || noPrice(m) ? '' : `<div data-c="${act(() => { if (info.adult) { setS({ product: m.id, pQty: 1, pSize: 0, pAdds: {}, adultOk: false }); showToast('Напиток 18+ — подтвердите возраст в карточке'); return; } addCart(m.id, 0, {}, 1); showToast(m.n + ' — в заказе'); })}" class="a90 a-fill" aria-label="В заказ" style="width:34px;height:34px;border-radius:11px;background:${GG};color:var(--accInk);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;font:800 20px/1 Manrope,system-ui,sans-serif">+</div>`}
       </div>`;
     }).join('');
     screen = `
@@ -2906,7 +2941,7 @@ function renderApp() {
         <div data-c="${act(() => setS({ sort: '' }))}" class="h-gold" role="button" style="padding:4px 10px;border-radius:99px;border:1px solid var(--line);cursor:pointer;color:var(--goldT);font:700 11px Manrope,system-ui,sans-serif">сбросить</div>
       </div>` : ''}
       ${rows === '' ? '<div style="padding:40px 0;text-align:center;font:600 13px Manrope,system-ui,sans-serif;color:var(--sub)">Здесь пока пусто — снимите фильтр или выберите другой раздел</div>' : ''}
-      <div style="display:grid;gap:10px;margin-top:14px">${rows}</div>
+      <div data-key="menu-${S.cat}-${S.sort || ''}" class="lst" style="display:grid;gap:10px;margin-top:14px">${rows}</div>
     </div>`;
   } else if (S.tab === 'order') {
     const STEPS = [['new','Принят'],['work','Готовится'],['ready','Готов'],['done','Выдан']];
@@ -3678,6 +3713,10 @@ setInterval(() => {
   if (document.hidden) return;
   if (S.screen === 'spin' || (S.screen === 'staff' && S.sview === 'orders' && S.sTab !== 'done')) render();
 }, 30000);
+
+// iOS не отдаёт :active обычным div, пока на странице нет ни одного
+// обработчика касаний. Пустой пассивный слушатель включает отклик на нажатие.
+document.addEventListener('touchstart', () => {}, { passive: true });
 
 // PIN можно набирать и с физической клавиатуры
 // Плитки тем доступны с клавиатуры: Enter или пробел на элементе с tabindex — тот же клик.
