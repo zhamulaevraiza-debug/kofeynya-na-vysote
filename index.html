@@ -57,6 +57,38 @@ input::placeholder{color:var(--dim);opacity:1}
    неровных мига, в конце свечение выходит на рабочее. Играется один раз на
    заставке. Конец разгона совпадает с LED_GLOW.dark(1) — после анимации знак
    выглядит ровно так же, как раньше. */
+/* Полноэкранный вызов «заказ готов»: фон приходит, номер приземляется и за ним
+   разово разливается свет, остальное поднимается ступенями — всё на месте к 0.56 с,
+   номер читается с 0.25 с. У отменённого заказа та же лестница, но ровная: без
+   перелёта и без света, отмену не празднуют. Кольца здесь нет намеренно —
+   trk-ring уже занят в двух местах и значит «засчитано», третье применение
+   его обесценило бы. Ступени заданы классами, а не числом детей: кнопка
+   благодарности бывает не всегда. */
+.al{animation:al-bg .2s ease-out both}
+.al-num{position:relative}
+.al-num::before{content:"";position:absolute;z-index:-1;left:50%;top:50%;width:300px;height:180px;margin:-90px 0 0 -150px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.32),rgba(255,255,255,0));opacity:0;pointer-events:none}
+.al-ready .al-num{animation:al-land .34s cubic-bezier(.2,.7,.3,1) .06s both}
+.al-ready .al-num::before{animation:al-light .5s ease-out .14s both}
+.al-s,.al-cancel .al-num{animation:al-step .22s cubic-bezier(.2,.7,.3,1) both}
+.al-cancel .al-num{animation-delay:.06s}
+.al-1{animation-delay:.12s}.al-2{animation-delay:.18s}.al-3{animation-delay:.24s}.al-4{animation-delay:.3s}.al-5{animation-delay:.34s}
+@keyframes al-bg{from{opacity:0}}
+@keyframes al-land{0%{opacity:0;transform:scale(.88)}55%{opacity:1;transform:scale(1.045)}100%{transform:scale(1)}}
+@keyframes al-light{0%{opacity:0;transform:scale(.5)}35%{opacity:1}100%{opacity:0;transform:scale(1.3)}}
+/* в конечном кадре ступени прозрачность не задана — остаётся своя, из разметки */
+@keyframes al-step{from{opacity:0;transform:translateY(10px)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.al,.al *,.al *::before{animation:none!important}}
+/* Корзина приняла позицию. Счётчик пересоздаётся при каждом изменении (ключ
+   включает само значение), поэтому анимация просто стартует появлением узла и
+   играет один раз даже при повторе заказа, когда счётчик прыгает на пять.
+   Круг не трогаем: отклик рисует псевдоэлемент счётчика поверх круга, так что
+   transform круга остаётся свободен для нажатия. Центр масштабирования вынесен
+   в центр круга — счётчик из него выпрыгивает. */
+.cart-badge{isolation:isolate;transform-origin:calc(100% - 28px) 28px;animation:cb-pop .34s cubic-bezier(.2,.7,.3,1) both}
+.cart-badge::before{content:"";position:absolute;z-index:-1;top:4px;right:4px;width:44px;height:44px;border-radius:50%;background:var(--accInk);opacity:0;pointer-events:none;animation:cb-catch .34s ease-out both}
+@keyframes cb-pop{0%{opacity:0;transform:scale(.6)}45%{opacity:1;transform:scale(1.18)}75%{transform:scale(.95)}100%{transform:scale(1)}}
+@keyframes cb-catch{0%{opacity:0}40%{opacity:.18}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.cart-badge,.cart-badge::before{animation:none!important}}
 /* Подтверждение заказа: карточка поднимается, её блоки приходят четырьмя
    ступенями, и в шапке ставится печать — галочка отчерчивается, кружок
    подаётся вперёд, от него расходится кольцо (то же trk-ring, что и на точке
@@ -2573,15 +2605,15 @@ function renderAlert() {
   if (!o) return '';
   const key = o.num + ':' + o.st, ready = o.st === 'ready';
   if (S._buzzed !== key) { S._buzzed = key; try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {} }
-  const tips = ready && S.cfg.tipsUrl ? `<a href="${esc(S.cfg.tipsUrl)}" target="_blank" rel="noopener" style="display:block;margin-top:14px;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,255,255,.35);color:#fff;font:700 13px Manrope,system-ui,sans-serif;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">${SVG.cup}<span>Поблагодарить бариста${o.by ? ' ' + esc(o.by) : ''}</span></a>` : '';
+  const tips = ready && S.cfg.tipsUrl ? `<a class="al-s al-4" href="${esc(S.cfg.tipsUrl)}" target="_blank" rel="noopener" style="display:block;margin-top:14px;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,255,255,.35);color:#fff;font:700 13px Manrope,system-ui,sans-serif;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">${SVG.cup}<span>Поблагодарить бариста${o.by ? ' ' + esc(o.by) : ''}</span></a>` : '';
   const why = ready ? 'Подойдите к стойке и покажите этот экран бариста.' : ((o.cancel && o.cancel.reason ? 'Причина: ' + esc(o.cancel.reason) + '. ' : '') + (o.pay !== 2 ? 'Оплата вернётся тем же способом.' : 'Приносим извинения.'));
-  return `<div data-key="alert-sheet" role="alert" aria-live="assertive" style="position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px;box-sizing:border-box;background:${ready ? '#1f7a4a' : '#7a2e22'};color:#fff;animation:fadeIn .3s ease both">
-    <div style="font:700 13px Manrope,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;opacity:.85">${ready ? 'Ваш заказ готов' : 'Заказ отменён кофейней'}</div>
-    <div style="font:800 112px/1 Manrope,system-ui,sans-serif;margin:14px 0 6px;letter-spacing:-.02em">${o.num}</div>
-    <div style="font:600 15px/1.5 Manrope,system-ui,sans-serif;max-width:300px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
-    <div style="font:500 13px/1.5 Manrope,system-ui,sans-serif;opacity:.9;margin-top:14px;max-width:300px">${why}</div>
+  return `<div data-key="alert-sheet" role="alert" aria-live="assertive" style="position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px;box-sizing:border-box;background:${ready ? '#1f7a4a' : '#7a2e22'};color:#fff" class="al ${ready ? 'al-ready' : 'al-cancel'}">
+    <div class="al-s al-1" style="font:700 13px Manrope,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;opacity:.85">${ready ? 'Ваш заказ готов' : 'Заказ отменён кофейней'}</div>
+    <div class="al-num" style="font:800 112px/1 Manrope,system-ui,sans-serif;margin:14px 0 6px;letter-spacing:-.02em">${o.num}</div>
+    <div class="al-s al-2" style="font:600 15px/1.5 Manrope,system-ui,sans-serif;max-width:300px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
+    <div class="al-s al-3" style="font:500 13px/1.5 Manrope,system-ui,sans-serif;opacity:.9;margin-top:14px;max-width:300px">${why}</div>
     ${tips}
-    <div data-c="${act(() => set({ alertSeen: { ...(S.alertSeen || {}), [key]: 1 } }))}" class="a98" style="margin-top:26px;padding:15px 42px;border-radius:99px;background:#fff;color:${ready ? '#1f7a4a' : '#7a2e22'};font:800 15px Manrope,system-ui,sans-serif;cursor:pointer">Понятно</div>
+    <div data-c="${act(() => set({ alertSeen: { ...(S.alertSeen || {}), [key]: 1 } }))}" class="a98 al-s al-5" style="margin-top:26px;padding:15px 42px;border-radius:99px;background:#fff;color:${ready ? '#1f7a4a' : '#7a2e22'};font:800 15px Manrope,system-ui,sans-serif;cursor:pointer">Понятно</div>
   </div>`;
 }
 
@@ -3342,7 +3374,7 @@ function renderApp() {
       <div data-c="${tap}" class="a94" role="button" aria-label="Мой заказ" aria-current="${active}" style="position:relative;width:64px;height:62px;box-sizing:border-box;flex:none;display:flex;justify-content:center;cursor:pointer">
         <div style="position:absolute;top:-36px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 14px 28px -10px rgba(0,0,0,.55);border:4px solid var(--ph);box-sizing:border-box;transition:transform .15s">
           <div class="knv-cyc" aria-hidden="true">${CATS.map(([k], i) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="animation-delay:${i * 3}s">${SVG.cat[k] || SVG.cat.other}</svg>`).join('')}</div>
-          ${cartCount > 0 ? `<div style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--bad);color:#fff;font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph);animation:pop .3s ease both">${cartCount}</div>` : ''}
+          ${cartCount > 0 ? `<div data-key="cartn-${cartCount}" class="cart-badge" style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--bad);color:#fff;font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph)">${cartCount}</div>` : ''}
         </div>
         <div style="position:absolute;bottom:11px;font:600 10px Manrope,system-ui,sans-serif;color:${active ? 'var(--goldT)' : 'var(--dim2)'};white-space:nowrap">${label}</div>
       </div>`;
