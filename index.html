@@ -262,7 +262,7 @@ input::placeholder{color:var(--dim);opacity:1}
 /* подсветка подложкой — только строкам и карточкам: у кнопок своя заливка,
    и общий --hov съедал бы её (золотой «+» белел, под приподнятой кнопкой
    заказа проступал бы светлый прямоугольник) */
-.h-gold:active:not(:has(:is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active)){background-color:var(--hov)!important;border-color:rgba(var(--accRGB),.5)!important}
+.h-gold:active:not(:has(:is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active)){box-shadow:inset 0 0 0 999px var(--hov)!important;border-color:rgba(var(--accRGB),.5)!important}
 /* залитые акцентом кнопки: подложка --hov на них не видна, гасим сам акцент */
 .a-fill:active{background-color:rgba(var(--accRGB),.78)!important;border-color:transparent!important}
 /* Вход списка при смене раздела меню. Ступени с потолком на восьмой строке,
@@ -278,7 +278,7 @@ input::placeholder{color:var(--dim);opacity:1}
 @keyframes lst-in{from{opacity:0;transform:translate3d(0,9px,0)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){
 /* отклик остаётся — это обратная связь, а не украшение; уходит только масштаб */
-:is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active{transform:none!important}
+:is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active:not(:has(:is(.a90,.a91,.a92,.a93,.a94,.a95,.a96,.a97,.a98,.h-gold):active)){transform:none!important}
 .lst > *{animation:none!important}
 }
 /* Тема переключалась наполовину: на корне перетекали фон и цвет текста, а
@@ -309,13 +309,6 @@ body *{transition:background-color .35s,border-color .35s,color .35s,fill .35s,s
 /* Доступность: видимый фокус с клавиатуры; уважение к «уменьшить движение» */
 #app [data-c]:focus-visible,#app input:focus-visible,#app a:focus-visible{outline:2px solid var(--goldT);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){#app *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
-.a90:active{transform:scale(.9)!important}
-.a92:active{transform:scale(.92)!important}
-.a94:active{transform:scale(.94)!important}
-.a95:active{transform:scale(.95)!important}
-.a96:active{transform:scale(.96)!important}
-.a97:active{transform:scale(.97)!important}
-.a98:active{transform:scale(.98)!important}
 </style>
 </head>
 <body>
@@ -2710,7 +2703,7 @@ function renderAlert() {
   if (S._buzzed !== key) { S._buzzed = key; try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {} }
   const tips = ready && S.cfg.tipsUrl ? `<a class="al-s al-4" href="${esc(S.cfg.tipsUrl)}" target="_blank" rel="noopener" style="display:block;margin-top:14px;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,255,255,.35);color:#fff;font:700 13px Manrope,system-ui,sans-serif;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">${SVG.cup}<span>Поблагодарить бариста${o.by ? ' ' + esc(o.by) : ''}</span></a>` : '';
   const why = ready ? 'Подойдите к стойке и покажите этот экран бариста.' : ((o.cancel && o.cancel.reason ? 'Причина: ' + esc(o.cancel.reason) + '. ' : '') + (o.pay !== 2 ? 'Оплата вернётся тем же способом.' : 'Приносим извинения.'));
-  return `<div data-key="alert-sheet" role="alert" aria-live="assertive" style="position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px;box-sizing:border-box;background:${ready ? '#1f7a4a' : '#7a2e22'};color:#fff" class="al ${ready ? 'al-ready' : 'al-cancel'}">
+  return `<div data-key="alert-${key}" role="alert" aria-live="assertive" style="position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px;box-sizing:border-box;background:${ready ? '#1f7a4a' : '#7a2e22'};color:#fff" class="al ${ready ? 'al-ready' : 'al-cancel'}">
     <div class="al-s al-1" style="font:700 13px Manrope,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;opacity:.85">${ready ? 'Ваш заказ готов' : 'Заказ отменён кофейней'}</div>
     <div class="al-num" style="font:800 112px/1 Manrope,system-ui,sans-serif;margin:14px 0 6px;letter-spacing:-.02em">${o.num}</div>
     <div class="al-s al-2" style="font:600 15px/1.5 Manrope,system-ui,sans-serif;max-width:300px">${esc(o.lines.map(l => l[0]).join(', '))}</div>
@@ -2763,8 +2756,13 @@ function renderApp() {
   // между ними подчёркивать нечем, узел экрана всё равно один и тот же.
   const TABI = { home: 0, menu: 1, order: 2, profile: 3 };
   const tabI = TABI[S.tab] != null ? TABI[S.tab] : 0;
-  const scrIn = S.product ? 'scr-up' : S._wasProd ? 'scr-down' : tabI > S._tabI ? 'scr-fwd' : tabI < S._tabI ? 'scr-back' : '';
-  S._tabI = tabI; S._wasProd = !!S.product;
+  const prodNow = !!S.product;
+  if (S._tabI == null) { S._tabI = tabI; S._wasProd = prodNow; S._scrIn = ''; }
+  else if (tabI !== S._tabI || prodNow !== S._wasProd) {
+    S._scrIn = prodNow ? 'scr-up' : S._wasProd ? 'scr-down' : tabI > S._tabI ? 'scr-fwd' : 'scr-back';
+    S._tabI = tabI; S._wasProd = prodNow;
+  }
+  const scrIn = S._scrIn || '';
 
   let screen = '';
   if (S.product) {
@@ -3023,7 +3021,7 @@ function renderApp() {
     const activeCards = active.length > 0 ? `
       <div style="display:grid;gap:12px;margin-bottom:18px">
         ${active.map(o => `
-          <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;animation:fadeUp .35s ease both">
+          <div data-key="ao-${o.num}" style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;animation:fadeUp .35s ease both">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
               <div style="font:800 15px Manrope,system-ui,sans-serif">№${o.num}</div>
               <div style="font:600 11.5px Manrope,system-ui,sans-serif;color:var(--sub)">${o.time}</div>
@@ -3512,7 +3510,7 @@ function renderApp() {
       <div data-c="${tap}" class="a94" role="button" aria-label="Мой заказ" aria-current="${active}" style="position:relative;width:64px;height:62px;box-sizing:border-box;flex:none;display:flex;justify-content:center;cursor:pointer">
         <div style="position:absolute;top:-36px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 14px 28px -10px rgba(0,0,0,.55);border:4px solid var(--ph);box-sizing:border-box;transition:transform .15s">
           <div class="knv-cyc" aria-hidden="true">${CATS.map(([k], i) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="animation-delay:${i * 3}s">${SVG.cat[k] || SVG.cat.other}</svg>`).join('')}</div>
-          ${cartCount > 0 ? `<div data-key="cartn-${cartCount}" class="cart-badge" style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--bad);color:#fff;font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph)">${cartCount}</div>` : ''}
+          ${cartCount > 0 ? `<div data-key="cartn-${cartCount}" class="cart-badge" style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--acc);color:var(--accInk);font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph)">${cartCount}</div>` : ''}
         </div>
         <div style="position:absolute;bottom:11px;font:600 10px Manrope,system-ui,sans-serif;color:${active ? 'var(--goldT)' : 'var(--dim2)'};white-space:nowrap">${label}</div>
       </div>`;
