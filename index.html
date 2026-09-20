@@ -260,6 +260,23 @@ input::placeholder{color:var(--dim);opacity:1}
 .sh-shut{grid-template-rows:0fr;margin-top:0;visibility:hidden;opacity:0}
 .tst.sh-shut{opacity:0}
 }
+/* Нижняя панель. Активный пункт раньше отличался только цветом — это плохо
+   читается и не работает при цветовой слепоте. Теперь у него три признака,
+   из которых два нецветовых: подложка-форма под значком, толще обводка
+   значка и жирнее подпись. Проверено в градациях серого.
+   Рамка с панели снята: она дублировала тень. Размытие оставлено — в отличие
+   от эталона, где панель непрозрачная, здесь --navbg в большинстве тем
+   полупрозрачен, и под полосой действительно едет содержимое. */
+.knv-nav{border:0!important}
+.knv-nav-i>*{position:relative;z-index:1}
+.knv-nav-i::before{content:"";position:absolute;left:50%;top:7px;width:56px;height:46px;margin-left:-28px;border-radius:16px;background:var(--line);opacity:0;transform:scale(.86);transition:opacity .16s ease,transform .16s cubic-bezier(.2,.8,.3,1);z-index:0}
+.knv-nav-i[aria-current]::before{opacity:1;transform:none}
+.knv-nav-i[aria-current] svg{stroke-width:2.4}
+.knv-nav-i[aria-current]>div{font-weight:800!important}
+/* У приподнятой кнопки роль подложки играет кольцо вокруг круга:
+   места под плашку там нет, а признак нужен такой же нецветовой. */
+.knv-nav-i[aria-current] .knv-nav-fab{box-shadow:0 14px 28px -10px rgba(0,0,0,.55),0 0 0 2px var(--goldT)!important}
+@media (prefers-reduced-motion:reduce){.knv-nav-i::before{transition:none}}
 /* Тема Soft UI. Нажатие здесь — не подсветка, а вдавливание: приподнятый
    элемент проваливается в нишу. Тень при этом не анимируется (дорого): готовый
    вдавленный слой лежит псевдоэлементом и проявляется прозрачностью, то есть
@@ -3562,8 +3579,8 @@ function renderApp() {
     if (key === 'order') {
       // Центральная кнопка выступает над полосой — на неё же садится счётчик корзины.
       return `
-      <div data-c="${tap}" class="a94" role="button" aria-label="Мой заказ${cartCount ? ', в корзине ' + cartCount : ''}" aria-current="${active}" style="position:relative;width:64px;height:62px;box-sizing:border-box;flex:none;display:flex;justify-content:center;cursor:pointer">
-        <div style="position:absolute;top:-36px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 14px 28px -10px rgba(0,0,0,.55);border:4px solid var(--ph);box-sizing:border-box;transition:transform .15s">
+      <div data-c="${tap}" class="a94 knv-nav-i" role="button" aria-label="Мой заказ${cartCount ? ', в корзине ' + cartCount : ''}"${active ? ' aria-current="page"' : ''} style="position:relative;width:64px;height:62px;box-sizing:border-box;flex:none;display:flex;justify-content:center;cursor:pointer">
+        <div class="knv-nav-fab" style="position:absolute;top:-36px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--accInk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 14px 28px -10px rgba(0,0,0,.55);border:4px solid var(--ph);box-sizing:border-box;transition:transform .15s">
           <div class="knv-cyc" aria-hidden="true">${CATS.map(([k], i) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="animation-delay:${i * 3}s">${SVG.cat[k] || SVG.cat.other}</svg>`).join('')}</div>
           ${cartCount > 0 ? `<div data-key="cartn-${S._cbTick || 0}" class="cart-badge" aria-hidden="true" style="position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:var(--acc);color:var(--accInk);font:800 10px/19px Manrope,system-ui,sans-serif;text-align:center;border:2px solid var(--ph)">${cartCount}</div>` : ''}
         </div>
@@ -3571,7 +3588,7 @@ function renderApp() {
       </div>`;
     }
     return `
-    <div data-c="${tap}" class="a94" role="button" aria-current="${active}" style="position:relative;width:60px;height:62px;border-radius:19px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:all .2s;color:${active ? 'var(--goldT)' : 'var(--dim2)'}">
+    <div data-c="${tap}" class="a94 knv-nav-i" role="button"${active ? ' aria-current="page"' : ''} style="position:relative;width:60px;height:62px;border-radius:19px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:all .2s;color:${active ? 'var(--goldT)' : 'var(--dim2)'}">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG.nav[ic]}</svg>
       <div style="font:600 10px Manrope,system-ui,sans-serif;margin-top:5px">${label}</div>
     </div>`;
@@ -3581,7 +3598,7 @@ function renderApp() {
   // на сантиметр. 16 пикселей — отступ, при котором скруглённые углы экрана
   // уже не режут углы панели и она не упирается в домашний индикатор.
   const navbar = !S.product ? `
-  <div data-key="nav" class="bar-in glass" style="position:absolute;left:12px;right:12px;bottom:16px;z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
+  <div data-key="nav" class="bar-in glass knv-nav" style="position:absolute;left:12px;right:12px;bottom:16px;z-index:30;height:74px;box-sizing:border-box;border-radius:26px;background:var(--navbg);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 20px 40px -20px var(--shadow)">${navItems}</div>` : '';
 
   return screen + navbar;
 }
