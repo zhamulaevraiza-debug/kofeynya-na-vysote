@@ -269,7 +269,11 @@ input::placeholder{color:var(--dim);opacity:1}
    полупрозрачен, и под полосой действительно едет содержимое. */
 .knv-nav{border:0!important}
 .knv-nav-i>*{position:relative;z-index:1}
-.knv-nav-i::before{content:"";position:absolute;left:50%;top:7px;width:56px;height:46px;margin-left:-28px;border-radius:16px;background:var(--line);opacity:0;transform:scale(.86);transition:opacity .16s ease,transform .16s cubic-bezier(.2,.8,.3,1);z-index:0}
+/* Отметка активного — точка под подписью. Плашка-подложка читалась как
+   наклейка: плоский прямоугольник внутри пилюли, среди круглых значков. */
+.knv-nav-i::before{content:"";position:absolute;left:50%;bottom:4px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--goldT);opacity:0;transform:scale(.4);transition:opacity .16s ease,transform .16s cubic-bezier(.2,.8,.3,1);z-index:0}
+/* У приподнятой кнопки своя отметка — кольцо вокруг круга, точка не нужна. */
+.knv-nav-i:has(.knv-nav-fab)::before{display:none}
 .knv-nav-i[aria-current]::before{opacity:1;transform:none}
 .knv-nav-i[aria-current] svg{stroke-width:2.4}
 .knv-nav-i[aria-current]>div{font-weight:800!important}
